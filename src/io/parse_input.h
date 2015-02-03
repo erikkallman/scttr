@@ -1,7 +1,7 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
 
-extern double * input_data[4]; /* defined in parse_input.c */
+extern double * input_data[4]; /* defined in parse_input.c /*
 
 /* function parse_input_molcas:
 
