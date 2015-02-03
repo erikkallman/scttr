@@ -1,7 +1,25 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
 
-/* function tau_parse_jobfile:
+extern double * input_data[4]; /* defined in parse_input.c */
+
+/* function parse_input_molcas:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+
+static int
+parse_input_molcas ();
+
+
+/* function parse_input:
 
    * algorithm:
    read the job file defined by the argument string following the -j flag
