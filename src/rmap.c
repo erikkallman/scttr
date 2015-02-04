@@ -4,7 +4,6 @@
 #include "input_formats.h"
 #include "parse_input.h" /* for input_data array*/
 #include "rmap_cfg.h"
-#include "rmap.h"
 #define BUF_SIZE 256
 
 int

@@ -3,6 +3,38 @@
 
 extern double * input_data[4]; /* defined in parse_input.c /*
 
+/* function isempty:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+static int
+isempty (char * s,
+           int len);
+
+
+/* function isdigitin:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+static int
+isdigitin (char * s,
+           int len);
+
+
 /* function parse_input_molcas:
 
    * algorithm:
