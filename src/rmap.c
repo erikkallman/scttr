@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "input_formats.h"
-#include "parse_input.h" /* for input_data array*/
+#include "parse_input.h" /* for input_data array, as well as other
+                            calculation-specific variables */
 #include "rmap_cfg.h"
 #define BUF_SIZE 256
 
@@ -54,9 +55,9 @@ main (int argc, char * argv[]) {
   /*   exit(1); */
   /* } */
 
-  for (j=0; j<=3; j++) {
-      free(input_data[j]);/* memory allocated in parse_input.c */
-  }
+  /* for (j=0; j<=3; j++) { */
+  /*     free(input_data[j]);/\* memory allocated in parse_input.c *\/ */
+  /* } */
 
   printf( "rmap successfully executed.\n" );
   return 0;

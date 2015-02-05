@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <regex.h>
 #include <ctype.h>
@@ -8,15 +9,112 @@
 #define BUF_SIZE 256
 #define bin_flip(x) ((x) == 1 ? 0 : 1)
 
+int n_sts;
+int n_trs;
 double * input_data[4];
-static FILE * fp_infile; /* pointer to the opened input data file */
-static char key[] = { ' ', '\n', '\t','-', 0 }; /* key for checking empty strings. */
+FILE * fp_infile; /* pointer to the opened input data file */
 
-static int
+char*
+get_numinstr (const char * s,
+              int idx,
+              int str_len,
+              int flag
+              ){
+  int k;
+  static int j;
+  int n_digits_found = 0;
+
+
+  /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
+  int mode = 0;
+  char c;
+  char * numstr; /* a string containing the extracted number */
+  char num_buf[BUF_SIZE] = {0};
+
+  /* if we're searching this string more in the future, we can store the index
+   of the last digit so that we wont have to loop over the entire string again */
+  /* if (flag == 1) { */
+    j = 0;
+  /* } */
+
+  printf( "getnuminstr s=%s", s);
+  printf( "str_len=%d", str_len);
+  sleep(2);
+
+  for (; j<str_len; c = s[j]) {
+    printf( "read char %c\n", c);
+    sleep(2);
+    if ((c == '.') || isdigit(c)) { /* check if we're still reading a number */
+      num_buf[j] = c;
+      printf( "read digit %d\n", (int)c);
+      if (mode == 0) {
+        /* now proceeding to read a digit */
+        mode = bin_flip(mode);
+      }
+    }
+    else if(mode == 1){
+      printf( "broke at %d\n",j );
+      sleep(2);
+      /* if in reading number mode and found something non number
+         the digit we were reading has now ended */
+      break;
+    }
+    j++;
+  }
+
+  numstr = malloc(j);
+
+  for (k=0; k<=j; k++) {
+    /* store the number and return a pointer to it.
+       this gets freed up by the caller. */
+    numstr[k] = num_buf[k];
+  }
+
+
+  return numstr;
+}
+
+int
+get_numsl (char * str,
+           int * idxs_out,
+           int str_len,
+           int n_idxs,
+           ...){
+  int j,k;
+  va_list argv;
+  char * numstr;
+  double * tmp_num;
+  va_start(argv, n_idxs);
+
+  for (j=0; j<n_idxs; j++) { /* loop over indexes */
+    printf( "index %d\n", j);
+
+    /* store the memory address to the variadic input arguments sot hat we can
+     assign them locally */
+    tmp_num = va_arg(argv, double*);
+
+    /* find the indexed number in the string and store it.  */
+    printf( "\n======\n", str);
+    printf( "sent string=%s\n", str);
+    printf( "======\n", str);
+    numstr = get_numinstr(str,idxs_out[j],str_len,1);
+    printf( "got string %s\n",numstr );
+    *tmp_num = atof(numstr); /* extract the next memory location */
+    printf( "stored number\n" );
+    free(numstr);
+  }
+
+  va_end(argv);
+
+  return 1;
+}
+
+int
 isempty (char * s,
          int len) {
   int j,k;
 
+  static char key[5] = { ' ', '\n', '\t','-', '\0' }; /* key for checking empty strings. */
   for (j=0; j<len; j++) {
     if (strchr(key, s[j]) == NULL) {
       /* as soon as strchr returns something that isnt a match,
@@ -29,7 +127,7 @@ isempty (char * s,
   return 1;
 }
 
-static int
+int
 isdigitin (char * s,
            int len) {
   int j;
@@ -42,12 +140,18 @@ isdigitin (char * s,
   return 0;
 }
 
-static int
+double **
 parse_input_molcas (char * fn_infile) {
 
   int j,k,l,m,i,n; /* control loop variables */
   int mode; /* string matching mode flag */
-  int next_match;
+  int match_start;
+  int match_end;
+  int tmp_int;
+
+  int extr_i;
+  float extr_f;
+  double ** parsed_input;
   const int n_lookup_str = 4; /* number of strings used for searching the input file */
   const int n_maxmatch = n_lookup_str/2;
   int n_matchfound = 0;
@@ -144,53 +248,64 @@ parse_input_molcas (char * fn_infile) {
     }
   }
 
-  free(str_buf);
-  printf( "\n\n found the following matches\n" );
-  for (j=0; j<n_lookup_str/2; j++) {
-    printf( "%d:%d\n", j, match_vals[j]);
+  /* we now know the number of states used in the molcas calculation, as well
+     as the number of possible transitions.*/
+  n_sts = match_vals[0];
+  n_trs = match_vals[1];
+  printf( "allocating\n" );
+
+  if((parsed_input = malloc(5*sizeof(double*))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"input_data\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
   }
 
-  printf( "\n\n on the following offsets\n" );
-  for (j=0; j<n_lookup_str; j++) {
-    printf( "%d:%d\n", j, match_ln[j]);
-  }
-
-  for (j=0; j<=2; j++) {
-    for (k=0; k<2; k++) {
-      if(( input_data[j+k] = malloc(match_vals[j]*sizeof(double*))) == NULL ){
+  /* allocate space for the "parsed input matrix" that will be filled with data
+     in the remaining sections of this function */
+  for (j=0; j<5; j++) {
+      if((parsed_input[j] = malloc(n_trs*sizeof(double*))) == NULL ){
         fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"input_data\"\n");
         printf( "program terminating due to the previous error.\n");
         exit(1);
-      }
     }
   }
-
+  printf( "allocated\n" );
+  int num_idxs[2] = {2,3};
+  int n_idxs = 2;
 
   l = 0; /* index for string matches */
 
-  for (j=0; j<n_maxmatch; j++) {
+  /* for (j=0; j<n_lookup_str; j+=2) { */
+  j = 0;
+    match_start = match_ln[j];
+    match_end = match_ln[j+1];
 
-    next_match = match_ln[j];
-    fseek(fp_infile, next_match, 0);
+    fseek(fp_infile, match_start, 0);
 
-    for (k=next_match; k<match_ln[j+1]; k++) {
+    for (k=match_start; k<match_end; k++) {
       c = fgetc(fp_infile);
-      str_buf[l++] = (char) c;
+      str_buf[l] = (char)c;
       if (str_buf[l] == '\n') {
-        for (n=0; n<l; n++) {
-          printf( "%c", str_buf[n]);
+        if (j == 0) {
+          get_numsl(str_buf,num_idxs,n_idxs,l,&parsed_input[2][k],       \
+                    &parsed_input[3][k]);
         }
-        printf( "\n" );
         l=0;
       }
+      l++;
     }
-  }
+    printf( "processed input\n" );
+    /* for (j=0; j<match_start - match_end; j++) { */
+    /*   printf( "%le , %le\n", parsed_input[2][j], parsed_input[3][j]); */
+    /* } */
+  /* } */
 
 
   /* the input data structure has been allocated. now read data from the input
      file, using the indexes in match_ln, and store it.  */
-
-  return 0;
+    fclose(fp_infile);
+  free(str_buf);
+  return parsed_input;
 }
 
 int
@@ -201,7 +316,17 @@ parse_input (char * fn_infile, /* name of input file */
   FILE * fp_infile;
   char format[BUF_SIZE] = {0};
 
-
+  /* after having been used in a reference call to a parsing function the
+     parsed_input array should contain an n_trans * 5 matrix loaded with
+     data for each electronic transition that was calculated:
+     [idx_f,idx_t,e_f,e_t,osc] where...
+     idx_f = the index the electronic state FROM which the transition took place
+     idx_t = the index the electronic state where the transition went TO
+     e_f = energy corresponding to idx_f
+     e_t = energy corresponding to idx_t
+     mom = the transition moment for the transition
+  */
+  double ** parsed_input;
 
   /* loop over the input file name and extract the ending */
   for (j=len_fn; j>0; j--) {
@@ -210,8 +335,8 @@ parse_input (char * fn_infile, /* name of input file */
 
       if (strcmp(format,MOLCAS_FORMAT)){
         printf( "found molcas.\n" );
-        parse_input_molcas(fn_infile);
-        printf( "processed molcas3\n" );
+        parsed_input = parse_input_molcas(fn_infile);
+        printf( "processed molcas\n" );
         break; /* for */
       }
 
@@ -221,6 +346,21 @@ parse_input (char * fn_infile, /* name of input file */
     }
   }
 
+  /* allocate memory space for all data structures used to store the input data. */
+  /* for (j=0; j<=2; j++) { */
+  /*   for (k=0; k<2; k++) { */
+  /*     if((input_data[j+k] = malloc(match_vals[j]*sizeof(double*))) == NULL ){ */
+  /*       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"input_data\"\n"); */
+  /*       printf( "program terminating due to the previous error.\n"); */
+  /*       exit(1); */
+  /*     } */
+  /*   } */
+  /* } */
+
+  for (j=0; j<5; j++) {
+    free(parsed_input[j]);
+  }
+  free(parsed_input);
   printf( "file processed\n" );
   return 0;
 }
