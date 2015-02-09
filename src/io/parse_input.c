@@ -20,87 +20,121 @@ get_numinstr (const char * s,
               int str_len,
               int flag
               ){
-  int k;
+  int k = 0;
+  int l = 0;
   static int j;
   int n_digits_found = 0;
 
 
   /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
   int mode = 0;
+  int last_mode = mode;
   char c;
   char * numstr; /* a string containing the extracted number */
   char num_buf[BUF_SIZE] = {0};
 
   /* if we're searching this string more in the future, we can store the index
    of the last digit so that we wont have to loop over the entire string again */
-  /* if (flag == 1) { */
+  if (flag == 1) {
     j = 0;
-  /* } */
+  }
 
-  printf( "getnuminstr s=%s", s);
-  printf( "str_len=%d", str_len);
-  sleep(2);
+  /* printf( "getnuminstr s=%s", s); */
+  /* printf( "str_len=%d", str_len); */
+  /* sleep(2) */;
 
   for (; j<str_len; c = s[j]) {
-    printf( "read char %c\n", c);
-    sleep(2);
-    if ((c == '.') || isdigit(c)) { /* check if we're still reading a number */
-      num_buf[j] = c;
-      printf( "read digit %d\n", (int)c);
+    /* printf( "read char %c is? %d\n", c, isdigit(c)); */
+    /* sleep(2) */;
+    if ((c == '.') || (isdigit(c) != 0) || (c == '-')) { /* check if we're still reading a number */
+
+      /* check if we're reading the right digit, else ignore the result */
+      if (k == idx) {
+        num_buf[l++] = c;
+      }
+
       if (mode == 0) {
         /* now proceeding to read a digit */
+        last_mode = mode;
         mode = bin_flip(mode);
       }
+
+      if (last_mode == 0) {
+
+      }
     }
+
+    /* if we read a non-number character and we're in read mode, we have
+     read the end of a digit. */
     else if(mode == 1){
-      printf( "broke at %d\n",j );
-      sleep(2);
-      /* if in reading number mode and found something non number
-         the digit we were reading has now ended */
-      break;
+      if (k++ > idx) { /* increase the counter for read numbers */
+        /* printf( "broke at digit %d, of len %d\n",k,l ); */
+        break;
+      }
+      /* printf( "flipped at digit %d, of len %d\n",k,l ); */
+      mode = bin_flip(mode); /* go back to reading non numbers */
     }
+
+    /* if in reading number mode and found something non number
+       the digit we were reading has now ended. increment k to
+       note that we have read a number.
+    */
+    /* else if((mode == 1)  && (k > idx)){ /\* make sure we passed the last number */
+    /*                                      we wanted to read *\/ */
+    /*   printf( "broke at digit %d, of len %d\n",k,l ); */
+    /*   /\* sleep(2) *\/; */
+    /*   break; */
+    /* } */
+
     j++;
   }
 
   numstr = malloc(j);
-
-  for (k=0; k<=j; k++) {
+  /* printf( "\n\n========return\n" ); */
+  for (k=0; k<=l; k++) {
     /* store the number and return a pointer to it.
        this gets freed up by the caller. */
     numstr[k] = num_buf[k];
+    /* printf( "%c", numstr[k]); */
   }
-
+  /* printf( "\n\n========return\n" ); */
 
   return numstr;
 }
 
 int
 get_numsl (char * str,
-           int * idxs_out,
+           int * idxs_out, /* idexes of numbers in string that we want */
            int str_len,
            int n_idxs,
            ...){
   int j,k;
   va_list argv;
   char * numstr;
+
   double * tmp_num;
+  /* store the memory address to the variadic input arguments so that we can
+     assign them locally */
   va_start(argv, n_idxs);
 
   for (j=0; j<n_idxs; j++) { /* loop over indexes */
-    printf( "index %d\n", j);
+    /* printf( "\n\n==OOO index %d OOO ==\n\n", j); */
 
-    /* store the memory address to the variadic input arguments sot hat we can
-     assign them locally */
-    tmp_num = va_arg(argv, double*);
+    tmp_num = va_arg(argv, double*); /* grab the next vararg */
 
     /* find the indexed number in the string and store it.  */
-    printf( "\n======\n", str);
-    printf( "sent string=%s\n", str);
-    printf( "======\n", str);
+    /* printf( "\n==============================\n"); */
+    /* printf( "get_numsl sent string=%s\n", str); */
+    /* printf( "of len=%d\n", str_len); */
+
     numstr = get_numinstr(str,idxs_out[j],str_len,1);
-    printf( "got string %s\n",numstr );
-    *tmp_num = atof(numstr); /* extract the next memory location */
-    printf( "stored number\n" );
+    /* printf( "got string %s\n",numstr ); */
+    sscanf(numstr, "%le", tmp_num);
+    /* printf( "resulting in num %f\n",atof(numstr)); */
+    /* printf( "resulting in num %le\n",*tmp_num); */
+    /* *tmp_num = atof(numstr); /\* extract the next memory location *\/ */
+    /* printf( "================================\n\n" ); */
+    /* sleep(1); */
     free(numstr);
   }
 
@@ -143,7 +177,7 @@ isdigitin (char * s,
 double **
 parse_input_molcas (char * fn_infile) {
 
-  int j,k,l,m,i,n; /* control loop variables */
+  int j,k,l,m,i,n,k_its; /* control loop variables */
   int mode; /* string matching mode flag */
   int match_start;
   int match_end;
@@ -252,7 +286,6 @@ parse_input_molcas (char * fn_infile) {
      as the number of possible transitions.*/
   n_sts = match_vals[0];
   n_trs = match_vals[1];
-  printf( "allocating\n" );
 
   if((parsed_input = malloc(5*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"input_data\"\n");
@@ -263,47 +296,55 @@ parse_input_molcas (char * fn_infile) {
   /* allocate space for the "parsed input matrix" that will be filled with data
      in the remaining sections of this function */
   for (j=0; j<5; j++) {
-      if((parsed_input[j] = malloc(n_trs*sizeof(double*))) == NULL ){
+      if((parsed_input[j] = malloc(n_trs*sizeof(double))) == NULL ){
         fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"input_data\"\n");
         printf( "program terminating due to the previous error.\n");
         exit(1);
     }
   }
-  printf( "allocated\n" );
-  int num_idxs[2] = {2,3};
-  int n_idxs = 2;
 
+  int num_idxs[2] = {0,1};
+  int n_idxs = 2;
   l = 0; /* index for string matches */
 
-  /* for (j=0; j<n_lookup_str; j+=2) { */
-  j = 0;
+  for (j=0; j<n_lookup_str; j+=2) {
+    m = 0;
+
     match_start = match_ln[j];
     match_end = match_ln[j+1];
 
     fseek(fp_infile, match_start, 0);
-
-    for (k=match_start; k<match_end; k++) {
+    k_its = match_end-match_start;
+    for (k=0; k<k_its; k++) {
       c = fgetc(fp_infile);
       str_buf[l] = (char)c;
-      if (str_buf[l] == '\n') {
-        if (j == 0) {
-          get_numsl(str_buf,num_idxs,n_idxs,l,&parsed_input[2][k],       \
-                    &parsed_input[3][k]);
+      if ((str_buf[l] == '\n') && (l > 1)) { /* dont send blank lines */
+        if (j == 0) { /* extract energy eigenvalues and state indexes */
+          get_numsl(str_buf,num_idxs,l,n_idxs,&parsed_input[2][m],&parsed_input[3][m]);
+          m++;
         }
-        l=0;
+        /* if (j == 1) { /\* extract transition moments and transition indexes *\/ */
+        /*   get_numsl(str_buf,num_idxs,l,n_idxs,&parsed_input[2][m],&parsed_input[3][m]); */
+        /*   m++; */
+        /* } */
+        l=0; /* reset the buffer write head */
       }
       l++;
     }
-    printf( "processed input\n" );
-    /* for (j=0; j<match_start - match_end; j++) { */
-    /*   printf( "%le , %le\n", parsed_input[2][j], parsed_input[3][j]); */
-    /* } */
+
+    for (k=0; k<m-1; k++) {
+      printf( "%d: %le , %le\n", k, parsed_input[2][k], parsed_input[3][k]);
+      /* sleep(1); */
+    }
+  }
+
+
   /* } */
 
 
   /* the input data structure has been allocated. now read data from the input
      file, using the indexes in match_ln, and store it.  */
-    fclose(fp_infile);
+  fclose(fp_infile);
   free(str_buf);
   return parsed_input;
 }
