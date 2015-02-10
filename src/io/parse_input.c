@@ -421,15 +421,15 @@ for pointers in \"input_data\"\n");
 
     l = 0; /* index for string matches */
     m = 0;
-    if (j == 0) { /* extract energy eigenvalues and state indexes */
-      printf( "\nextract energy eigenvalues and state indexes\n" );
+    /* if (j == 0) { /\* extract energy eigenvalues and state indexes *\/ */
+    /*   printf( "\nextract energy eigenvalues and state indexes\n" ); */
 
-    }
+    /* } */
 
-    if (j == 2) { /* extract transition moments and transition indexes */
-      printf( "\nextract transition moments and transition indexes\n" );
+    /* if (j == 2) { /\* extract transition moments and transition indexes *\/ */
+    /*   printf( "\nextract transition moments and transition indexes\n" ); */
 
-    }
+    /* } */
 
     match_start = match_ln[j];
     match_end = match_ln[j+1];
@@ -438,7 +438,7 @@ for pointers in \"input_data\"\n");
 
     k_its = match_end-match_start;
 
-    printf( "    seeking to %d to iterate for %d\n", match_start, k_its);
+    /* printf( "    seeking to %d to iterate for %d\n", match_start, k_its); */
 
 
     for (k=0; k<k_its; k++) {
@@ -470,13 +470,12 @@ for pointers in \"input_data\"\n");
       l++;
     }
   }
-  printf( "sorting data\n" );
+  /* printf( "sorting data\n" ); */
   /* sort the data */
   for (j=0; j<n_trans; j++) {
 
     idx_from = trans_idxs[0][j];
     idx_to = trans_idxs[1][j];
-    printf( "from:%d to:%d\n", idx_from, idx_to);
     parsed_input[0][j] = idx_from;
     parsed_input[1][j] = idx_to;
     parsed_input[2][j] = e_eigval[idx_from-1];
