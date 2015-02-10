@@ -9,10 +9,63 @@
 #define BUF_SIZE 256
 #define bin_flip(x) ((x) == 1 ? 0 : 1)
 
-int n_sts;
-int n_trs;
+int n_states;
+int n_trans;
 double * input_data[4];
 FILE * fp_infile; /* pointer to the opened input data file */
+
+int power(int base,int exp)
+{
+  int power;
+  power=1;
+  while(exp-- > 0)
+    power *=base;
+
+  return power;
+}
+
+double sci_atof(char s[]){
+  double val,pow;
+  int sign,i,esign,exp;
+  int power(int base,int exp);
+
+  for(i=0;isspace(s[i]);i++)
+    ;
+
+  sign=(s[i]=='-')?-1:1;
+
+  if(s[i]=='+' || s[i] == '-')
+    i++;
+
+  for(val=0.0;isdigit(s[i]);i++)
+    val = 10.0 * val + (s[i] - '0');
+
+  if(s[i]=='.')
+    i++;
+
+  for(pow=1.0;isdigit(s[i]);i++)
+    {
+      val = 10.0 * val + (s[i] - '0');
+      pow *= 10.0;
+    }
+
+  if(s[i]=='e' || s[i] =='E')
+    i++;
+  if(s[i]=='+' || s[i] =='-')
+    {
+      esign=s[i];
+      i++;
+    }
+
+  for(exp=0;isdigit(s[i]);i++)
+    exp=10.0 * exp + (s[i] - '0');
+
+  if( esign == '-')
+    return sign * (val / pow) / power(10,exp);
+  else
+
+    return sign * (val / pow) * power(10,exp);
+}
 
 char*
 get_numinstr (const char * s,
@@ -25,11 +78,13 @@ get_numinstr (const char * s,
   static int j;
   int n_digits_found = 0;
 
+  static char num_key[] = {'-','.','E',};
 
   /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
   int mode = 0;
   int last_mode = mode;
   char c;
+  char last_c;
   char * numstr; /* a string containing the extracted number */
   char num_buf[BUF_SIZE] = {0};
 
@@ -41,12 +96,18 @@ get_numinstr (const char * s,
 
   /* printf( "getnuminstr s=%s", s); */
   /* printf( "str_len=%d", str_len); */
-  /* sleep(2) */;
 
   for (; j<str_len; c = s[j]) {
-    /* printf( "read char %c is? %d\n", c, isdigit(c)); */
-    /* sleep(2) */;
-    if ((c == '.') || (isdigit(c) != 0) || (c == '-')) { /* check if we're still reading a number */
+    /* printf( "read char %c is? %d %d\n", c, isdigit(c), isalpha(c)); */
+    /* printf( "last_char? %d", isalpha(last_c)); */
+    /* check so that we're not reading a dashed line */
+    /* while((last_c == '-') && (c  == '-')){ */
+    /*   last_c = c; */
+    /*   c = s[j++]; */
+    /* } */
+
+    if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0)) &&\
+        ((isalpha(last_c) == 0 ) || (last_c == 'E'))) { /* check if we're still reading a number and avoid dashed lines */
 
       /* check if we're reading the right digit, else ignore the result */
       if (k == idx) {
@@ -55,6 +116,7 @@ get_numinstr (const char * s,
 
       if (mode == 0) {
         /* now proceeding to read a digit */
+        /* printf( "flopped at digit %d, of len %d\n",k,l ); */
         last_mode = mode;
         mode = bin_flip(mode);
       }
@@ -63,11 +125,10 @@ get_numinstr (const char * s,
 
       }
     }
-
     /* if we read a non-number character and we're in read mode, we have
      read the end of a digit. */
-    else if(mode == 1){
-      if (k++ > idx) { /* increase the counter for read numbers */
+    else if(mode == 1) {
+      if (++k > idx) { /* increase the counter for read numbers */
         /* printf( "broke at digit %d, of len %d\n",k,l ); */
         break;
       }
@@ -85,7 +146,7 @@ get_numinstr (const char * s,
     /*   /\* sleep(2) *\/; */
     /*   break; */
     /* } */
-
+    last_c = c;
     j++;
   }
 
@@ -128,14 +189,14 @@ get_numsl (char * str,
     /* printf( "of len=%d\n", str_len); */
 
     numstr = get_numinstr(str,idxs_out[j],str_len,1);
-    /* printf( "got string %s\n",numstr ); */
-    sscanf(numstr, "%le", tmp_num);
-    /* printf( "resulting in num %f\n",atof(numstr)); */
+    /* printf( "get_numsl got string %s\n",numstr ); */
+
+    *tmp_num = sci_atof(numstr); /* extract the next memory location */
     /* printf( "resulting in num %le\n",*tmp_num); */
-    /* *tmp_num = atof(numstr); /\* extract the next memory location *\/ */
     /* printf( "================================\n\n" ); */
     /* sleep(1); */
     free(numstr);
+    /* numstr = NULL; /\* prevent the pointer from becoming a dangling pointer *\/ */
   }
 
   va_end(argv);
@@ -182,10 +243,16 @@ parse_input_molcas (char * fn_infile) {
   int match_start;
   int match_end;
   int tmp_int;
-
+  int idx_from;
+  int idx_to;
   int extr_i;
   float extr_f;
+
   double ** parsed_input;
+  double * e_eigval;
+  double ** trans_idxs;
+  double * t_mom;
+
   const int n_lookup_str = 4; /* number of strings used for searching the input file */
   const int n_maxmatch = n_lookup_str/2;
   int n_matchfound = 0;
@@ -221,9 +288,9 @@ parse_input_molcas (char * fn_infile) {
   }
 
   const char s1[26] = "        Relative EVac(au)";
-  const char s2[36] = " Weights of the five most important";
-  const char s3[36] = "         To  From     Osc. strength";
-  const char s4[81] = " ###############################################################################";
+  const char s2[51] = " Weights of the five most important spin-orbit-free";
+  const char s3[18] = "         To  From";
+  const char s4[52] = " ##################################################";
   const char * lookup_str[4] = {s1,s2,s3,s4};
 
   /* open the input file */
@@ -284,11 +351,14 @@ parse_input_molcas (char * fn_infile) {
 
   /* we now know the number of states used in the molcas calculation, as well
      as the number of possible transitions.*/
-  n_sts = match_vals[0];
-  n_trs = match_vals[1];
+  n_states = match_vals[0];
+  n_trans = match_vals[1];
+
+  printf( "%d %d\n", n_states,n_trans);
 
   if((parsed_input = malloc(5*sizeof(double*))) == NULL ){
-    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"input_data\"\n");
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"input_data\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
@@ -296,51 +366,127 @@ parse_input_molcas (char * fn_infile) {
   /* allocate space for the "parsed input matrix" that will be filled with data
      in the remaining sections of this function */
   for (j=0; j<5; j++) {
-      if((parsed_input[j] = malloc(n_trs*sizeof(double))) == NULL ){
-        fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"input_data\"\n");
+      if((parsed_input[j] = malloc(n_trans*sizeof(double))) == NULL ){
+        fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
+for pointers in \"input_data\"\n");
         printf( "program terminating due to the previous error.\n");
         exit(1);
     }
   }
 
-  int num_idxs[2] = {0,1};
-  int n_idxs = 2;
-  l = 0; /* index for string matches */
+  /* storage for the energy eigenvalues */
+  if((e_eigval = malloc(n_states*sizeof(double))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  /* storage for the transition moments */
+  if((t_mom = malloc(n_trans*sizeof(double))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+    /* storage for the transition indexes, column 1 is from a state
+     column 2 is to state index */
+  if((trans_idxs = malloc(2*sizeof(double*))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<2; j++) {
+    if((trans_idxs[j] = malloc(n_trans*sizeof(double))) == NULL ){
+        fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+        printf( "program terminating due to the previous error.\n");
+        exit(1);
+      }
+  }
+
+  /* int num_idxs[2] = {0,1}; */
+  /* int n_idxs = 2; */
+
+  int num_idxs1[1] = {1};
+  int n_idxs1 = 1;
+
+  int num_idxs2[3] = {0,1,8};
+  int n_idxs2 = 3;
 
   for (j=0; j<n_lookup_str; j+=2) {
+
+    l = 0; /* index for string matches */
     m = 0;
+    if (j == 0) { /* extract energy eigenvalues and state indexes */
+      printf( "\nextract energy eigenvalues and state indexes\n" );
+
+    }
+
+    if (j == 2) { /* extract transition moments and transition indexes */
+      printf( "\nextract transition moments and transition indexes\n" );
+
+    }
 
     match_start = match_ln[j];
     match_end = match_ln[j+1];
 
     fseek(fp_infile, match_start, 0);
+
     k_its = match_end-match_start;
+
+    printf( "    seeking to %d to iterate for %d\n", match_start, k_its);
+
+
     for (k=0; k<k_its; k++) {
       c = fgetc(fp_infile);
       str_buf[l] = (char)c;
       if ((str_buf[l] == '\n') && (l > 1)) { /* dont send blank lines */
+
         if (j == 0) { /* extract energy eigenvalues and state indexes */
-          get_numsl(str_buf,num_idxs,l,n_idxs,&parsed_input[2][m],&parsed_input[3][m]);
+          /* get_numsl(str_buf,num_idxs,l,n_idxs,&parsed_input[2][m],&parsed_input[3][m]); */
+          get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
           m++;
         }
-        /* if (j == 1) { /\* extract transition moments and transition indexes *\/ */
-        /*   get_numsl(str_buf,num_idxs,l,n_idxs,&parsed_input[2][m],&parsed_input[3][m]); */
-        /*   m++; */
-        /* } */
-        l=0; /* reset the buffer write head */
+
+        if (j == 2) { /* extract transition moments and transition indexes */
+          /* printf( "strlen = %d\n",l); */
+          /* sleep(2); */
+          /* printf( "\n\nthe string: " ); */
+          /* for (n=0; n<l; n++) { */
+          /*   printf( "%c", str_buf[n]); */
+          /* } */
+          /* printf( "\n" ); */
+          /* sleep(2); */
+          get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
+                    &trans_idxs[1][m],&t_mom[m]);
+          m++;
+        }
+        l=0; /* reset the buffer write head to start reading a the next line */
       }
       l++;
     }
+  }
+  printf( "sorting data\n" );
+  /* sort the data */
+  for (j=0; j<n_trans; j++) {
 
-    for (k=0; k<m-1; k++) {
-      printf( "%d: %le , %le\n", k, parsed_input[2][k], parsed_input[3][k]);
-      /* sleep(1); */
-    }
+    idx_from = trans_idxs[0][j];
+    idx_to = trans_idxs[1][j];
+    printf( "from:%d to:%d\n", idx_from, idx_to);
+    parsed_input[0][j] = idx_from;
+    parsed_input[1][j] = idx_to;
+    parsed_input[2][j] = e_eigval[idx_from-1];
+    parsed_input[3][j] = e_eigval[idx_to-1];
+    parsed_input[4][j] = t_mom[j];
   }
 
-
-  /* } */
-
+  for (k=0; k<n_trans; k++) {
+    printf( "%le   %le   %le   %le   %le\n", parsed_input[0][k], parsed_input[1][k], parsed_input[2][k], parsed_input[3][k], parsed_input[4][k]);
+  }
 
   /* the input data structure has been allocated. now read data from the input
      file, using the indexes in match_ln, and store it.  */

@@ -1,8 +1,8 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
 
-extern int n_sts; /* number of states used in the calculation */
-extern int n_trs; /* number of electronic transitions involved */
+extern int n_states; /* number of states used in the calculation */
+extern int n_trans; /* number of electronic transitions involved */
 extern double * input_data[4]; /* defined in parse_input.c /*
 
 
