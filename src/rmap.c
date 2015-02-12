@@ -50,14 +50,10 @@ main (int argc, char * argv[]) {
     argc--;
     argv++;
   }
-  /* if (parse_input(fn_infile, j-3)) { */
-  /*   fprintf(stderr, "unable to process input the input in %s",fn_infile); */
-  /*   exit(1); */
-  /* } */
 
-  /* for (j=0; j<=3; j++) { */
-  /*     free(input_data[j]);/\* memory allocated in parse_input.c *\/ */
-  /* } */
+  for (j=0; j<=3; j++) {
+      free(input_data[j]);/* memory allocated in parse_input.c */
+  }
 
   printf( "rmap successfully executed.\n" );
   return 0;
