@@ -21,7 +21,7 @@ in the string is considered a separator between two numbers.
 
 */
 char*
-get_numinstr (const char * s,
+get_numinstr (char * s,
               int idx,
               int str_len,
               int flag /* variable to store the last location in the string */

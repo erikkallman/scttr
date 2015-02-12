@@ -9,13 +9,15 @@
 #define BUF_SIZE 256
 #define bin_flip(x) ((x) == 1 ? 0 : 1)
 
+/* check if both x and y are dashes */
+#define isddash(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
+
 int n_states;
 int n_trans;
 double * input_data[4];
 FILE * fp_infile; /* pointer to the opened input data file */
 
-int power(int base,int exp)
-{
+int power(int base,int exp){
   int power;
   power=1;
   while(exp-- > 0)
@@ -68,7 +70,7 @@ double sci_atof(char s[]){
 }
 
 char*
-get_numinstr (const char * s,
+get_numinstr (char * s,
               int idx,
               int str_len,
               int flag
@@ -105,9 +107,14 @@ get_numinstr (const char * s,
     /*   last_c = c; */
     /*   c = s[j++]; */
     /* } */
-
-    if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0)) &&\
-        ((isalpha(last_c) == 0 ) || (last_c == 'E'))) { /* check if we're still reading a number and avoid dashed lines */
+    /* if (isddash(c,last_c)) { */
+    /*   printf( "got a dd!\n" ); */
+    /*   printf( "%s", s); */
+    /*   exit(1); */
+    /* } */
+    /* check if we're still reading a number and avoid dashed lines */
+    if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0))      \
+        && ((isalpha(last_c) == 0 ) || (last_c == 'E'))) {
 
       /* check if we're reading the right digit, else ignore the result */
       if (k == idx) {
@@ -151,6 +158,8 @@ get_numinstr (const char * s,
   }
 
   numstr = malloc(j);
+
+
   /* printf( "\n\n========return\n" ); */
   for (k=0; k<=l; k++) {
     /* store the number and return a pointer to it.
@@ -184,7 +193,8 @@ get_numsl (char * str,
     tmp_num = va_arg(argv, double*); /* grab the next vararg */
 
     /* find the indexed number in the string and store it.  */
-    /* printf( "\n==============================\n"); */
+
+
     /* printf( "get_numsl sent string=%s\n", str); */
     /* printf( "of len=%d\n", str_len); */
 
@@ -193,15 +203,32 @@ get_numsl (char * str,
 
     *tmp_num = sci_atof(numstr); /* extract the next memory location */
     /* printf( "resulting in num %le\n",*tmp_num); */
-    /* printf( "================================\n\n" ); */
+    /* printf( "================================\n\n"); */
     /* sleep(1); */
+
     free(numstr);
-    /* numstr = NULL; /\* prevent the pointer from becoming a dangling pointer *\/ */
+
+    /* numstr = NULL; */
   }
 
   va_end(argv);
+  return 0;
+}
 
-  return 1;
+int
+isdashes (char * s,
+         int len) {
+  int j,k;
+  char c,last_c;
+  for (j=0; j<len; j++) {
+    c = s[j];
+    if (isddash(c,last_c)) {
+      return 1;/* found at least one double dash */
+    }
+    last_c = c;
+  }
+  /* we got through the string without finding a double dash" */
+  return 0;
 }
 
 int
@@ -242,7 +269,8 @@ parse_input_molcas (char * fn_infile) {
   int mode; /* string matching mode flag */
   int match_start;
   int match_end;
-  int tmp_int;
+  int last_int;
+  int next_int;
   int idx_from;
   int idx_to;
   int extr_i;
@@ -253,15 +281,17 @@ parse_input_molcas (char * fn_infile) {
   double ** trans_idxs;
   double * t_mom;
 
+  FILE * fp_tmpdata;
+
   const int n_lookup_str = 4; /* number of strings used for searching the input file */
   const int n_maxmatch = n_lookup_str/2;
   int n_matchfound = 0;
-  int match_vals[4] = {0}; /* place to store the indexes of the lines containing the
+  int match_vals[2] = {0}; /* place to store the indexes of the lines containing the
                               matches */
 
   /* place to store the indexes of the lines containing the
      matches. each data block will start after,  and end after the offset values.*/
-  int match_ln[4];
+  int match_ln[n_lookup_str];
   FILE * fp_infile;
 
   int c; /* temporary char for storing input file characters */
@@ -273,7 +303,7 @@ parse_input_molcas (char * fn_infile) {
   regex_t c_regex_m2;
   regex_t c_regexs[2] = {c_regex_m1, c_regex_m2};
 
-  str_buf = malloc(BUF_SIZE);
+  str_buf = malloc(BUF_SIZE*2);
 
   const char s_regex_m1[6] = "[0-9]";
   const char s_regex_m2[6] = "[0-9]";
@@ -300,6 +330,12 @@ parse_input_molcas (char * fn_infile) {
     exit(1);
   }
 
+  if((fp_tmpdata = fopen("/home/kimchi/dev/rmap/tmp/molcas_data.tmp", "w+")) == NULL) {
+    fprintf(stderr,"parse_input: unable to open the output file %s.\n",fn_infile);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
   k = 0; /* index for tmp_string */
   l = 0; /* index for lookup string */
   m = 0; /* index for string matches */
@@ -317,6 +353,8 @@ parse_input_molcas (char * fn_infile) {
       if (str_buf[k] == '\n') {
 
         /* check every line for a matching substring */
+        /* mode = 1 and a line match means that we reached
+           the end of this data block */
         if (strstr(str_buf,lookup_str[l]) || (mode == 1)) {
 
           /* we found the first substring, the data we're looking for is
@@ -326,16 +364,29 @@ parse_input_molcas (char * fn_infile) {
             l++;
             mode = bin_flip(mode);
           }
+
           else { /* we're in count the matched lines mode */
             /* if (regexec(&c_regexs[m-1],str_buf,0,NULL,0)) { */
             if (isdigitin(str_buf,k-1) == 1) {
+
+              if (isdashes(str_buf,k) == 0){
+                /* spit the line to file */
+                for (n=0; n<BUF_SIZE; n++) {
+                  if (n<k) {
+                    fputc(str_buf[n],fp_tmpdata);
+                  } else {
+                    fputc(' ',fp_tmpdata);
+                  }
+                }
+                fputc('\n',fp_tmpdata);
+              }
               match_vals[n_matchfound]++;
             }
-            else if(isempty(str_buf,k) == 0) { /* mode = 1 and a line match without regexp match means
-                                                  that we reached the end of this data block*/
-              /* skip empty lines */
-              match_ln[m++] = j; /* store the line number of the last delimiting
-                                     string of the block */
+
+              /* skip empty and dashed lines */
+            else if((isempty(str_buf,k) == 0) && (isdashes(str_buf,k) == 0)) {
+              /* match_ln[m++] = j; /\* store the line number of the last delimiting */
+              /*                        string of the block *\/ */
               l++;
               mode = bin_flip(mode); /* switch back to mode 0 */
               n_matchfound++; /* one data block was found */
@@ -354,7 +405,10 @@ parse_input_molcas (char * fn_infile) {
   n_states = match_vals[0];
   n_trans = match_vals[1];
 
-  printf( "%d %d\n", n_states,n_trans);
+  match_ln[0] = 0;
+  match_ln[1] = (n_states+1)*256;
+  match_ln[2] = (n_states)*256;
+  match_ln[3] = match_ln[2] + ((n_trans+1)*256);
 
   if((parsed_input = malloc(5*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
@@ -434,25 +488,37 @@ for pointers in \"input_data\"\n");
     match_start = match_ln[j];
     match_end = match_ln[j+1];
 
-    fseek(fp_infile, match_start, 0);
+    fseek(fp_tmpdata, match_start, 0);
 
     k_its = match_end-match_start;
 
-    /* printf( "    seeking to %d to iterate for %d\n", match_start, k_its); */
+    printf( "    seeking to %d to iterate for %d\n", match_start, k_its);
 
 
     for (k=0; k<k_its; k++) {
-      c = fgetc(fp_infile);
+
+      if ((c = fgetc(fp_tmpdata)) == EOF) {
+        break;
+      }
+
       str_buf[l] = (char)c;
+
       if ((str_buf[l] == '\n') && (l > 1)) { /* dont send blank lines */
 
-        if (j == 0) { /* extract energy eigenvalues and state indexes */
+        if ((j == 0) && (isempty(str_buf,l) != 1)) { /* extract energy eigenvalues and state indexes */
           /* get_numsl(str_buf,num_idxs,l,n_idxs,&parsed_input[2][m],&parsed_input[3][m]); */
+          /* printf( "\n\nthe string: " ); */
+          /* for (n=0; n<l; n++) { */
+          /*   printf( "%c", str_buf[n]); */
+          /* } */
+          /* printf( "\n" ); */
+          /* sleep(2); */
+
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
           m++;
         }
 
-        if (j == 2) { /* extract transition moments and transition indexes */
+        if ((j == 2) && (isempty(str_buf,l) != 1)) { /* extract transition moments and transition indexes */
           /* printf( "strlen = %d\n",l); */
           /* sleep(2); */
           /* printf( "\n\nthe string: " ); */
@@ -461,21 +527,36 @@ for pointers in \"input_data\"\n");
           /* } */
           /* printf( "\n" ); */
           /* sleep(2); */
+              /* printf( "\n==============================\n"); */
+          /* fflush(stdout); */
+          /* if (m > (3)) { */
+          /*   exit(1); */
+          /* } */
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
           m++;
         }
         l=0; /* reset the buffer write head to start reading a the next line */
       }
+      /* printf( "%c",c ); */
       l++;
     }
   }
-  /* printf( "sorting data\n" ); */
+
+  for (j=0; j<n_states; j++) {
+    printf( "eig[%d] %le\n", j,e_eigval[j]);
+  }
+  /* exit(1); */
+  /* for (j=0; j<n_trans; j++) { */
+  /*   printf( "from %d to %d\n", (int)trans_idxs[0][j], (int)trans_idxs[1][j]); */
+  /* } */
+
   /* sort the data */
   for (j=0; j<n_trans; j++) {
 
     idx_from = trans_idxs[0][j];
     idx_to = trans_idxs[1][j];
+    /* printf( "from %d to %d\n", idx_from, idx_to); */
     parsed_input[0][j] = idx_from;
     parsed_input[1][j] = idx_to;
     parsed_input[2][j] = e_eigval[idx_from-1];
@@ -490,6 +571,7 @@ for pointers in \"input_data\"\n");
   /* the input data structure has been allocated. now read data from the input
      file, using the indexes in match_ln, and store it.  */
   fclose(fp_infile);
+  fclose(fp_tmpdata);
   free(str_buf);
   return parsed_input;
 }
