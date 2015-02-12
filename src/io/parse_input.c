@@ -77,7 +77,8 @@ get_numinstr (char * s,
               ){
   int k = 0;
   int l = 0;
-  static int j;
+  /* static int j; */
+  int j = 0;
   int n_digits_found = 0;
 
   static char num_key[] = {'-','.','E',};
@@ -88,13 +89,13 @@ get_numinstr (char * s,
   char c;
   char last_c;
   char * numstr; /* a string containing the extracted number */
-  char num_buf[BUF_SIZE] = {0};
+  char num_buf[BUF_SIZE*2] = {0};
 
   /* if we're searching this string more in the future, we can store the index
    of the last digit so that we wont have to loop over the entire string again */
-  if (flag == 1) {
-    j = 0;
-  }
+  /* if (flag == 1) { */
+  /*   j = 0; */
+  /* } */
 
   /* printf( "getnuminstr s=%s", s); */
   /* printf( "str_len=%d", str_len); */
@@ -161,9 +162,10 @@ get_numinstr (char * s,
 
 
   /* printf( "\n\n========return\n" ); */
-  for (k=0; k<=l; k++) {
+  for (k=0; k<l; k++) {
     /* store the number and return a pointer to it.
        this gets freed up by the caller. */
+    /* numstr[k] = num_buf[k]; */
     numstr[k] = num_buf[k];
     /* printf( "%c", numstr[k]); */
   }
@@ -404,7 +406,7 @@ parse_input_molcas (char * fn_infile) {
      as the number of possible transitions.*/
   n_states = match_vals[0];
   n_trans = match_vals[1];
-
+  printf( "n_states = %d, n_trans = %d\n", n_states, n_trans);
   match_ln[0] = 0;
   match_ln[1] = (n_states+1)*256;
   match_ln[2] = (n_states)*256;
@@ -492,7 +494,7 @@ for pointers in \"input_data\"\n");
 
     k_its = match_end-match_start;
 
-    printf( "    seeking to %d to iterate for %d\n", match_start, k_its);
+    printf( "    seeking to %d to iterate for %d until %d\n", match_start, k_its,match_end);
 
 
     for (k=0; k<k_its; k++) {
@@ -518,7 +520,12 @@ for pointers in \"input_data\"\n");
           m++;
         }
 
-        if ((j == 2) && (isempty(str_buf,l) != 1)) { /* extract transition moments and transition indexes */
+        if ((j == 3) && (isempty(str_buf,l) != 1)) { /* extract transition moments and transition indexes */
+
+
+          /* fprintf(stderr, "exiting\n"); */
+          /* printf( "program terminating due to the previous error.\n"); */
+          /* exit(1); */
           /* printf( "strlen = %d\n",l); */
           /* sleep(2); */
           /* printf( "\n\nthe string: " ); */
@@ -532,6 +539,7 @@ for pointers in \"input_data\"\n");
           /* if (m > (3)) { */
           /*   exit(1); */
           /* } */
+
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
           m++;
@@ -546,7 +554,9 @@ for pointers in \"input_data\"\n");
   for (j=0; j<n_states; j++) {
     printf( "eig[%d] %le\n", j,e_eigval[j]);
   }
-  /* exit(1); */
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
+
   /* for (j=0; j<n_trans; j++) { */
   /*   printf( "from %d to %d\n", (int)trans_idxs[0][j], (int)trans_idxs[1][j]); */
   /* } */
