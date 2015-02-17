@@ -4,6 +4,9 @@
 #include <string.h>
 #include <regex.h>
 #include <ctype.h>
+#include <math.h>
+#include <signal.h>
+#include "const.h"
 #include "parse_input.h"
 #include "input_formats.h"
 #define BUF_SIZE 256
@@ -15,8 +18,24 @@
 int n_states;
 int n_trans;
 double * input_data[4];
+int ** state_indices;
+
 FILE * fp_infile; /* pointer to the opened input data file */
 
+
+int
+intinint (int * a,
+          int num,
+          int n_el){
+
+  int j; /* looping variables */
+  for (j=0; j<n_el; j++)
+    if (a[j] == num) {
+      return 1;
+    }
+
+  return 0;
+}
 int power(int base,int exp){
   int power;
   power=1;
@@ -67,6 +86,29 @@ double sci_atof(char s[]){
   else
 
     return sign * (val / pow) * power(10,exp);
+}
+
+int *
+getintinint (int * a1,
+             int * a2,
+             int n){
+  int j;
+  int * res;
+
+  if((res = malloc(n*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input.c:function getintinint, malloc: failed to \
+allocate memory for \"state_indices\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<n; j++) {
+    if (intinint(a2, a1[j], n)) {
+      res[n] = a1[j];
+    }
+  }
+
+  return res;
 }
 
 char*
@@ -211,6 +253,113 @@ isdigitin (char * s,
     if (isdigit(s[j])){
       return 1;
     }
+  }
+
+  return 0;
+}
+
+struct e_state *
+get_state_ll (double ** parsed_input,
+              int flag){
+
+  struct e_state * root_state;
+  if (flag == 1) {
+    root_state = (struct e_state*)malloc(sizeof(struct e_state));
+    root_state -> idx = 42;
+  }
+  if (flag == 1) {
+    printf( "%d\n", root_state->idx);
+    fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+    exit(1);
+  }
+
+  return 0;
+}
+
+double
+get_bdist (double e_val,
+           double temp){
+  return exp(e_val/((1.380648813e-23)*300));
+}
+
+int
+sort_states (double ** parsed_input
+             ){
+  int j,k,l; /* looping variables */
+  int from_last = parsed_input[0][0];
+  int from,to;
+  int n_gs,n_is,n_fs,n_isfs; /* number of each respective state */
+  int * res;
+
+  double bw; /* boltzmann weights */
+  double tmp_sum = 0; /* sum of boltzmann weights */
+  double e_rel = parsed_input[2][0]; /* store reference to the lowest energy
+                                eigenstate */
+  float gs_thrsh = 0.00001; /* threshold for boltzmann weight for the initial
+                             states */
+  double is_thrsh; /* threshold for the intermediate states */
+  double fs_thrsh; /* threshold for the final states */
+  /* first off, obtain the boltzman distribution for the initial states.  */
+ /*  if((bw = malloc(n_trans*sizeof(double))) == NULL ){ */
+ /*    fprintf(stderr, "function sort_states, malloc: failed to allocate memory for\ */
+ /* \"bw\"\n"); */
+ /*    printf( "program terminating due to the previous error.\n"); */
+ /*    exit(1); */
+ /*  } */
+
+  if((state_indices = malloc(4*sizeof(int*))) == NULL ){
+    fprintf(stderr, "function sort_states, malloc: failed to allocate memory for\
+ \"state_indices\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+  /* state_indices contains information on what and how many states are left
+   after screening. the first element contains a number defining how many
+  of each state, and the rest of the elements contain a state index.*/
+  for (j=0; j<3; j++) {
+    if((state_indices[j] = malloc((n_states+1)*sizeof(int))) == NULL ){
+      fprintf(stderr, "function sort_states, malloc: failed to allocate memory for\
+ \"state_indices\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  for (j=0; j<n_trans; j++) {
+
+    from = parsed_input[0][j];
+    if (from != from_last) {
+      /* sum up the boltzmann weights */
+      tmp_sum += exp(-(parsed_input[2][j] - e_rel)*AUTOEV/(TEXP*TTOEV))/2;
+      from_last = from;
+    }
+  }
+
+  for (k=1,j=0; j<n_trans; j++) {
+
+    from = parsed_input[0][j];
+    if (from != from_last) {
+
+      bw = (exp(-(parsed_input[2][j] - e_rel)*AUTOEV/(TEXP*TTOEV))/2)/tmp_sum;
+      if (bw >= gs_thrsh) {
+        state_indices[0][k++] = from;
+      }
+      from_last = from;
+    }
+  }
+
+  for (j=0; j<=n_gs; j++) {
+    printf( "gs[%d] = %d\n", j, state_indices[0][j] );
+  }
+
+  printf( "\n" );
+  for (j=0; j<n_is; j++) {
+    printf( "is[%d] = %d\n", j, state_indices[1][j]);
+  }
+
+  printf( "\n" );
+  for (j=0; j<n_fs; j++) {
+    printf( "fs[%d] = %d\n", j, state_indices[2][j]);
   }
 
   return 0;
@@ -477,11 +626,15 @@ for pointers in \"input_data\"\n");
     printf( "%le   %le   %le   %le   %le\n", parsed_input[0][k], parsed_input[1][k], parsed_input[2][k], parsed_input[3][k], parsed_input[4][k]);
   }
 
-  /* the input data structure has been allocated. now read data from the input
-     file, using the indexes in match_ln, and store it.  */
+
   fclose(fp_infile);
   fclose(fp_tmpdata);
+
   free(str_buf);
+  free(e_eigval);
+  free(trans_idxs);
+  free(t_mom);
+
   return parsed_input;
 }
 
@@ -522,6 +675,12 @@ parse_input (char * fn_infile, /* name of input file */
       }
     }
   }
+  /* construct a linked-list tree of the parsed input */
+  get_state_ll(parsed_input,1);
+  get_state_ll(parsed_input,2);
+
+  sort_states(parsed_input);
+
 
   for (j=0; j<5; j++) {
     free(parsed_input[j]);

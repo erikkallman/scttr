@@ -1,17 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include "input_formats.h"
 #include "parse_input.h" /* for input_data array, as well as other
                             calculation-specific variables */
 #include "rmap_cfg.h"
 #define BUF_SIZE 256
 
+
 int
 main (int argc, char * argv[]) {
-  int j,k,l; /* iteration variables */
+    int j,k,l; /* iteration variables */
   int len_fn;
-
   /* arrays for storing input file name data */
   char fn_infile[BUF_SIZE] = {0};
 
@@ -51,10 +52,17 @@ main (int argc, char * argv[]) {
     argv++;
   }
 
-  for (j=0; j<=3; j++) {
-      free(input_data[j]);/* memory allocated in parse_input.c */
-  }
+  /* for (j=0; j<=3; j++) { */
+  /*     free(input_data[j]);/\* memory allocated in parse_input.c *\/ */
+  /* } */
+  /* free(input_data); */
 
+  for (j=0; j<3; j++) {
+    free(state_indices[j]);
+  }
+  free(state_indices);
+
+  /* free(state_indices); */
   printf( "rmap successfully executed.\n" );
   return 0;
 }
