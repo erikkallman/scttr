@@ -16,7 +16,7 @@ struct e_state{
   int * idxs_to;
 
   double bw; /* boltzmann weight */
-  double e_val;
+  double e_val; /* energy */
 
    /* transition moments values for each transition found in idxs_to */
   double * t_moms;
@@ -26,9 +26,19 @@ struct e_state{
   struct e_state * last;
 };
 
-/* function intinint
+/* each input file loaded into the program has an associated info node
+ containing general data about that specific input file*/
+struct info_node{
+  int n_gs;
+  int n_is;
+  int n_fs;
+  struct info_node * next;
+};
+
+/* function init_state_node
 
    * synopsis:
+   by default, a call to the init_root_node function also creates a general info node for one data tree.
 
    * algorithm:
 
@@ -39,110 +49,10 @@ struct e_state{
    * side-effects:
 
    */
-int
-intinint (int * a,
-          int num,
-          int n_el);
+struct e_state *
+init_root_node ();
 
-/* function getintinint
-   for a given array @a1, returns all elements of @a2 not present in a1.
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-   - allocates memory space for res, which needs to be freed up by the callee
-
-   */
-int *
-getintinint (int * a1,
-             int * a2,
-             int n);
-
-/* function get_numinstr:
-return the nth number in a string, as a string, that can be cast into any
-given type using, for instance, atoi or atof. a "number" is any series of
-digits possibly containing, but not ending with, a dot. any other character
-in the string is considered a separator between two numbers.
-* algorithm:
-
-* input:
-
-* output:
-
-* side-effects:
-
-*/
-char*
-get_numinstr (char * s,
-              int idx,
-              int str_len,
-              int flag /* variable to store the last location in the string */
-              );
-
-/* function get_nums:
-
-get_numsl is a function used to, for any given string containing unsorted
-numbers, extract the numbers and store
-
-* algorithm:
--takes a string @str containing any number of numbers, reads the first
-values in idxs_in (n) and idxs_out (m), extracts the number in @str whos
-index corresponds to n and stores it in @out at the index specified in
-@idxs_out.
-
-* input:
-n_idxs corresponds to the number of values that are to be extracted, and thus
-also the number of variadic input arguments to the function (...).
-* output:
-
-* side-effects:
-
-*/
-int
-get_numsl (char * str,
-           int * idxs_out,
-           int str_len,
-           int n_idxs,
-           ...);
-
-/* function isempty:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-isempty (char * s,
-         int len);
-
-
-/* function isdigitin:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-isdigitin (char * s,
-           int len
-           );
-
-/* function get_state_ll
+/* function init_state_node
 
    * synopsis:
 
@@ -156,8 +66,24 @@ isdigitin (char * s,
 
    */
 struct e_state *
-get_state_ll (double ** parsed_input,
-              int flag);
+init_state_node ();
+
+/* function init_state_ll
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+struct e_state *
+init_state_ll (double ** parsed_input
+              );
 
 
 /* function get_bdist

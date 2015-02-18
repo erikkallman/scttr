@@ -1,14 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include <regex.h>
 #include <ctype.h>
 #include <math.h>
 #include <signal.h>
+#include "char_ops.h"
 #include "const.h"
 #include "parse_input.h"
 #include "input_formats.h"
+
 #define BUF_SIZE 256
 #define bin_flip(x) ((x) == 1 ? 0 : 1)
 
@@ -22,257 +23,86 @@ int ** state_indices;
 
 FILE * fp_infile; /* pointer to the opened input data file */
 
+struct info_node * info_node_root;
 
-int
-intinint (int * a,
-          int num,
-          int n_el){
+struct e_state *
+init_state_ll (double ** parsed_input
+              ){
+  int j,k,l; /* looping variables */
+  int from,from_last,to;
+  int * tmp_idxs;
+  double * tmp_tmoms;
+  double tmp_energy;
+  double tmp_bw;
 
-  int j; /* looping variables */
-  for (j=0; j<n_el; j++)
-    if (a[j] == num) {
-      return 1;
-    }
+  struct e_state * root_state;
+  struct e_state * curr_state;
+  struct e_state * next_state;
 
-  return 0;
-}
-int power(int base,int exp){
-  int power;
-  power=1;
-  while(exp-- > 0)
-    power *=base;
 
-  return power;
-}
-
-double sci_atof(char s[]){
-  double val,pow;
-  int sign,i,esign,exp;
-  int power(int base,int exp);
-
-  for(i=0;isspace(s[i]);i++)
-    ;
-
-  sign=(s[i]=='-')?-1:1;
-
-  if(s[i]=='+' || s[i] == '-')
-    i++;
-
-  for(val=0.0;isdigit(s[i]);i++)
-    val = 10.0 * val + (s[i] - '0');
-
-  if(s[i]=='.')
-    i++;
-
-  for(pow=1.0;isdigit(s[i]);i++)
-    {
-      val = 10.0 * val + (s[i] - '0');
-      pow *= 10.0;
-    }
-
-  if(s[i]=='e' || s[i] =='E')
-    i++;
-  if(s[i]=='+' || s[i] =='-')
-    {
-      esign=s[i];
-      i++;
-    }
-
-  for(exp=0;isdigit(s[i]);i++)
-    exp=10.0 * exp + (s[i] - '0');
-
-  if( esign == '-')
-    return sign * (val / pow) / power(10,exp);
-  else
-
-    return sign * (val / pow) * power(10,exp);
-}
-
-int *
-getintinint (int * a1,
-             int * a2,
-             int n){
-  int j;
-  int * res;
-
-  if((res = malloc(n*sizeof(int))) == NULL ){
-    fprintf(stderr, "parse_input.c:function getintinint, malloc: failed to \
-allocate memory for \"state_indices\"\n");
+  if((tmp_idxs = malloc(n_states*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"idxs_to\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+  if((tmp_tmoms = malloc(n_states*sizeof(double))) == NULL ){
+    fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"idxs_to\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
-  for (j=0; j<n; j++) {
-    if (intinint(a2, a1[j], n)) {
-      res[n] = a1[j];
+  root_state = (struct e_state*)malloc(sizeof(struct e_state));
+  root_state -> last = NULL;
+  curr_state = root_state;
+
+
+  from_last = parsed_input[0][0];
+  /* construct the list structure */
+  for (j=0; j<n_states; j++) {
+    nextr_state = (struct e_state*)malloc(sizeof(struct e_state));
+    curr_state-> next = next_state;
+    curr_state->list_idx = j;
+    curr_state->state_idx = j+1;
+
+    if((curr_state->idxs_to = malloc(n_states*sizeof(double))) == NULL ){
+      fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"idxs_to\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+
+    if((curr_state->t_moms = malloc(n_states*sizeof(double))) == NULL ){
+      fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"idxs_to\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
     }
   }
 
-  return res;
-}
+  /* grab the transitions and energies */
+  for (k=0,j=0; j<n_trans; j++) { /* j = read head for the parsed_input matrix */
 
-char*
-get_numinstr (char * s,
-              int idx,
-              int str_len,
-              int flag /* flag for adaptive write head position */
-              ){
-  int k = 0;
-  int l = 0;
-  int j = 0;; /* read head position */
+    from = parsed_input[0][j];
+    to = parsed_input[0][j];
+    tmp_idxs[j] = parsed_input[2][j];
+    tmp_tmoms[j] = parsed_input[3][j];
 
-  int n_digits_found = 0;
+    if (from != from_last) {
+      /* initialize the next state in the ll */
+      tmp_energy = parsed_input[2][j-1];
+      tmp_bw = exp(-(tmp_energy - parsed_input[2][0])*AUTOEV/ \
+                   (TEXP*TTOEV))/2;
+      from_last = from;
 
-  static char num_key[] = {'-','.','E',};
-
-  /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
-  int mode = 0;
-  char c;
-  char last_c;
-  char * numstr; /* a string containing the extracted number */
-  char num_buf[BUF_SIZE*2] = {0};
-
-  /* if we're searching this string more in the future, we can store the index
-   of the last digit so that we wont have to loop over the entire string again */
-
-  for (; j<str_len; c = s[j]) {
-
-    /* check if we're still reading a number and avoid dashed lines */
-    if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0))      \
-        && ((isalpha(last_c) == 0 ) || (last_c == 'E'))) {
-
-      /* check if we're reading the right digit, else ignore the result */
-      if (k == idx) {
-        num_buf[l++] = c;
-      }
-
-      if (mode == 0) {
-        /* now proceeding to read a digit */
-        mode = bin_flip(mode);
-      }
+      k=0;
     }
-    /* if we read a non-number character and we're in read mode, we have
-     read the end of a digit. */
-    else if(mode == 1) {
-      if (++k > idx) { /* increase the counter for read numbers */
-        break;
-      }
-      mode = bin_flip(mode); /* go back to reading non numbers */
-    }
-
-    /* if in reading number mode and found something non number
-       the digit we were reading has now ended. increment k to
-       note that we have read a number.
-    */
-    last_c = c;
-    j++;
+    k++; /* increase counter for transitions counted */
   }
 
-  numstr = malloc(j);
-
-  for (k=0; k<l; k++) {
-    /* store the number and return a pointer to it.
-       this gets freed up by the caller. */
-    numstr[k] = num_buf[k];
-  }
-
-  return numstr;
-}
-
-int
-get_numsl (char * str,
-           int * idxs_out, /* idexes of numbers in string that we want */
-           int str_len,
-           int n_idxs,
-           ...){
-  int j,k;
-  va_list argv;
-  char * numstr;
-
-  double * tmp_num;
-  /* store the memory address to the variadic input arguments so that we can
-     assign them locally */
-  va_start(argv, n_idxs);
-
-  for (j=0; j<n_idxs; j++) { /* loop over indexes */
-
-    tmp_num = va_arg(argv, double*); /* grab the next vararg */
-
-    /* find the correctly indexed number in the string and store it. */
-    numstr = get_numinstr(str,idxs_out[j],str_len,1);
-
-    *tmp_num = sci_atof(numstr); /* extract the next memory location */
-
-    free(numstr);
-
-  }
-
-  va_end(argv);
-  return 0;
-}
-
-int
-isdashes (char * s,
-         int len) {
-  int j,k;
-  char c,last_c;
-  for (j=0; j<len; j++) {
-    c = s[j];
-    if (isddash(c,last_c)) {
-      return 1;/* found at least one double dash */
-    }
-    last_c = c;
-  }
-  /* we got through the string without finding a double dash" */
-  return 0;
-}
-
-int
-isempty (char * s,
-         int len) {
-  int j,k;
-
-  static char key[5] = { ' ', '\n', '\t','-', '\0' }; /* key for checking empty strings. */
-  for (j=0; j<len; j++) {
-    if (strchr(key, s[j]) == NULL) {
-      /* as soon as strchr returns something that isnt a match,
-         of the key, the string is not empty */
-      return 0;/* match found, it isnt empty */
-    }
-  }
-  /* we got through the string without finding a match to key.
-     the string is "empty" */
-  return 1;
-}
-
-int
-isdigitin (char * s,
-           int len) {
-  int j;
-  for (j=0; j<len; j++) {
-    if (isdigit(s[j])){
-      return 1;
-    }
-  }
-
-  return 0;
-}
-
-struct e_state *
-get_state_ll (double ** parsed_input,
-              int flag){
-
-  struct e_state * root_state;
-  if (flag == 1) {
-    root_state = (struct e_state*)malloc(sizeof(struct e_state));
-    root_state -> idx = 42;
-  }
-  if (flag == 1) {
-    printf( "%d\n", root_state->idx);
-    fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-    exit(1);
-  }
-
+  free(tmp_idxs);
+  free(tmp_tmoms);
   return 0;
 }
 
