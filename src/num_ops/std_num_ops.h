@@ -1,5 +1,5 @@
-#ifndef NUM_OPS_H
-#define NUM_OPS_H
+#ifndef STD_NUM_OPS_H
+#define STD_NUM_OPS_H
 
 int power(int base,
           int exp
@@ -43,4 +43,4 @@ getintinint (int * a1,
              int * a2,
              int n
              );
-#endif /* NUM_OPS_H */
+#endif /* STD_NUM_OPS_H */

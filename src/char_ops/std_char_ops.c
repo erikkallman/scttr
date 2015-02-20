@@ -1,5 +1,8 @@
+#include <stdio.h>
 #include <string.h>
-#include "char_ops.h"
+#include "std_char_ops.h"
+/* check if both x and y are dashes */
+#define isddash(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
 
 double
 sci_atof(char * s){

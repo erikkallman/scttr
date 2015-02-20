@@ -1,4 +1,6 @@
-#include "num_ops.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "std_num_ops.h"
 
 int
 power(int base,

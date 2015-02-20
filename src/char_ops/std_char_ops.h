@@ -4,14 +4,20 @@
 /* function sci_atof
 
    * synopsis:
+   this function converts an array of characters to a double-sized number
+   , even if its in scientific notation.
 
    * algorithm:
 
    * input:
+   @s - the character array that contains the string to be converted to a number
 
    * output:
+   double - the double-sized number resulting from applying the *algorithm
+   to the input string @s
 
    * side-effects:
+   -none
 
    */
 double

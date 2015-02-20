@@ -1,18 +1,18 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include "char_ops.h"
+#include <stdio.h>
+#include "std_char_ops.h"
 #include "get_numsl.h"
 
 char*
 get_numinstr (char * s,
               int idx,
-              int str_len,
-              int flag /* flag for adaptive write head position */
+              int str_len
               ){
-  int k = 0;
-  int l = 0;
-  int j = 0;; /* read head position */
+
+  int j,k,l;
+  j = k = l = 0;
 
   int n_digits_found = 0;
 
@@ -23,7 +23,7 @@ get_numinstr (char * s,
   char c;
   char last_c;
   char * numstr; /* a string containing the extracted number */
-  char num_buf[BUF_SIZE*2] = {0};
+  char num_buf[BUF_SIZE*2];
 
   /* if we're searching this string more in the future, we can store the index
    of the last digit so that we wont have to loop over the entire string again */
@@ -62,13 +62,13 @@ get_numinstr (char * s,
   }
 
   numstr = malloc(j);
-
+  printf( "num_buf=%s,len=%d\n", num_buf,str_len);
+  sleep(1);
   for (k=0; k<l; k++) {
     /* store the number and return a pointer to it.
        this gets freed up by the caller. */
     numstr[k] = num_buf[k];
   }
-
   return numstr;
 }
 
@@ -92,12 +92,11 @@ get_numsl (char * str,
     tmp_num = va_arg(argv, double*); /* grab the next vararg */
 
     /* find the correctly indexed number in the string and store it. */
-    numstr = get_numinstr(str,idxs_out[j],str_len,1);
-
+    numstr = get_numinstr(str,idxs_out[j],str_len);
+    printf( "string=%s", str);
     *tmp_num = sci_atof(numstr); /* extract the next memory location */
 
     free(numstr);
-
   }
 
   va_end(argv);

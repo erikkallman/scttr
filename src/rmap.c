@@ -57,10 +57,10 @@ main (int argc, char * argv[]) {
   /* } */
   /* free(input_data); */
 
-  for (j=0; j<3; j++) {
-    free(state_indices[j]);
-  }
-  free(state_indices);
+  /* for (j=0; j<3; j++) { */
+  /*   free(state_indices[j]); */
+  /* } */
+  /* free(state_indices); */
 
   /* free(state_indices); */
   printf( "rmap successfully executed.\n" );

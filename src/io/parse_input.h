@@ -6,53 +6,52 @@ extern int n_trans; /* number of electronic transitions involved */
 extern double * input_data[4]; /* defined in parse_input.c */
 extern int ** state_indices; /* post-screening state indices */
 
+/* each input file loaded into the program has an associated info node
+ containing general data about that specific input file*/
+struct info_node_s{
+
+  int idx; /* default index value */
+
+  int n_gs;
+  int n_is;
+  int n_fs;
+
+  char * str_id; /* the input file name identifying this info node */
+  struct e_state * root_e_state;
+  struct info_node_s * next;
+  struct info_node_s * last;
+};
+
+typedef struct info_node_s * info_node;
+
 struct e_state{
 
   int list_idx;
   int state_idx;
-  int type; /* 1=ground state, 2=intermediate state, 3=final state */
+
+  /* 0=not yet assigned, 1=ground state, 2=intermediate state, 3=final state */
+  int type;
+
+  double bw; /* boltzmann weight */
+  double e_val; /* energy of the state on the node (the "from" energy) */
 
   /* indices of states in transitions occuring from this state*/
   int * idxs_to;
 
-  double bw; /* boltzmann weight */
-  double e_val; /* energy */
-
    /* transition moments values for each transition found in idxs_to */
   double * t_moms;
 
+  /* energy eigenvalues for the "to" state */
+  double * e_vals;
+
   /* this list is doubly linked. */
+  info_node info;
   struct e_state * next;
   struct e_state * last;
 };
 
-/* each input file loaded into the program has an associated info node
- containing general data about that specific input file*/
-struct info_node{
-  int n_gs;
-  int n_is;
-  int n_fs;
-  struct info_node * next;
-};
 
-/* function init_state_node
-
-   * synopsis:
-   by default, a call to the init_root_node function also creates a general info node for one data tree.
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-struct e_state *
-init_root_node ();
-
-/* function init_state_node
+/* function init_info_node
 
    * synopsis:
 
@@ -65,8 +64,52 @@ init_root_node ();
    * side-effects:
 
    */
-struct e_state *
-init_state_node ();
+info_node
+init_info_node (char * s);
+
+/* function set_state_node
+
+   * synopsis:
+   uses the parsed_input defined in parse_input to declare the variables
+   in the linked list of states.
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+set_state_node (struct e_state * st,
+                int s_idx,
+                int * idxs_buf,
+                double * evals_buf,
+                double * moms_buf,
+                int n_trs_from,
+                double e_rel,
+                double e
+                );
+
+/* function set_state_ll
+
+   * synopsis:
+   uses the parsed_input defined in parse_input to declare the variables
+   in the linked list of states.
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+set_state_ll (double ** parsed_input,
+              char * id);
+
 
 /* function init_state_ll
 
@@ -82,8 +125,7 @@ init_state_node ();
 
    */
 struct e_state *
-init_state_ll (double ** parsed_input
-              );
+init_state_ll (char * str_id);
 
 
 /* function get_bdist

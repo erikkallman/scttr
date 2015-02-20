@@ -1,5 +1,7 @@
 #ifndef GET_NUMSL_H
 #define GET_NUMSL_H
+#define BUF_SIZE 256
+#define bin_flip(x) ((x) == 1 ? 0 : 1)
 
 /* function get_numinstr:
 return the nth number in a string, as a string, that can be cast into any
@@ -18,8 +20,7 @@ in the string is considered a separator between two numbers.
 char*
 get_numinstr (char * s,
               int idx,
-              int str_len,
-              int flag /* flag for adaptive write head position */
+              int str_len
               );
 
 /* function get_numsl:
