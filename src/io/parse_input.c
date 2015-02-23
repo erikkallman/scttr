@@ -594,7 +594,7 @@ for pointers in \"input_data\"\n");
 
       str_buf[l] = (char)c;
 
-      if ((str_buf[l] == '\n') && (l > 1)) { /* dont send blank lines */
+      if ((str_buf[l] == '\n') && (l > 0)) { /* dont send blank lines */
 
         if ((j == 0) && (isempty(str_buf,l) != 1)) { /* extract energy eigenvalues and state indexes */
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
@@ -603,9 +603,12 @@ for pointers in \"input_data\"\n");
         }
 
         if ((j == 2) && (isempty(str_buf,l) != 1)) { /* extract transition moments and transition indexes */
+  /*           fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
-          printf( "to %d from %d, %le \n", (int)trans_idxs[0][m], (int)trans_idxs[1][m], t_mom[m]);
+          /* printf( "to %d from %d, %le \n", (int)trans_idxs[0][m], (int)trans_idxs[1][m], t_mom[m]); */
+          sleep(1);
           m++;
         }
         l=0; /* reset the buffer write head to start reading a the next line */

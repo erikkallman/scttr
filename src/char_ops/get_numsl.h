@@ -17,8 +17,9 @@ in the string is considered a separator between two numbers.
 * side-effects:
 
 */
-char*
+int
 get_numinstr (char * s,
+              char * buf,
               int idx,
               int str_len
               );
