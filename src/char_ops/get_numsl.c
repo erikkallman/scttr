@@ -27,20 +27,20 @@ get_numinstr (char * s,
   /* if we're searching this string more in the future, we can store the index
    of the last digit so that we wont have to loop over the entire string again */
   l = 0;
-  for (j=0,k=0; j<str_len; c = s[j]) {
+  k = 0;
+  for (j=0; j<str_len; c = s[j], j++) {
 
     /* check if we're still reading a number and avoid dashed lines */
-    if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0))      \
+    if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0)) \
         && ((isalpha(last_c) == 0 ) || (last_c == 'E'))) {
 
       /* check if we're reading the right digit, else ignore the result */
       if (k == idx) {
+        /* printf( "reading @k=%d\n", k); */
+        /* printf( "string = %s\n",s ); */
+        /* printf( "char = %c\n",c ); */
+        /* printf( "\n\n\n" ); */
         buf[l++] = c;
-/*         printf( "reading @k=%d\n", k); */
-/*         printf( "string = %s\n",s ); */
-/* printf( "char = %c\n",c ); */
-/*         printf( "\n\n\n" ); */
-        /* sleep(1); */
       }
 
       if (mode == 0) {
@@ -52,6 +52,8 @@ get_numinstr (char * s,
      read the end of a digit. */
     else if(mode == 1) {
       if (++k > idx) { /* increase the counter for read numbers */
+        /* printf( "got all chars!\n"); */
+        /* sleep(1); */
         break;
       }
       mode = bin_flip(mode); /* go back to reading non numbers */
@@ -62,15 +64,15 @@ get_numinstr (char * s,
        note that we have read a number.
     */
     last_c = c;
-    j++;
   }
-  return l-1;
+
+  return l+1;
 }
 
 int
 get_numsl (char * str,
            int * idxs_out, /* idexes of numbers in string that we want */
-           int str_len,
+           int str_len, /* length of the string in str */
            int n_idxs,
            ...){
   int j,k,l;
@@ -93,19 +95,26 @@ get_numsl (char * str,
     l = get_numinstr(str, num_buf, idxs_out[j],str_len);
 
     numstr = malloc(l);
-
-    for (k=0; k<l-2; k++) {
+    /* printf( "\n\nget_numsl got this in return:\n" ); */
+    for (k=0; k<l; k++) {
       /* store the number and return a pointer to it.
          this gets freed up by the caller. */
       numstr[k] = num_buf[k];
+      /* printf( "%c", numstr[k]); */
     }
-
+    /* printf( "\n"); */
+    /* printf( "%le\n", (double)sci_atof(numstr)); */
+    /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+    /* exit(1); */
     *tmp_num = sci_atof(numstr); /* extract the next memory location */
+
     /* printf( "%le\n", *tmp_num); */
     free(numstr);
+    /* numstr = NULL; */
   }
 
   free(num_buf);
+  /* num_buf = NULL; */
   va_end(argv);
   return 0;
 }

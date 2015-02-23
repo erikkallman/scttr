@@ -1,6 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include "std_num_ops.h"
 #include "std_char_ops.h"
+
 /* check if both x and y are dashes */
 #define isddash(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
 

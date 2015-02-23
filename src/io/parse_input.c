@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <signal.h>
+#include <string.h>
 #include "std_char_ops.h"
 #include "std_num_ops.h"
 #include "get_numsl.h"
@@ -27,17 +28,28 @@ info_node info_node_root;
 info_node
 init_info_node (char * s){
 
+  int j;
+
   static info_node last_info_node;
+  int str_sz = strlen(s);
+  char * si = malloc(strlen(s)+1); /* info node id string */
   info_node new_info_node;
 
-  if((new_info_node = (info_node)malloc(sizeof(info_node))) == NULL ){
+  if((new_info_node = (info_node)malloc(sizeof(struct info_node_s))) == NULL ){
     fprintf(stderr, "parse_input.c:function init_info_node, malloc: failed \
 to allocate memory for \"new_info_node\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
-  new_info_node -> str_id = s;
+  for (j=0; j<str_sz; j++) {
+    si[j] = s[j];
+    printf( "%c", si[j]);
+  }
+  printf( "\n" );
+
+  new_info_node -> str_id = si;
+
 
   if (n_info_nodes == 0) { /* there is no root info node defined  */
 
@@ -47,10 +59,8 @@ to allocate memory for \"new_info_node\"\n");
     new_info_node -> last = NULL;
     info_node_root = new_info_node;
     last_info_node = info_node_root;
-
   }
   else { /* the root info node is already defined */
-
     n_info_nodes++;
     new_info_node -> last = last_info_node;
     new_info_node -> idx = n_info_nodes-1;
@@ -166,32 +176,34 @@ to allocate memory for \"idxs_to\"\n");
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
-
   }
   curr_state = curr_info_node -> root_e_state;
 
   /* grab the transitions and energies */
-  for (j=0,k=0,l=0; j<=n_trans; j++) { /* j = read head for the parsed_input matrix */
+  for (k=0,j=0,l=0; j<=n_trans; k++, j++) { /* j = read head for the parsed_input matrix */
 
     from = parsed_input[0][j];
     to = parsed_input[1][j];
+
     tmp_idxs[k] = parsed_input[1][j];
     tmp_evals[k] = parsed_input[3][j];
     tmp_tmoms[k] = parsed_input[4][j];
 
-    if (from != from_last) {
+    if (from != from_last) { /* we just started reading values for transitions
+                                from a new state */
 
       /* initialize the next state in the ll */
       tmp_energy = parsed_input[2][j-1];
+
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
 
-      /* printf( "\nfrom=%d, eval=%le\n",(curr_state -> state_idx), (curr_state -> e_val)); */
-      /* for (m=0; m<k; m++) { */
-      /*   printf( "to:%d, ev=%le, mom=%le\n", (curr_state -> idxs_to)[m],\ */
-      /*           (curr_state -> e_vals)[m], (curr_state -> t_moms)[m]); */
-      /* } */
-      /* sleep(2); */
+      printf( "\nfrom=%d, e_val=%le\n",(curr_state -> state_idx), (curr_state -> e_val));
+      for (m=0; m<k; m++) {
+        printf( "to:%d, ev=%le, mom[%d]=%le\n", (curr_state -> idxs_to)[m],\
+                (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]);
+      }
+      sleep(2);
 
       next_state = curr_state -> next;
       curr_state = next_state;
@@ -201,10 +213,11 @@ to allocate memory for \"idxs_to\"\n");
         printf( "program terminating due to the previous error.\n");
         exit(1);
       }
+
       from_last = from;
       k=0;
     }
-    k++; /* increase counter for transitions counted */
+    /*k++;  increase counter for transitions counted */
   }
 
   /* trim off any nodes at the end of the list that hasnt gotten allocated. */
@@ -569,9 +582,9 @@ for pointers in \"input_data\"\n");
   num_idxs1[0] = 1;
   int n_idxs1 = 1;
 
-  num_idxs2[0] = 0;
-  num_idxs2[1] = 1;
-  num_idxs2[2] = 8;
+  num_idxs2[0] = 1;
+  num_idxs2[1] = 2;
+  num_idxs2[2] = 9;
   int n_idxs2 = 3;
 
   for (j=0; j<n_lookup_str; j+=2) {
@@ -597,18 +610,19 @@ for pointers in \"input_data\"\n");
       if ((str_buf[l] == '\n') && (l > 0)) { /* dont send blank lines */
 
         if ((j == 0) && (isempty(str_buf,l) != 1)) { /* extract energy eigenvalues and state indexes */
+
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
-          printf( "e_eigval[%d] = %le\n", m, e_eigval[m]);
+          /* printf( "e_eigval[%d] = %le\n", m, e_eigval[m]); */
+          /* fflush(stdout); */
           m++;
         }
 
         if ((j == 2) && (isempty(str_buf,l) != 1)) { /* extract transition moments and transition indexes */
-  /*           fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
+
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
-          /* printf( "to %d from %d, %le \n", (int)trans_idxs[0][m], (int)trans_idxs[1][m], t_mom[m]); */
-          sleep(1);
+          /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
+
           m++;
         }
         l=0; /* reset the buffer write head to start reading a the next line */
@@ -616,15 +630,12 @@ for pointers in \"input_data\"\n");
       l++;
     }
   }
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
-  /* finally, store the data in the parsed_input matrix for the parse_input function  */
 
+  /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
 
     idx_from = trans_idxs[0][j];
     idx_to = trans_idxs[1][j];
-    printf( "to %d from %d, %le \n", idx_from, idx_to, e_eigval[idx_from-1]);
     parsed_input[0][j] = idx_from;
     parsed_input[1][j] = idx_to;
     parsed_input[2][j] = e_eigval[idx_from-1];
@@ -688,9 +699,11 @@ parse_input (char * fn_infile, /* name of input file */
       }
     }
   }
+
   /* construct a linked-list tree of the parsed input */
   root_e_state = init_state_ll(fn_infile);
-
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   /* load the parsed input into the linked list of electronic states */
   set_state_ll(parsed_input,fn_infile);
 

@@ -11,10 +11,12 @@
 
 int
 main (int argc, char * argv[]) {
-    int j,k,l; /* iteration variables */
+  int j,k,l; /* iteration variables */
   int len_fn;
   /* arrays for storing input file name data */
-  char fn_infile[BUF_SIZE] = {0};
+  char * fn_infile_buff = malloc(BUF_SIZE);
+  char * fn_infile;
+  /* char fn_infile[BUF_SIZE] = {0}; */
 
   /* process the input arguments */
   if (argc == 1) {
@@ -34,10 +36,14 @@ main (int argc, char * argv[]) {
       printf( "processing input file.. \n" );
 
       for (j=3; argv[1][j] != '\0'; j++) {
-        fn_infile[j-3] = argv[1][j];
+        fn_infile_buff[j-3] = argv[1][j];
       }
-      len_fn = j-3;
 
+      len_fn = j-3;
+      fn_infile = malloc(len_fn+1);
+      for (j=0; j<=len_fn; j++) {
+        fn_infile[j] = fn_infile_buff[j];
+      }
       /* extract the needed data from the input */
       parse_input(fn_infile, len_fn);
 
@@ -63,6 +69,8 @@ main (int argc, char * argv[]) {
   /* free(state_indices); */
 
   /* free(state_indices); */
+  free(fn_infile);
+  free(fn_infile_buff);
   printf( "rmap successfully executed.\n" );
   return 0;
 }
