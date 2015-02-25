@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <regex.h>
 #include <ctype.h>
 #include <math.h>
 #include <signal.h>
@@ -15,16 +14,36 @@
 
 #define BUF_SIZE 256
 
-int n_states;
-int n_trans;
 int n_info_nodes; /* counter for number of  */
 double * input_data[4];
 int ** state_indices;
 
 info_node info_node_root;
 
+int
+init_data_branch(double ** pi, /* parsed input */
+                 int ns, /* n states */
+                 int nt, /* n transitions */
+                 char * fs /* input file name string */
+                 ){
+
+  /* initialize the linked list structure for the electronic states */
+  init_state_ll(fs, ns, nt);
+
+  /* use the extracted input data to set the state of the linked list */
+  set_state_ll(pi, ns, nt, fs);
+
+  /* what next? categorization into different state types?? */
+
+  /* free up parsed_input, since it now lives in the tree */
+  return 0;
+}
+
 info_node
-init_info_node (char * s){
+init_info_node (char * s,
+                int ns,
+                int nt
+                ){
 
   int j;
 
@@ -45,28 +64,32 @@ to allocate memory for \"new_info_node\"\n");
   }
 
   new_info_node -> str_id = si;
+  new_info_node -> n_states = ns;
+  new_info_node -> n_trans = nt;
 
   if (n_info_nodes == 0) { /* there is no root info node defined  */
     n_info_nodes = 1;
-    new_info_node -> idx = n_info_nodes-1;
-    new_info_node -> next = NULL;
     new_info_node -> last = NULL;
+    new_info_node -> next = NULL;
     info_node_root = new_info_node;
     last_info_node = info_node_root;
   }
   else { /* the root info node is already defined */
     n_info_nodes++;
     new_info_node -> last = last_info_node;
-    new_info_node -> idx = n_info_nodes-1;
-    new_info_node -> next = NULL;
     last_info_node -> next = new_info_node;
+    new_info_node -> next = NULL;
   }
+  new_info_node -> idx = n_info_nodes-1;
 
   return new_info_node;
 }
 
-struct e_state *
-init_state_ll (char * str_id){
+e_state
+init_state_ll (char * str_id,
+               int n_states,
+               int n_trans
+               ){
 
   int j,k,l; /* looping variables */
   int from,from_last,to;
@@ -74,17 +97,17 @@ init_state_ll (char * str_id){
   double tmp_energy;
   double tmp_bw;
 
-  struct e_state * root_state;
-  struct e_state * curr_state;
-  struct e_state * next_state;
-  struct e_state * last_state;
+  e_state root_state;
+  e_state curr_state;
+  e_state next_state;
+  e_state last_state;
 
   info_node curr_info_node;
 
-  curr_info_node = init_info_node(str_id); /* this defines the root node and
+  curr_info_node = init_info_node(str_id, n_states, n_trans); /* this defines the root node and
                                               assigns it a non-NULL index */
 
-  root_state = (struct e_state*)malloc(sizeof(struct e_state));
+  root_state = (e_state)malloc(sizeof(struct e_state_s));
   root_state -> last = NULL;
   root_state -> next = NULL;
   root_state -> list_idx = 0;
@@ -97,7 +120,7 @@ init_state_ll (char * str_id){
   for (j=1; j<n_states; j++) {
     /* note that the idxs_to and t_moms arrays dont get allocated here. this
      is done in the set_state_ll function */
-    next_state = (struct e_state*)malloc(sizeof(struct e_state));
+    next_state = (e_state)malloc(sizeof(struct e_state_s));
     next_state -> last = curr_state;
     next_state -> list_idx = j;
     next_state -> info = curr_info_node;
@@ -111,7 +134,7 @@ init_state_ll (char * str_id){
 }
 
 int
-set_state_node (struct e_state * st,
+set_state_node (e_state st,
                 int s_idx,
                 int * idxs_buf,
                 double * evals_buf,
@@ -166,21 +189,26 @@ to allocate memory for \"tmoms\"\n");
 
 int
 set_state_ll (double ** parsed_input,
+              int n_states,
+              int n_trans,
               char * id) {
 
   int j,k,l,m; /* looping variables */
   int from_last = parsed_input[0][0];
   int from,to;
   double tmp_energy;
+  double tmp_sum; /* sum of all boltzmann weights for the electronic states
+                   in the system */
   info_node curr_info_node = info_node_root;
   info_node next_info_node;
 
-  struct e_state * next_state;
-  struct e_state * curr_state;
+  e_state next_state;
+  e_state curr_state;
 
   int * tmp_idxs;
   double * tmp_tmoms;
   double * tmp_evals;
+
 
   if((tmp_idxs = malloc(n_states*sizeof(int))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
@@ -217,11 +245,8 @@ to allocate memory for \"idxs_to\"\n");
       exit(1);
     }
   }
-  curr_state = curr_info_node -> root_e_state;
 
-    /* tmp_idxs[0] = parsed_input[1][0]; */
-    /* tmp_evals[0] = parsed_input[3][0]; */
-    /* tmp_tmoms[0] = parsed_input[4][0]; */
+  curr_state = curr_info_node -> root_e_state;
 
   /* grab the transitions and energies */
   for (k=0,j=0,l=0; j<=n_trans; j++) { /* j = read head for the parsed_input matrix */
@@ -237,11 +262,12 @@ to allocate memory for \"idxs_to\"\n");
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
 
-      /* printf( "\nfrom=%d, e_val=%le\n",(curr_state -> state_idx), (curr_state -> e_val)); */
-      /* for (m=0; m<k; m++) { */
-      /*   printf( "to:%d, ev=%le, mom[%d]=%le\n", (curr_state -> idxs_to)[m],\ */
-      /*           (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]); */
-      /* } */
+      tmp_sum += curr_state -> bw;
+      printf( "\nfrom=%d, e_val=%le\n",(curr_state -> state_idx), (curr_state -> e_val));
+      for (m=0; m<k; m++) {
+        printf( "to:%d, ev=%le, mom[%d]=%le\n", (curr_state -> idxs_to)[m],\
+                (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]);
+      }
 
       next_state = curr_state -> next;
       curr_state = next_state;
@@ -264,6 +290,18 @@ to allocate memory for \"idxs_to\"\n");
     }
   }
 
+  curr_info_node -> bw_sum = tmp_sum;
+
+  /* loop backwards over the electronic state llist and set the rel_bw property
+   of each state */
+  while(next_state = curr_state -> last){
+    curr_state -> rel_bw = (curr_state -> rel_bw)/tmp_sum;
+    curr_state = next_state;
+    if ((curr_state -> last) == NULL) {
+      break;
+    }
+  }
+
   /* trim off any nodes at the end of the list that hasnt gotten allocated. */
   free(tmp_idxs);
   free(tmp_tmoms);
@@ -273,89 +311,6 @@ to allocate memory for \"idxs_to\"\n");
 }
 
 int
-sort_states (double ** parsed_input
-             ){
-  int j,k,l; /* looping variables */
-  int from_last = parsed_input[0][0];
-  int from,to;
-  int n_gs,n_is,n_fs,n_isfs; /* number of each respective state */
-  int * res;
-
-  double bw; /* boltzmann weights */
-  double tmp_sum = 0; /* sum of boltzmann weights */
-  double e_rel = parsed_input[2][0]; /* store reference to the lowest energy
-                                eigenstate */
-  float gs_thrsh = 0.00001; /* threshold for boltzmann weight for the initial
-                             states */
-  double is_thrsh; /* threshold for the intermediate states */
-  double fs_thrsh; /* threshold for the final states */
-  /* first off, obtain the boltzman distribution for the initial states.  */
- /*  if((bw = malloc(n_trans*sizeof(double))) == NULL ){ */
- /*    fprintf(stderr, "function sort_states, malloc: failed to allocate memory for\ */
- /* \"bw\"\n"); */
- /*    printf( "program terminating due to the previous error.\n"); */
- /*    exit(1); */
- /*  } */
-
-  if((state_indices = malloc(4*sizeof(int*))) == NULL ){
-    fprintf(stderr, "function sort_states, malloc: failed to allocate memory for\
- \"state_indices\"\n");
-    printf( "program terminating due to the previous error.\n");
-    exit(1);
-  }
-  /* state_indices contains information on what and how many states are left
-   after screening. the first element contains a number defining how many
-  of each state, and the rest of the elements contain a state index.*/
-  for (j=0; j<3; j++) {
-    if((state_indices[j] = malloc((n_states+1)*sizeof(int))) == NULL ){
-      fprintf(stderr, "function sort_states, malloc: failed to allocate memory for\
- \"state_indices\"\n");
-      printf( "program terminating due to the previous error.\n");
-      exit(1);
-    }
-  }
-
-  for (j=0; j<n_trans; j++) {
-
-    from = parsed_input[0][j];
-    if (from != from_last) {
-      /* sum up the boltzmann weights */
-      tmp_sum += exp(-(parsed_input[2][j] - e_rel)*AUTOEV/(TEXP*TTOEV))/2;
-      from_last = from;
-    }
-  }
-
-  for (k=1,j=0; j<n_trans; j++) {
-
-    from = parsed_input[0][j];
-    if (from != from_last) {
-
-      bw = (exp(-(parsed_input[2][j] - e_rel)*AUTOEV/(TEXP*TTOEV))/2)/tmp_sum;
-      if (bw >= gs_thrsh) {
-        state_indices[0][k++] = from;
-      }
-      from_last = from;
-    }
-  }
-
-  for (j=0; j<=n_gs; j++) {
-    printf( "gs[%d] = %d\n", j, state_indices[0][j] );
-  }
-
-  printf( "\n" );
-  for (j=0; j<n_is; j++) {
-    printf( "is[%d] = %d\n", j, state_indices[1][j]);
-  }
-
-  printf( "\n" );
-  for (j=0; j<n_fs; j++) {
-    printf( "fs[%d] = %d\n", j, state_indices[2][j]);
-  }
-
-  return 0;
-}
-
-double **
 parse_input_molcas (char * fn_infile) {
 
   int j,k,l,m,i,n,k_its; /* control loop variables */
@@ -367,6 +322,7 @@ parse_input_molcas (char * fn_infile) {
   int idx_from;
   int idx_to;
   int extr_i;
+  int n_states,n_trans;
   float extr_f;
 
   int * num_idxs1;
@@ -383,9 +339,8 @@ parse_input_molcas (char * fn_infile) {
   const int n_lookup_str = 4; /* number of strings used for searching the input file */
   const int n_maxmatch = n_lookup_str/2;
   int n_matchfound = 0;
-  int match_vals[2] = {0}; /* place to store the indexes of the lines containing the
+  int match_vals[2] = {0,0}; /* place to store the indexes of the lines containing the
                               matches */
-
   /* place to store the indexes of the lines containing the
      matches. each data block will start after,  and end after the offset values.*/
   int match_ln[n_lookup_str];
@@ -393,25 +348,7 @@ parse_input_molcas (char * fn_infile) {
   int c; /* temporary char for storing input file characters */
   /* we are looking for four strings in the output file: one at the beginning
      of each data block, and one at the end. */
-  char * str_buf;
-
-  regex_t c_regex_m1;
-  regex_t c_regex_m2;
-  regex_t c_regexs[2] = {c_regex_m1, c_regex_m2};
-
-  str_buf = malloc(BUF_SIZE*2);
-
-  const char s_regex_m1[6] = "[0-9]";
-  const char s_regex_m2[6] = "[0-9]";
-  const char * s_regexs[2] = {s_regex_m1, s_regex_m1};
-
-  /* compile the regular expression my_regexp to check its compatibility */
-  for (j=0; j<2; j++) {
-    if (regcomp(&c_regexs[j], s_regexs[j], REG_EXTENDED) != 0) {
-      fprintf(stderr, "parse_cfg: failed to compile the regexp pattern %s.\n",s_regexs[j]);
-      exit(1);
-    }
-  }
+  char * str_buf = malloc(BUF_SIZE*2);
 
   const char s1[26] = "        Relative EVac(au)";
   const char s2[51] = " Weights of the five most important spin-orbit-free";
@@ -651,7 +588,7 @@ for pointers in \"input_data\"\n");
   free(trans_idxs);
   free(t_mom);
 
-  return parsed_input;
+  return init_data_branch(parsed_input,n_states,n_trans,fn_infile);
 }
 
 int
@@ -659,9 +596,10 @@ parse_input (char * fn_infile, /* name of input file */
              int len_fn){
 
   int j, k, l; /* looping variables */
+  int n_states,n_trans;
 
   char format[BUF_SIZE] = {0};
-  struct e_state * root_e_state;
+  e_state root_e_state;
 
   /* after having been used in a reference call to a parsing function the
      parsed_input array should contain an n_trans * 5 matrix loaded with
@@ -673,7 +611,6 @@ parse_input (char * fn_infile, /* name of input file */
      e_t = energy corresponding to idx_t
      mom = the transition moment for the transition
   */
-  double ** parsed_input;
 
   /* loop over the input file name and extract the ending */
   for (j=len_fn; j>0; j--) {
@@ -682,7 +619,7 @@ parse_input (char * fn_infile, /* name of input file */
 
       if (strcmp(format,MOLCAS_FORMAT)){
         printf( "found molcas.\n" );
-        parsed_input = parse_input_molcas(fn_infile);
+        parse_input_molcas(fn_infile);
         printf( "processed molcas\n" );
         break; /* for */
       }
@@ -693,18 +630,16 @@ parse_input (char * fn_infile, /* name of input file */
     }
   }
 
-  root_e_state = init_state_ll(fn_infile);
-
   /* construct a linked-list tree of the parsed input */
   /* load the parsed input into the linked list of electronic states */
-  set_state_ll(parsed_input,fn_infile);
+  /* set_state_ll(parsed_input,fn_infile); */
 
   /* the input data is processed into the info_node linked list struct
    so lets free up space for that */
-  for (j=0; j<5; j++) {
-    free(parsed_input[j]);
-  }
-  free(parsed_input);
+  /* for (j=0; j<5; j++) { */
+  /*   free(parsed_input[j]); */
+  /* } */
+  /* free(parsed_input); */
   /* sort_states(parsed_input); */
 
   printf( "file processed\n" );

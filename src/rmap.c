@@ -63,6 +63,11 @@ main (int argc, char * argv[]) {
     argv++;
   }
 
+  /* at this point, the input data is sorted and stored in a llist inside of
+   the parsed_input scope. pass it through the screening function to obtain
+  the rigth data to plot */
+  /* screened_states = screen_states(); */
+
   /* for (j=0; j<=3; j++) { */
   /*     free(input_data[j]);/\* memory allocated in parse_input.c *\/ */
   /* } */
