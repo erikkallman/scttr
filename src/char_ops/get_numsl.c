@@ -96,7 +96,7 @@ get_numsl (char * str,
 
     numstr = malloc(l);
     /* printf( "\n\nget_numsl got this in return:\n" ); */
-    for (k=0; k<l; k++) {
+    for (k=0; k<l-1; k++) {
       /* store the number and return a pointer to it.
          this gets freed up by the caller. */
       numstr[k] = num_buf[k];
@@ -104,8 +104,7 @@ get_numsl (char * str,
     }
     /* printf( "\n"); */
     /* printf( "%le\n", (double)sci_atof(numstr)); */
-    /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-    /* exit(1); */
+
     *tmp_num = sci_atof(numstr); /* extract the next memory location */
 
     /* printf( "%le\n", *tmp_num); */

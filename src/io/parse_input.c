@@ -21,8 +21,6 @@ int n_info_nodes; /* counter for number of  */
 double * input_data[4];
 int ** state_indices;
 
-FILE * fp_infile; /* pointer to the opened input data file */
-
 info_node info_node_root;
 
 info_node
@@ -44,15 +42,11 @@ to allocate memory for \"new_info_node\"\n");
 
   for (j=0; j<str_sz; j++) {
     si[j] = s[j];
-    printf( "%c", si[j]);
   }
-  printf( "\n" );
 
   new_info_node -> str_id = si;
 
-
   if (n_info_nodes == 0) { /* there is no root info node defined  */
-
     n_info_nodes = 1;
     new_info_node -> idx = n_info_nodes-1;
     new_info_node -> next = NULL;
@@ -69,6 +63,51 @@ to allocate memory for \"new_info_node\"\n");
   }
 
   return new_info_node;
+}
+
+struct e_state *
+init_state_ll (char * str_id){
+
+  int j,k,l; /* looping variables */
+  int from,from_last,to;
+
+  double tmp_energy;
+  double tmp_bw;
+
+  struct e_state * root_state;
+  struct e_state * curr_state;
+  struct e_state * next_state;
+  struct e_state * last_state;
+
+  info_node curr_info_node;
+
+  curr_info_node = init_info_node(str_id); /* this defines the root node and
+                                              assigns it a non-NULL index */
+
+  root_state = (struct e_state*)malloc(sizeof(struct e_state));
+  root_state -> last = NULL;
+  root_state -> next = NULL;
+  root_state -> list_idx = 0;
+  root_state -> info = curr_info_node;
+
+  curr_info_node -> root_e_state = root_state;
+  curr_state = root_state;
+
+  /* construct the list structure */
+  for (j=1; j<n_states; j++) {
+    /* note that the idxs_to and t_moms arrays dont get allocated here. this
+     is done in the set_state_ll function */
+    next_state = (struct e_state*)malloc(sizeof(struct e_state));
+    next_state -> last = curr_state;
+    next_state -> list_idx = j;
+    next_state -> info = curr_info_node;
+    curr_state -> next = next_state;
+    curr_state = next_state;
+  }
+
+  next_state -> next = NULL;
+
+  return root_state;
 }
 
 int
@@ -133,7 +172,6 @@ set_state_ll (double ** parsed_input,
   int from_last = parsed_input[0][0];
   int from,to;
   double tmp_energy;
-
   info_node curr_info_node = info_node_root;
   info_node next_info_node;
 
@@ -166,44 +204,44 @@ to allocate memory for \"idxs_to\"\n");
   }
   /* loop over the info node list and find the one with the right string
    identifier */
-  while(strcmp((curr_info_node -> str_id),id) != 0) {
+
+  while(strstr((curr_info_node -> str_id),id) == NULL) {
 
     next_info_node = curr_info_node -> next;
     curr_info_node = next_info_node;
 
     if (curr_info_node == NULL) {
-      fprintf(stderr, "parse_input.c: set_state_ll, no info node can be found with a str_id == %s\n", id);
+      fprintf(stderr, "parse_input.c: set_state_ll, no info node can be found\
+ with a str_id == %s\n", id);
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
   }
   curr_state = curr_info_node -> root_e_state;
 
+    /* tmp_idxs[0] = parsed_input[1][0]; */
+    /* tmp_evals[0] = parsed_input[3][0]; */
+    /* tmp_tmoms[0] = parsed_input[4][0]; */
+
   /* grab the transitions and energies */
-  for (k=0,j=0,l=0; j<=n_trans; k++, j++) { /* j = read head for the parsed_input matrix */
+  for (k=0,j=0,l=0; j<=n_trans; j++) { /* j = read head for the parsed_input matrix */
 
     from = parsed_input[0][j];
     to = parsed_input[1][j];
 
-    tmp_idxs[k] = parsed_input[1][j];
-    tmp_evals[k] = parsed_input[3][j];
-    tmp_tmoms[k] = parsed_input[4][j];
-
     if (from != from_last) { /* we just started reading values for transitions
                                 from a new state */
-
       /* initialize the next state in the ll */
       tmp_energy = parsed_input[2][j-1];
 
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
 
-      printf( "\nfrom=%d, e_val=%le\n",(curr_state -> state_idx), (curr_state -> e_val));
-      for (m=0; m<k; m++) {
-        printf( "to:%d, ev=%le, mom[%d]=%le\n", (curr_state -> idxs_to)[m],\
-                (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]);
-      }
-      sleep(2);
+      /* printf( "\nfrom=%d, e_val=%le\n",(curr_state -> state_idx), (curr_state -> e_val)); */
+      /* for (m=0; m<k; m++) { */
+      /*   printf( "to:%d, ev=%le, mom[%d]=%le\n", (curr_state -> idxs_to)[m],\ */
+      /*           (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]); */
+      /* } */
 
       next_state = curr_state -> next;
       curr_state = next_state;
@@ -216,8 +254,14 @@ to allocate memory for \"idxs_to\"\n");
 
       from_last = from;
       k=0;
+      j--;
     }
-    /*k++;  increase counter for transitions counted */
+    else {
+      tmp_idxs[k] = parsed_input[1][j];
+      tmp_evals[k] = parsed_input[3][j];
+      tmp_tmoms[k] = parsed_input[4][j];
+      k++;  /* increase counter for transitions counted */
+    }
   }
 
   /* trim off any nodes at the end of the list that hasnt gotten allocated. */
@@ -226,58 +270,6 @@ to allocate memory for \"idxs_to\"\n");
   free(tmp_evals);
 
   return 0;
-}
-
-struct e_state *
-init_state_ll (char * str_id){
-
-  int j,k,l; /* looping variables */
-  int from,from_last,to;
-
-  double tmp_energy;
-  double tmp_bw;
-
-  struct e_state * root_state;
-  struct e_state * curr_state;
-  struct e_state * next_state;
-  struct e_state * last_state;
-
-  info_node curr_info_node;
-
-  curr_info_node = init_info_node(str_id); /* this defines the root node and
-                                              assigns it a non-NULL index */
-
-  root_state = (struct e_state*)malloc(sizeof(struct e_state));
-  root_state -> last = NULL;
-  root_state -> next = NULL;
-  root_state -> list_idx = 0;
-  root_state -> info = curr_info_node;
-
-  curr_info_node -> root_e_state = root_state;
-  curr_state = root_state;
-
-  /* construct the list structure */
-  for (j=1; j<n_states; j++) {
-    /* note that the idxs_to and t_moms arrays dont get allocated here. this
-     is done in the set_state_ll function */
-    next_state = (struct e_state*)malloc(sizeof(struct e_state));
-    next_state -> last = curr_state;
-    next_state -> list_idx = j;
-    next_state -> info = curr_info_node;
-    curr_state -> next = next_state;
-    curr_state = next_state;
-  }
-
-  next_state -> next = NULL;
-
-
-  return root_state;
-}
-
-double
-get_bdist (double e_val,
-           double temp){
-  return exp(e_val/((1.380648813e-23)*300));
 }
 
 int
@@ -386,6 +378,7 @@ parse_input_molcas (char * fn_infile) {
   double * t_mom;
 
   FILE * fp_tmpdata;
+  FILE * fp_infile;
 
   const int n_lookup_str = 4; /* number of strings used for searching the input file */
   const int n_maxmatch = n_lookup_str/2;
@@ -396,7 +389,6 @@ parse_input_molcas (char * fn_infile) {
   /* place to store the indexes of the lines containing the
      matches. each data block will start after,  and end after the offset values.*/
   int match_ln[n_lookup_str];
-  FILE * fp_infile;
 
   int c; /* temporary char for storing input file characters */
   /* we are looking for four strings in the output file: one at the beginning
@@ -428,7 +420,7 @@ parse_input_molcas (char * fn_infile) {
   const char * lookup_str[4] = {s1,s2,s3,s4};
 
   /* open the input file */
-  if((fp_infile = fopen(fn_infile, "rt")) == NULL) {
+  if((fp_infile = fopen(fn_infile, "r")) == NULL) {
     fprintf(stderr,"parse_input: unable to open the input file %s.\n",fn_infile);
     printf( "program terminating due to the previous error.\n");
     exit(1);
@@ -622,7 +614,9 @@ for pointers in \"input_data\"\n");
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
           /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
-
+              /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+              /* exit(1); */
+          /* sleep(1); */
           m++;
         }
         l=0; /* reset the buffer write head to start reading a the next line */
@@ -647,7 +641,6 @@ for pointers in \"input_data\"\n");
   /*   printf( "%le   %le   %le   %le   %le\n", parsed_input[0][k], parsed_input[1][k], parsed_input[2][k], parsed_input[3][k], parsed_input[4][k]); */
   /* } */
 
-
   fclose(fp_infile);
   fclose(fp_tmpdata);
 
@@ -666,7 +659,7 @@ parse_input (char * fn_infile, /* name of input file */
              int len_fn){
 
   int j, k, l; /* looping variables */
-  FILE * fp_infile;
+
   char format[BUF_SIZE] = {0};
   struct e_state * root_e_state;
 
@@ -700,19 +693,19 @@ parse_input (char * fn_infile, /* name of input file */
     }
   }
 
-  /* construct a linked-list tree of the parsed input */
   root_e_state = init_state_ll(fn_infile);
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+
+  /* construct a linked-list tree of the parsed input */
   /* load the parsed input into the linked list of electronic states */
   set_state_ll(parsed_input,fn_infile);
 
-  /* sort_states(parsed_input); */
-
+  /* the input data is processed into the info_node linked list struct
+   so lets free up space for that */
   for (j=0; j<5; j++) {
     free(parsed_input[j]);
   }
   free(parsed_input);
+  /* sort_states(parsed_input); */
 
   printf( "file processed\n" );
   return 0;

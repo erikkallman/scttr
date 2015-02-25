@@ -41,11 +41,16 @@ main (int argc, char * argv[]) {
 
       len_fn = j-3;
       fn_infile = malloc(len_fn+1);
-      for (j=0; j<=len_fn; j++) {
+
+      for (j=0; j<len_fn; j++) {
         fn_infile[j] = fn_infile_buff[j];
       }
+
+      fn_infile[len_fn] = '\0';
+
       /* extract the needed data from the input */
-      parse_input(fn_infile, len_fn);
+      printf( "%s\n", fn_infile);
+      parse_input(fn_infile, len_fn+1);
 
       break;
 

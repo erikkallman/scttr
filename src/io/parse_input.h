@@ -50,7 +50,6 @@ struct e_state{
   struct e_state * last;
 };
 
-
 /* function init_info_node
 
    * synopsis:
@@ -66,6 +65,22 @@ struct e_state{
    */
 info_node
 init_info_node (char * s);
+
+/* function init_state_ll
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+struct e_state *
+init_state_ll (char * str_id);
 
 /* function set_state_node
 
@@ -109,23 +124,6 @@ set_state_node (struct e_state * st,
 int
 set_state_ll (double ** parsed_input,
               char * id);
-
-
-/* function init_state_ll
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-struct e_state *
-init_state_ll (char * str_id);
 
 
 /* function get_bdist

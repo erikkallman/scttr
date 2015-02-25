@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "std_num_ops.h"
 
 int
@@ -48,4 +49,10 @@ allocate memory for \"state_indices\"\n");
   }
 
   return res;
+}
+
+double
+get_bdist (double e_val,
+           double temp){
+  return exp(e_val/((1.380648813e-23)*300));
 }

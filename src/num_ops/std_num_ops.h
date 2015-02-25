@@ -43,4 +43,8 @@ getintinint (int * a1,
              int * a2,
              int n
              );
+
+double
+get_bdist (double e_val,
+           double temp);
 #endif /* STD_NUM_OPS_H */
