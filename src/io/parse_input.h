@@ -37,8 +37,8 @@ struct e_state_s{
 
   /* this list is doubly linked. */
   info_node info;
-  info_node next;
-  info_node last;
+  e_state next;
+  e_state last;
 };
 
 typedef struct e_state_s * e_state;

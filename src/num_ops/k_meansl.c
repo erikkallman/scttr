@@ -17,9 +17,7 @@ k_meansl (double * a,
   /* initialize the reference points */
   double sum,change,last_change,step; /* difference between two data points*/
   double ref_p[3] = {a[0], arit_meanl(a, n_vals), a[n_vals-1]};
-  for (j=0; j<3; j++) {
-    printf( "ref_p[%d] = %le\n",j,ref_p[j]);
-  }
+
   /* distnance from each reference point to each data point */
   double ** dist;
 
@@ -43,7 +41,7 @@ k_meansl (double * a,
   last_change = 0;
   while(fabs(change-last_change) > 0.2){
   /* while(1){ */
-    printf( "\n\nchange=%le\nlast_change=%le\ndiff=%le\n\n",change,last_change,fabs(change-last_change));
+    /* printf( "\n\nchange=%le\nlast_change=%le\ndiff=%le\n\n",change,last_change,fabs(change-last_change)); */
     last_change = change;
     /* sleep(1); */
     /* for each reference point, calculate the distance from it to all
@@ -71,7 +69,7 @@ k_meansl (double * a,
         if (n == 1) {
           /* we looped over all differences and found no other reference
            point k to be closer to the m:th data point than j */
-          groups[j][g_idxs[j]+1] = m;
+          groups[j][g_idxs[j]+1] = m+1;
           g_idxs[j] += 1;
         }
       }
@@ -81,7 +79,7 @@ k_meansl (double * a,
 
       sum = 0;
       for (k=0; k < g_idxs[j]; k++) {
-        sum += a[groups[j][k+1]];
+        sum += a[groups[j][k+1]-1];
       }
 
       step = sum/(g_idxs[j]+1);
@@ -94,14 +92,18 @@ k_meansl (double * a,
     }
 
     change = arit_meanl(ref_p,3);
-    printf( "\n\nchange2=%le\nlast_change2=%le\ndiff2=%le\n\n",change,last_change,fabs(change-last_change));
+    /* printf( "\n\nchange2=%le\nlast_change2=%le\ndiff2=%le\n\n",change,last_change,fabs(change-last_change)); */
     for (j=0; j<3; j++) {
-      printf( "\ng_idxs[%d] = %d\n",j,g_idxs[j]);
-      printf( "ref_p[%d] = %le\n",j,ref_p[j]);
-      for (k=0; k<g_idxs[j]; k++) {
-        printf( "groups[%d][%d] = %d\n",j,k,groups[j][k+1]);
-        printf( "e_vals[%d] = %le\n",groups[j][k+1],a[groups[j][k+1]]);
-      }
+      /* printf( "\ng_idxs[%d] = %d\n",j,g_idxs[j]); */
+      /* printf( "ref_p[%d] = %le\n",j,ref_p[j]); */
+      /* for (k=0; k<g_idxs[j]; k++) { */
+      /* printf( "groups[%d][%d] = %d\n",j,k,groups[j][k+1]); */
+      /*   printf( "e_vals[%d] = %le\n",groups[j][k+1],a[groups[j][k+1]-1]); */
+      /* } */
+
+      /* store the number of indices in each group in the 0th element of the group
+         matrix so that the callee can extract this value */
+      groups[j][0] = g_idxs[j];
       g_idxs[j] = 0;
       if (ref_p[j] > 0) {
         exit(EXIT_FAILURE);
@@ -109,18 +111,10 @@ k_meansl (double * a,
     }
   }
 
-  /* store the number of indices in each group in the 0th element of the group
-   matrix so that the callee can extract this value */
-  for (j=0; j<3; j++) {
-    groups[j][0] = g_idxs[j];
-  }
-
   for (j=0; j<3; j++) {
     free(dist[j]);
   }
   free(dist);
 
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
   return 0;
 }

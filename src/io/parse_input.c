@@ -148,12 +148,9 @@ init_state_ll (char * str_id,
 
     /* by definition the parsed_input[:][0] should contain information on the
    lowest energy ground state. set the root state node type accordingly. */
-  root_state -> type = 1;
   curr_info_node -> root_e_state = root_state;
   curr_state = root_state;
 
-  /* the first node in the llist is the lowest energy ground state */
-  curr_state -> type = 1;
   /* construct the list structure */
   for (j=1; j<n_states; j++) {
     /* note that the idxs_to and t_moms arrays dont get allocated here. this
@@ -163,11 +160,10 @@ init_state_ll (char * str_id,
     next_state -> list_idx = j;
     next_state -> info = curr_info_node;
     curr_state -> next = next_state;
+    curr_state -> type = 0;
     curr_state = next_state;
   }
 
-  /* the last node in the llist is the highest energy intermediate state */
-  curr_state -> type = 2;
   curr_state -> next = NULL;
 
   return root_state;
@@ -217,7 +213,6 @@ to allocate memory for \"tmoms\"\n");
   }
 
   st -> state_idx = s_idx;
-  st -> type = 0;
   st -> bw = exp(-(e - e_rel)*AUTOEV/(TEXP*TTOEV))/2;
   st -> e_val = e;
   st -> n_tfrom = n_trs_from;
@@ -236,8 +231,12 @@ set_state_ll (double ** parsed_input,
 
   int j,k,l,m; /* looping variables */
   int from_last = parsed_input[0][0];
-  int from,to,sorted_idx;
+  int from,to,sorted_idx,tmp_idx;
+  int tmp_ntfrom, tmp_type;
+  int * g;
+  int * ito;
   int ** groups;
+
   double tmp_energy;
   double tmp_sum; /* sum of all boltzmann weights for the electronic states
                    in the system */
@@ -319,6 +318,8 @@ to allocate memory for \"idxs_to\"\n");
 
   curr_state = curr_info_node -> root_e_state;
 
+  /* the first node in the llist is the lowest energy ground state */
+  curr_state -> type = 1;
   /* grab the transitions and energies */
   for (k=0,j=0,l=0; j<=n_trans; j++) { /* j = read head for the parsed_input matrix */
 
@@ -335,9 +336,9 @@ to allocate memory for \"idxs_to\"\n");
 
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
-
       tmp_sum += curr_state -> bw;
-      /* printf( "\nto=%d, e_val=%le\n",(curr_state -> state_idx), (curr_state -> e_val)); */
+      /* printf( "\nto=%d, e_val=%le, type=%d\n",(curr_state -> state_idx), \ */
+      /*         (curr_state -> e_val), (curr_state -> type)); */
       /* for (m=0; m<k; m++) { */
       /*   printf( "from:%d, ev=%le, mom[%d]=%le\n", (curr_state -> idxs_to)[m],\ */
       /*           (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]); */
@@ -364,6 +365,8 @@ to allocate memory for \"idxs_to\"\n");
     }
   }
 
+  /* the last node in the llist is the highest energy intermediate state */
+  curr_state -> type = 3;
   curr_info_node -> bw_sum = tmp_sum;
 
   /* loop over the electronic state llist and set the rel_bw property
@@ -409,49 +412,83 @@ to allocate memory for \"idxs_to\"\n");
 
   end_state = curr_state -> last;
   curr_state2 = end_state;
-  /* locate the next state index in the llist found in the groups matrix */
 
-  while(next_state2 = curr_state2 -> last){
+  j = 0;
+  for (k=1; k<=groups[j][0]; k++) {
 
-    curr_state2 -> rel_bw = (curr_state2 -> bw)/tmp_sum;
-    to = (curr_state2 -> state_idx);
+    sorted_idx = groups[j][k];
+    g = &groups[j][1];
+    curr_state = curr_info_node -> root_e_state;
 
-    if (to == sorted_idx) {
-      /* loop over the llist once more and find all states that do not have
-       any transitions to the selected state */
-    }
+    while((next_state = curr_state -> next) != NULL){
 
-    printf( "\n\nto=%d\n\n",to);
-    sleep(1);
-    curr_state = end_state;
+      curr_state -> rel_bw = (curr_state -> bw)/tmp_sum;
+      to = (curr_state -> state_idx);
 
-    while(next_state = curr_state -> last){
+      if (to == sorted_idx) {
+        /* store a pointer to the "to" state idxs_to array and check so that every foundstate is not inside of it as well */
+        ito = (curr_state -> idxs_to);
+        tmp_ntfrom = curr_state -> n_tfrom;
+        tmp_type = curr_state -> type;
+        printf( "\nto = %d, type = %d\n", to, tmp_type);
+        /* sleep(1); */
 
-      curr_state = next_state;
-      if ((curr_state -> state_idx) != to && ((curr_state -> state_idx) != 1)){
-        if (intinint(curr_state -> idxs_to, to, curr_state -> n_tfrom) == 0){
-          curr_state -> type = 23;
-          printf( "foundstate %d\n", curr_state -> state_idx);
+        /* loop over the llist once more and find all states that do not have
+           any transitions to the selected state */
+        curr_state = curr_info_node -> root_e_state;
+        while((next_state = curr_state -> next) != NULL){
+          tmp_idx = curr_state -> state_idx;
+          printf( "from %d to %d, type %d\n", to, tmp_idx, curr_state -> type);
+          /* check if the state_idxs is even in the current group */
+          if (intinint(g,tmp_idx, groups[j][0]) == 1){
+
+            if ((tmp_idx != to) && (tmp_idx != 1)){
+
+              /* finally check if there are any transitions from the current
+                 state to the selected "to" index, and vice versa */
+              if ((intinint(curr_state -> idxs_to, to, curr_state -> n_tfrom) \
+                   == 0) && (intinint(ito, tmp_idx, curr_state -> n_tfrom) \
+                             == 0)){
+
+                if (tmp_type == 0) {
+                  curr_state -> type = 2;
+                } else if (tmp_type == 1) {
+                  curr_state -> type = 1;
+                } else if ((tmp_type == 2) && (curr_state -> type == 0)) {
+                  curr_state -> type = 2;
+                }
+                printf( "foundstate %d\n", curr_state -> state_idx);
+              }
+            }
+          }
+          curr_state = next_state;
         }
+        break; /* the state of index "to" has been sorted. */
       }
-
-      if ((curr_state -> last) == NULL) {
-        break;
+      if ((curr_state -> next) == NULL) {
+        fprintf(stderr, "parse_input.c, function set_state_ll: the state of \
+index %d could not be found in the linked list of states. error in state type\
+ is expected as a consequence of this.\n",to);
+        printf( "program terminating due to the previous error.\n");
+        exit(EXIT_FAILURE);
       }
+      curr_state = next_state;
     }
+  }
 
-    if ((curr_state2 -> last) == NULL) {
-      break;
-    }
+  curr_state = curr_info_node -> root_e_state;
 
-    curr_state2 = next_state2;
+  while((next_state = curr_state -> next) != NULL){
+   printf( "type = %d\n", curr_state -> type);
+    curr_state = next_state;
   }
 
   for (j=0; j<3; j++) {
     free(groups[j]);
   }
   free(groups);
-
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   /* trim off any nodes at the end of the list that hasnt gotten allocated. */
   free(tmp_idxs);
   free(tmp_tmoms);
