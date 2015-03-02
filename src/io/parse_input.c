@@ -5,6 +5,8 @@
 #include <math.h>
 #include <signal.h>
 #include <string.h>
+#include <stdarg.h> /* for var args */
+#include "k_meansl.h"
 #include "std_char_ops.h"
 #include "std_num_ops.h"
 #include "get_numsl.h"
@@ -20,12 +22,38 @@ int ** state_indices;
 
 info_node info_node_root;
 
+
+
+int
+sort_states (int n_args,
+             ...){
+  int j;
+
+  /* some hard-coded threshold values that will get replaced by the call
+   values */
+  float thrsh_vals[3] = {0.5, 0.0001, 0.0001};
+  float tmp_thrsh;
+
+  va_list argv;
+  va_start(argv, n_args);
+
+
+  for (j=0; j<n_args; j++) {
+    tmp_thrsh = (float)va_arg(argv, double); /* grab the next vararg */
+    thrsh_vals[j] = tmp_thrsh;
+  }
+
+  /* first, we screen for the initial states. */
+
+}
+
 int
 init_data_branch(double ** pi, /* parsed input */
                  int ns, /* n states */
                  int nt, /* n transitions */
                  char * fs /* input file name string */
                  ){
+  int j; /* looping variables */
 
   /* initialize the linked list structure for the electronic states */
   init_state_ll(fs, ns, nt);
@@ -33,9 +61,14 @@ init_data_branch(double ** pi, /* parsed input */
   /* use the extracted input data to set the state of the linked list */
   set_state_ll(pi, ns, nt, fs);
 
-  /* what next? categorization into different state types?? */
+  /* group_states(fs); */
 
   /* free up parsed_input, since it now lives in the tree */
+  for (j=0; j<5; j++) {
+    free(pi[j]);
+  }
+
+  free(pi);
   return 0;
 }
 
@@ -113,9 +146,14 @@ init_state_ll (char * str_id,
   root_state -> list_idx = 0;
   root_state -> info = curr_info_node;
 
+    /* by definition the parsed_input[:][0] should contain information on the
+   lowest energy ground state. set the root state node type accordingly. */
+  root_state -> type = 1;
   curr_info_node -> root_e_state = root_state;
   curr_state = root_state;
 
+  /* the first node in the llist is the lowest energy ground state */
+  curr_state -> type = 1;
   /* construct the list structure */
   for (j=1; j<n_states; j++) {
     /* note that the idxs_to and t_moms arrays dont get allocated here. this
@@ -128,7 +166,9 @@ init_state_ll (char * str_id,
     curr_state = next_state;
   }
 
-  next_state -> next = NULL;
+  /* the last node in the llist is the highest energy intermediate state */
+  curr_state -> type = 2;
+  curr_state -> next = NULL;
 
   return root_state;
 }
@@ -180,6 +220,7 @@ to allocate memory for \"tmoms\"\n");
   st -> type = 0;
   st -> bw = exp(-(e - e_rel)*AUTOEV/(TEXP*TTOEV))/2;
   st -> e_val = e;
+  st -> n_tfrom = n_trs_from;
   st -> idxs_to = idxs;
   st -> t_moms = tm;
   st -> e_vals = ev;
@@ -195,20 +236,26 @@ set_state_ll (double ** parsed_input,
 
   int j,k,l,m; /* looping variables */
   int from_last = parsed_input[0][0];
-  int from,to;
+  int from,to,sorted_idx;
+  int ** groups;
   double tmp_energy;
   double tmp_sum; /* sum of all boltzmann weights for the electronic states
                    in the system */
   info_node curr_info_node = info_node_root;
   info_node next_info_node;
 
+  e_state end_state; /* pointer to the last state in the llist */
   e_state next_state;
   e_state curr_state;
+
+  /* outer loop state pointers */
+  e_state next_state2;
+  e_state curr_state2;
 
   int * tmp_idxs;
   double * tmp_tmoms;
   double * tmp_evals;
-
+  double * e_vals;
 
   if((tmp_idxs = malloc(n_states*sizeof(int))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
@@ -230,6 +277,30 @@ to allocate memory for \"idxs_to\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
+
+  if((e_vals = malloc(n_states*sizeof(double))) == NULL ){
+    fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"idxs_to\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((groups = malloc(3*sizeof(int*))) == NULL ){
+    fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"idxs_to\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<3; j++) {
+    if((groups[j] = malloc((n_states+1)*sizeof(int))) == NULL ){
+      fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"idxs_to\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
   /* loop over the info node list and find the one with the right string
    identifier */
 
@@ -259,16 +330,19 @@ to allocate memory for \"idxs_to\"\n");
       /* initialize the next state in the ll */
       tmp_energy = parsed_input[2][j-1];
 
+      /* we need these energies to sort the states later */
+      e_vals[l++] = tmp_energy;
+
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
 
       tmp_sum += curr_state -> bw;
-      printf( "\nfrom=%d, e_val=%le\n",(curr_state -> state_idx), (curr_state -> e_val));
-      for (m=0; m<k; m++) {
-        printf( "to:%d, ev=%le, mom[%d]=%le\n", (curr_state -> idxs_to)[m],\
-                (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]);
-      }
-
+      /* printf( "\nto=%d, e_val=%le\n",(curr_state -> state_idx), (curr_state -> e_val)); */
+      /* for (m=0; m<k; m++) { */
+      /*   printf( "from:%d, ev=%le, mom[%d]=%le\n", (curr_state -> idxs_to)[m],\ */
+      /*           (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]); */
+      /* } */
+      /* sleep(1); */
       next_state = curr_state -> next;
       curr_state = next_state;
 
@@ -292,20 +366,97 @@ to allocate memory for \"idxs_to\"\n");
 
   curr_info_node -> bw_sum = tmp_sum;
 
-  /* loop backwards over the electronic state llist and set the rel_bw property
-   of each state */
-  while(next_state = curr_state -> last){
-    curr_state -> rel_bw = (curr_state -> rel_bw)/tmp_sum;
-    curr_state = next_state;
-    if ((curr_state -> last) == NULL) {
+  /* loop over the electronic state llist and set the rel_bw property
+     of each state, also group the ground states */
+  /* curr_state = (curr_info_node -> root_e_state); */
+
+  /* curr_state -> type = 1; */
+
+  /* first look up all states that do not transition to the lowest
+   energy ground state. these are ground states. */
+  /* int * gs_idxs = malloc((curr_info_node -> n_states)*sizeof(int)); */
+
+  /* for (j=0; j<(curr_info_node -> n_states); j++) { */
+  /*   gs_idxs[j] = j+1; */
+  /*   printf( "%d", gs_idxs[j]); */
+  /* } */
+  /* printf( "\n" ); */
+  /* int * idxs_res = getintinint(((curr_info_node -> root_e_state)->idxs_to),gs_idxs,(curr_info_node -> n_states)); */
+
+  /* for (j=0; j<(curr_info_node -> root_e_state)->n_tfrom; j++) { */
+  /*   printf( "%d", idxs_res[j]); */
+  /* } */
+  /* printf( "\n" ); */
+
+  /* curr_state = curr_info_node -> root_e_state; */
+  /* for (j=0; j<=n_states; j++){ */
+  /*   if (intinint(idxs_res,(curr_state->state_idx),(curr_info_node -> root_e_state)->n_tfrom) == 0) { */
+  /*     curr_state -> type = 1; */
+  /*     printf( "state %d is %d\n",curr_state -> state_idx, 1 ); */
+  /*   } */
+
+  /*   next_state = curr_state -> next; */
+  /*   curr_state = next_state; */
+  /*   if ((curr_state -> next)->next == NULL){ */
+  /*     break; */
+  /*   } */
+  /* } */
+
+  /* free(idxs_res); */
+  /* free(gs_idxs); */
+
+  k_meansl(e_vals, groups, l);
+
+  end_state = curr_state -> last;
+  curr_state2 = end_state;
+  /* locate the next state index in the llist found in the groups matrix */
+
+  while(next_state2 = curr_state2 -> last){
+
+    curr_state2 -> rel_bw = (curr_state2 -> bw)/tmp_sum;
+    to = (curr_state2 -> state_idx);
+
+    if (to == sorted_idx) {
+      /* loop over the llist once more and find all states that do not have
+       any transitions to the selected state */
+    }
+
+    printf( "\n\nto=%d\n\n",to);
+    sleep(1);
+    curr_state = end_state;
+
+    while(next_state = curr_state -> last){
+
+      curr_state = next_state;
+      if ((curr_state -> state_idx) != to && ((curr_state -> state_idx) != 1)){
+        if (intinint(curr_state -> idxs_to, to, curr_state -> n_tfrom) == 0){
+          curr_state -> type = 23;
+          printf( "foundstate %d\n", curr_state -> state_idx);
+        }
+      }
+
+      if ((curr_state -> last) == NULL) {
+        break;
+      }
+    }
+
+    if ((curr_state2 -> last) == NULL) {
       break;
     }
+
+    curr_state2 = next_state2;
   }
+
+  for (j=0; j<3; j++) {
+    free(groups[j]);
+  }
+  free(groups);
 
   /* trim off any nodes at the end of the list that hasnt gotten allocated. */
   free(tmp_idxs);
   free(tmp_tmoms);
   free(tmp_evals);
+  free(e_vals);
 
   return 0;
 }

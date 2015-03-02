@@ -3,6 +3,24 @@
 #include <math.h>
 #include "std_num_ops.h"
 
+double
+pyth_distl (double q,
+            double p){
+  return sqrt((q-p)*(q-p));
+}
+
+double
+arit_meanl (double * a,
+            int n_vals){
+  int j; /* looping variables */
+  double sum = 0;
+
+  for (j=0; j<n_vals; j++)
+    sum += a[j];
+
+  return sum/n_vals;
+}
+
 int
 power(int base,
       int exp){
@@ -33,6 +51,7 @@ getintinint (int * a1,
              int * a2,
              int n){
   int j;
+  int k=0;
   int * res;
 
   if((res = malloc(n*sizeof(int))) == NULL ){
@@ -44,7 +63,7 @@ allocate memory for \"state_indices\"\n");
 
   for (j=0; j<n; j++) {
     if (intinint(a2, a1[j], n)) {
-      res[n] = a1[j];
+      res[k++] = a1[j];
     }
   }
 

@@ -15,12 +15,16 @@ struct e_state_s{
   int list_idx;
   int state_idx;
 
-  /* 0=not yet assigned, 1=ground state, 2=intermediate state, 3=final state */
+  /* 0=not yet assigned, 1=ground state, 2=intermediate state, 3=final state,
+   23= either 2 or 3 */
   int type;
 
   double bw; /* boltzmann weight */
   double rel_bw; /* boltzmann weight of state / total bw for all states */
   double e_val; /* energy of the state on the node (the "from" energy) */
+
+  /* number of transitions from this state */
+  int n_tfrom;
 
   /* indices of states in transitions occuring from this state*/
   int * idxs_to;
@@ -62,6 +66,53 @@ struct info_node_s{
 };
 
 typedef struct info_node_s * info_node;
+
+/* function group_states
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+group_states ();
+
+/* function sort_states
+   The sort_states function is used to reduce the number of states used
+   for generating the RIXS map. Through analyzing the boltzmann distribution
+   of initial states, and screening of intensities for transitions,
+   states that are unlikely to contribute to the RIXS process are disregarded.
+   This effectively lowers the time needed to generate a given RIXS map. The
+   thresholds used to exclude states from the calculation can be used to find
+   an optimal compromise between number of states included and the time needed
+   to run the program.
+
+   * algorithm:
+   reads all initial states (k) contained in the array parsed_input[2]. from the
+   these energy values, the boltzmann distribution is calculated. All k states
+   with a weight value below the thrsh_b value gets excluded from the RIXS map
+   calculation.
+
+   * input:
+   - n_args: the number of threshold values included in the function call.
+   the function uses three screening stages (one for the ground, intermediate
+   and final states respectively) and one threshold value for each stage.
+   for each excluded threshold, a default value is used instead.
+   -(...): a number of double values for the thresholds in the order specified above.
+   * output:
+
+   * side-effects:
+
+   */
+int
+sort_states (int n_args,
+             ...);
 
 int
 init_data_branch(double ** pi, /* parsed input */
@@ -236,7 +287,8 @@ parse_input_molcas (char * fn_infile
  although this might seem like an overtly complex way of extracting data from
  the input, a developer that wants to add input parsing functionality for a
  different output format only needs to write code for defining the three
- variables described above.
+ variables described above. note: the first series of initial state values in
+ the matrix is expected to contain data for the lowest energy ground state.
 
  * algorithm:
 

@@ -1,6 +1,27 @@
 #ifndef STD_NUM_OPS_H
 #define STD_NUM_OPS_H
 
+/* function arit_meanl
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+double
+arit_meanl (double * a,
+            int n_vals);
+
+double
+pyth_distl (double q,
+            double p);
+
 int power(int base,
           int exp
           );

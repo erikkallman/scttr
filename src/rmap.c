@@ -63,6 +63,7 @@ main (int argc, char * argv[]) {
     argv++;
   }
 
+  sort_states(0.2, 0.0002, 0.0002);
   /* at this point, the input data is sorted and stored in a llist inside of
    the parsed_input scope. pass it through the screening function to obtain
   the rigth data to plot */
@@ -79,6 +80,7 @@ main (int argc, char * argv[]) {
   /* free(state_indices); */
 
   /* free(state_indices); */
+
   free(fn_infile);
   free(fn_infile_buff);
   printf( "rmap successfully executed.\n" );
