@@ -246,10 +246,7 @@ set_state_ll (double ** parsed_input,
   e_state end_state; /* pointer to the last state in the llist */
   e_state next_state;
   e_state curr_state;
-
-  /* outer loop state pointers */
-  e_state next_state2;
-  e_state curr_state2;
+  e_state tmp_state;
 
   int * tmp_idxs;
   double * tmp_tmoms;
@@ -347,8 +344,8 @@ to allocate memory for \"idxs_to\"\n");
       next_state = curr_state -> next;
       curr_state = next_state;
 
-      if (((curr_state -> next) == NULL) && ((j+1) <= n_trans)) {
-        fprintf(stderr, "parse_input.c:set_state_node, the list of electronic states ended before all input data was transfered.\n");
+   if (((curr_state -> next) == NULL) && ((j+1) <= n_trans)) {
+        fprintf(stderr, "parse_input.c:set_state_ll, the list of electronic states ended before all input data was transfered.\n");
         printf( "program terminating due to the previous error.\n");
         exit(1);
       }
@@ -364,11 +361,23 @@ to allocate memory for \"idxs_to\"\n");
       k++;  /* increase counter for transitions counted */
     }
   }
+  end_state = curr_state;
+
+  /* remove any unused nodes in the llist iterate backwards and free up\
+     the unused nodes. */
+  for (j=0; j<l-n_states; j++) {
+    next_state = curr_state -> next;
+    free(curr_state);
+    curr_state = next_state;
+  }
+
+  end_state -> next = NULL;
 
   /* the last node in the llist is the highest energy intermediate state */
-  curr_state -> type = 3;
-  curr_info_node -> bw_sum = tmp_sum;
+  end_state -> type = 3;
 
+  curr_info_node -> bw_sum = tmp_sum;
+  curr_info_node -> n_states = n_states - l;
   /* loop over the electronic state llist and set the rel_bw property
      of each state, also group the ground states */
   /* curr_state = (curr_info_node -> root_e_state); */
@@ -411,77 +420,89 @@ to allocate memory for \"idxs_to\"\n");
   k_meansl(e_vals, groups, l);
 
   end_state = curr_state -> last;
-  curr_state2 = end_state;
 
-  j = 0;
-  for (k=1; k<=groups[j][0]; k++) {
+  for (j=0; j<3; j++) {
+    for (k=1; k<=groups[j][0]; k++) {
 
-    sorted_idx = groups[j][k];
-    g = &groups[j][1];
-    curr_state = curr_info_node -> root_e_state;
+      sorted_idx = groups[j][k];
+      g = &groups[j][1];
+      curr_state = curr_info_node -> root_e_state;
 
-    while((next_state = curr_state -> next) != NULL){
+      while((next_state = curr_state -> next) != NULL){
 
-      curr_state -> rel_bw = (curr_state -> bw)/tmp_sum;
-      to = (curr_state -> state_idx);
+        curr_state -> rel_bw = (curr_state -> bw)/tmp_sum;
+        to = (curr_state -> state_idx);
 
-      if (to == sorted_idx) {
-        /* store a pointer to the "to" state idxs_to array and check so that every foundstate is not inside of it as well */
-        ito = (curr_state -> idxs_to);
-        tmp_ntfrom = curr_state -> n_tfrom;
-        tmp_type = curr_state -> type;
-        printf( "\nto = %d, type = %d\n", to, tmp_type);
-        /* sleep(1); */
+        if (to == sorted_idx) {
+          /* store a pointer to the "to" state idxs_to array and check so that every foundstate is not inside of it as well */
+          ito = (curr_state -> idxs_to);
+          tmp_ntfrom = curr_state -> n_tfrom;
+          tmp_type = curr_state -> type;
+          tmp_state = curr_state;
+          /* printf( "\nto = %d, type = %d\n", to, tmp_type); */
+          /* sleep(1); */
 
-        /* loop over the llist once more and find all states that do not have
-           any transitions to the selected state */
-        curr_state = curr_info_node -> root_e_state;
-        while((next_state = curr_state -> next) != NULL){
-          tmp_idx = curr_state -> state_idx;
-          printf( "from %d to %d, type %d\n", to, tmp_idx, curr_state -> type);
-          /* check if the state_idxs is even in the current group */
-          if (intinint(g,tmp_idx, groups[j][0]) == 1){
+          /* loop over the llist once more and find all states that do not have
+             any transitions to the selected state */
+          curr_state = curr_info_node -> root_e_state;
+          while((next_state = curr_state -> next) != NULL){
+            tmp_idx = curr_state -> state_idx;
 
-            if ((tmp_idx != to) && (tmp_idx != 1)){
+            /* check if the state_idxs is even in the current group */
+            if (intinint(g,tmp_idx, groups[j][0]) == 1){
 
-              /* finally check if there are any transitions from the current
-                 state to the selected "to" index, and vice versa */
-              if ((intinint(curr_state -> idxs_to, to, curr_state -> n_tfrom) \
-                   == 0) && (intinint(ito, tmp_idx, curr_state -> n_tfrom) \
-                             == 0)){
+              if ((tmp_idx != to) && (tmp_idx != 1)){
+                printf( "from %d (%d) to %d (%d)\n", to, tmp_type, tmp_idx, curr_state -> type);
+                /* finally check if there are any transitions from the current
+                   state to the selected "to" index, and vice versa */
+                if ((intinint(curr_state -> idxs_to, to, curr_state -> n_tfrom) \
+                     == 0) && (intinint(ito, tmp_idx, curr_state -> n_tfrom) \
+                               == 0)){
 
-                if (tmp_type == 0) {
-                  curr_state -> type = 2;
-                } else if (tmp_type == 1) {
-                  curr_state -> type = 1;
-                } else if ((tmp_type == 2) && (curr_state -> type == 0)) {
-                  curr_state -> type = 2;
+                  if (tmp_type == 0) {
+                    curr_state -> type = 2;
+                    if (j == 2) {
+                      curr_state -> type = 3;
+                      tmp_state -> type = 3;
+                    }
+                  } else if ((j == 0) && (tmp_type == 1)) {
+                    curr_state -> type = 1;
+                  } else if ((tmp_type == 2) && (curr_state -> type == 0)) {
+                    curr_state -> type = 2;
+                  }
+                  printf( "foundstate %d\n", curr_state -> state_idx);
                 }
-                printf( "foundstate %d\n", curr_state -> state_idx);
               }
             }
+            curr_state = next_state;
           }
-          curr_state = next_state;
+          break; /* the state of index "to" has been sorted. */
         }
-        break; /* the state of index "to" has been sorted. */
-      }
-      if ((curr_state -> next) == NULL) {
-        fprintf(stderr, "parse_input.c, function set_state_ll: the state of \
+        if ((curr_state -> next) == NULL) {
+          fprintf(stderr, "parse_input.c, function set_state_ll: the state of \
 index %d could not be found in the linked list of states. error in state type\
  is expected as a consequence of this.\n",to);
-        printf( "program terminating due to the previous error.\n");
-        exit(EXIT_FAILURE);
+          printf( "program terminating due to the previous error.\n");
+          exit(EXIT_FAILURE);
+        }
+        curr_state = next_state;
       }
+    }
+
+    curr_state = curr_info_node -> root_e_state;
+    printf( "\n\n");
+    while((next_state = curr_state -> next) != NULL){
+      printf( "state %d, type = %d\n", curr_state -> state_idx, curr_state -> type);
       curr_state = next_state;
     }
   }
 
-  curr_state = curr_info_node -> root_e_state;
+  /* curr_state = curr_info_node -> root_e_state; */
 
-  while((next_state = curr_state -> next) != NULL){
-   printf( "type = %d\n", curr_state -> type);
-    curr_state = next_state;
-  }
+  /* while((next_state = curr_state -> next) != NULL){ */
+  /*  printf( "type = %d\n", curr_state -> type); */
+  /*   curr_state = next_state; */
+  /* } */
 
   for (j=0; j<3; j++) {
     free(groups[j]);
