@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include "smap.h"
 #include "input_formats.h"
 #include "parse_input.h" /* for input_data array, as well as other
                             calculation-specific variables */
@@ -14,8 +15,9 @@ main (int argc, char * argv[]) {
   int j,k,l; /* iteration variables */
   int len_fn;
   /* arrays for storing input file name data */
-  char * fn_infile_buff = malloc(BUF_SIZE);
+  char * input_sbuff = malloc(BUF_SIZE);
   char * fn_infile;
+  char * method;
   /* char fn_infile[BUF_SIZE] = {0}; */
 
   /* process the input arguments */
@@ -36,21 +38,38 @@ main (int argc, char * argv[]) {
       printf( "processing input file.. \n" );
 
       for (j=3; argv[1][j] != '\0'; j++) {
-        fn_infile_buff[j-3] = argv[1][j];
+        input_sbuff[j-3] = argv[1][j];
       }
 
       len_fn = j-3;
       fn_infile = malloc(len_fn+1);
 
       for (j=0; j<len_fn; j++) {
-        fn_infile[j] = fn_infile_buff[j];
+        fn_infile[j] = input_sbuff[j];
       }
 
       fn_infile[len_fn] = '\0';
 
       /* extract the needed data from the input */
-      printf( "%s\n", fn_infile);
-      parse_input(fn_infile, len_fn+1);
+      if (parse_input(fn_infile, len_fn+1)) {
+        fprintf(stderr, "rmap.c, main: unable to parse the input data \
+contained in %s.\n",fn_infile);
+        printf( "program terminating due to the previous error.\n");
+        exit(EXIT_FAILURE);
+      }
+
+    case 'm' :
+      /* the user specified a method to be used for calculating the scattering map */
+      for (j=3; argv[1][j] != '\0'; j++) {
+        input_sbuff[j-3] = argv[1][j];
+      }
+
+      method = malloc(len_fn+1);
+
+      for (j=0; j<len_fn; j++) {
+        method[j] = input_sbuff[j];
+      }
+      method[len_fn] = '\0';
 
       break;
 
@@ -63,7 +82,9 @@ main (int argc, char * argv[]) {
     argv++;
   }
 
-  sort_states(0.2, 0.0002, 0.0002);
+  calc_smap(method, reduce_input(screen_states(fn_infile, 3, 0.2, 0.00001, 0.00001)));
+  /* calc_smap(method, reduce_input(screen_states(fn_infile, 0))); */
+
   /* at this point, the input data is sorted and stored in a llist inside of
    the parsed_input scope. pass it through the screening function to obtain
   the rigth data to plot */
@@ -82,7 +103,7 @@ main (int argc, char * argv[]) {
   /* free(state_indices); */
 
   free(fn_infile);
-  free(fn_infile_buff);
+  free(input_sbuff);
   printf( "rmap successfully executed.\n" );
   return 0;
 }

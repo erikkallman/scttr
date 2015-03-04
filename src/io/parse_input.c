@@ -22,27 +22,224 @@ int ** state_indices;
 
 info_node info_node_root;
 
-int
-sort_states (int n_args,
+info_node
+get_inode (char * id
+           ){
+
+  info_node curr_info_node = info_node_root;
+  info_node next_info_node;
+
+    /* locate the info_node corresponding to the file name input argument */
+  while(strstr((curr_info_node -> str_id),id) == NULL) {
+
+    next_info_node = curr_info_node -> next;
+    curr_info_node = next_info_node;
+
+    if (curr_info_node == NULL) {
+      fprintf(stderr, "parse_input.c: get_inode, no info node can be found\
+ with a str_id == %s\n", id);
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  return curr_info_node;
+}
+
+int **
+screen_states (char * fn_infile,
+             int n_args,
              ...){
-  int j;
+  info_node inode = get_inode(fn_infile);
+
+  int j,k; /* looping variables */
+  int n_states;
+  int gs_idx; /* ground state index */
+  int is_idx; /* intermediate state index */
+
+  int n_gs = inode -> n_gs;
+  int n_is = inode -> n_is;
+  int n_fs = inode -> n_fs;
+
+  /* number of screen GS, IS, and FS */
+  int n_sgs = 0;
+  int n_sis = 0;
+  int n_sfs = 0;
+
+  int * tmp_idxs;
+
+  /* arrays used for storing the screened..  */
+  int ** igs; /* .. ground states */
+  int ** tmp_iis; /* .. intermediate states */
+  int * tmp_ifs; /* .. final states */
 
   /* some hard-coded threshold values that will get replaced by the call
    values */
-  float thrsh_vals[3] = {0.5, 0.0001, 0.0001};
+  float thrsh_vals[3] = {0.5, 0.2, 0.2};
   float tmp_thrsh;
+
+  double * tmp_trans;
+
+
+  n_states = inode -> n_states;
+
+  e_state root_state = inode -> root_e_state;
+  e_state curr_state = root_state;
+  e_state next_state;
+  e_state gs_bm; /* ground state bookmark */
+  e_state is_bm; /* intermediate state bookmark */
 
   va_list argv;
   va_start(argv, n_args);
 
+  if((igs = malloc((n_gs+1)*sizeof(int*))) == NULL ){
+    fprintf(stderr, "parse_input:function screen_states, malloc: failed \
+to allocate memory for \"igs\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((igs[0] = malloc((n_gs+1)*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input:function screen_states, malloc: failed \
+to allocate memory for \"igs[0]\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
 
   for (j=0; j<n_args; j++) {
     tmp_thrsh = (float)va_arg(argv, double); /* grab the next vararg */
     thrsh_vals[j] = tmp_thrsh;
   }
+  /* for a description of the screening algorithm below, look up this function
+     in the parse_input.h file */
 
-  /* first, we screen for the initial states. */
+  n_sgs = 0;
+  while((next_state = curr_state -> next) != NULL){
 
+    if ((curr_state -> type) == 1) { /* if we found a ground state */
+
+      /* perform stage 1 of the screening process */
+      if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) {
+        /* we found a ground state with high enough boltzmann weight */
+        gs_idx = curr_state -> state_idx;
+        n_sgs++;
+        igs[0][0] = n_sgs;
+        igs[0][n_sgs] = gs_idx;
+
+        printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
+        sleep(1);
+        /* store a bookmark of where we found the last ground state */
+        gs_bm = next_state;
+
+        /* perform stage 2 of the screening process */
+        if((tmp_iis = malloc((n_is+1)*sizeof(int*))) == NULL ){
+          fprintf(stderr, "parse_input:function screen_states, malloc: failed \
+to allocate memory for \"iis\"\n");
+          printf( "program terminating due to the previous error.\n");
+          exit(1);
+        }
+
+        if((tmp_iis[0] = malloc((n_is+1)*sizeof(int))) == NULL ){
+          fprintf(stderr, "parse_input:function screen_states, malloc: failed \
+to allocate memory for \"iis[0]\"\n");
+          printf( "program terminating due to the previous error.\n");
+          exit(1);
+        }
+
+        igs[n_sgs] = *tmp_iis; /* store a pointer to the table of IS idices */
+        n_sis = 0;
+        tmp_trans = curr_state -> t_moms;
+        tmp_idxs = curr_state -> idxs_to;
+        for (j=0; j<((curr_state -> n_tfrom)-1); j++) {
+          printf( "IS:j = %d, sidx = %d, n_istrans = %d\n", j, tmp_idxs[j], (curr_state -> n_tfrom));
+          /* if IS transition has a transition moment above threshold */
+          if ((tmp_trans[j]/(inode -> max_tmom)) >= thrsh_vals[1]) {
+            is_bm = curr_state;
+            is_idx = tmp_idxs[j];
+
+            /* locate the candidate intermediate state in the list and varify
+               that the state is indeed an IS (has type == 2) */
+            curr_state = root_state;
+            while((next_state = curr_state -> next) != NULL){
+              if ((curr_state -> state_idx) == is_idx) { /* find the state in the llist */
+
+                /* varify that it has been marked as an intermediate state */
+                if ((curr_state -> type) != 2){
+                  printf( "wrong type..\n" );
+                  break; /* it wasnt. move on to the next transition */
+                }
+                printf( "found is idxs=%d\n", is_idx);
+
+                /* from the ground state found above, we also found an intermediate
+                   state with high enough relative transition moment */
+                n_sis++;
+                tmp_iis[0][0] = n_sis;
+                tmp_iis[0][n_sis] = is_idx;
+
+                printf( "  is[%d] = %d %le\n", n_sis, tmp_iis[0][n_sis], (curr_state -> t_moms)[j]/(inode -> max_tmom));
+
+                if((tmp_ifs = malloc((n_fs+1)*sizeof(int))) == NULL ){
+                  fprintf(stderr, "parse_input:function screen_states, malloc: failed \
+to allocate memory for \"tmp_ifs\"\n");
+                  printf( "program terminating due to the previous error.\n");
+                  exit(1);
+                }
+                printf( "allocated\n" );
+                /* array for storing all final states reachable from the screened
+                   intermediate state */
+                tmp_iis[n_sis] = tmp_ifs;
+                n_sfs = 0;
+
+                /* perform stage 3 of the screening process */
+                /* find final state transitions that pass stage 3 screening */
+                for (k=0; k < (curr_state -> n_tfrom); k++) {
+                  if ((((curr_state -> t_moms)[k])/(inode -> max_tmom)) >= thrsh_vals[2]) {
+                    /* from the intermediate state found above, we also found a
+                       final state transition with high enough relative
+                       transition moment */
+                    n_sfs++;
+                    tmp_ifs[0] = n_sfs;
+                    tmp_ifs[n_sfs] = (curr_state -> idxs_to)[k];
+                    printf( "    fs[%d] = %d %le\n", n_sfs, tmp_ifs[n_sfs], (((curr_state -> t_moms)[k])/(inode -> max_tmom)));
+                  }
+                }
+                printf( "scanned all final. breaking!\n" );
+                break; /* the IS has been processed , but is this break needed?*/
+              }
+              curr_state = next_state;
+            }
+            curr_state = is_bm; /* reset the state to the last initial state */
+          }
+        }
+        /* jump back to the last ground state that was found in the list */
+        printf( "broke out!\n");
+        next_state = gs_bm;
+      } else {
+      printf( "fail! gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
+      }
+    }
+    curr_state = next_state;
+  }
+
+ return igs;
+}
+
+double **
+reduce_input (int ** sidxs /* state indices */
+              ){
+  int j; /* looping variables */
+
+  /* placeholder allocation to test out the function structure */
+  double ** ret = malloc(1*sizeof(double*));
+
+  ret[0] = malloc(sizeof(double));
+
+  /* for (j=0; j<3; j++) { */
+  /*   free(sidxs[j]); */
+  /* } */
+  /* free(sidxs); */
+
+  return ret;
 }
 
 int
@@ -59,15 +256,13 @@ init_data_branch(double ** pi, /* parsed input */
   /* use the extracted input data to set the state of the linked list */
   set_state_ll(pi, ns, nt, fs);
 
-  /* group_states(fs); */
-
   /* free up parsed_input, since it now lives in the tree */
   for (j=0; j<5; j++) {
     free(pi[j]);
   }
 
   free(pi);
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 info_node
@@ -97,6 +292,9 @@ to allocate memory for \"new_info_node\"\n");
   new_info_node -> str_id = si;
   new_info_node -> n_states = ns;
   new_info_node -> n_trans = nt;
+  new_info_node -> n_gs = 0;
+  new_info_node -> n_is = 0;
+  new_info_node -> n_fs = 0;
 
   if (n_info_nodes == 0) { /* there is no root info node defined  */
     n_info_nodes = 1;
@@ -218,7 +416,7 @@ to allocate memory for \"tmoms\"\n");
   st -> t_moms = tm;
   st -> e_vals = ev;
 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 int
@@ -238,8 +436,8 @@ set_state_ll (double ** parsed_input,
   double tmp_energy;
   double tmp_sum; /* sum of all boltzmann weights for the electronic states
                    in the system */
-  info_node curr_info_node = info_node_root;
-  info_node next_info_node;
+  double max_tm = 0;
+  info_node curr_info_node;
 
   e_state end_state; /* pointer to the last state in the llist */
   e_state next_state;
@@ -253,35 +451,35 @@ set_state_ll (double ** parsed_input,
 
   if((tmp_idxs = malloc(n_states*sizeof(int))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
-to allocate memory for \"idxs_to\"\n");
+to allocate memory for \"tmp_idxs\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
   if((tmp_tmoms = malloc(n_states*sizeof(double))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
-to allocate memory for \"idxs_to\"\n");
+to allocate memory for \"tmp_tmoms\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
   if((tmp_evals = malloc(n_states*sizeof(double))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
-to allocate memory for \"idxs_to\"\n");
+to allocate memory for \"tmp_evals\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
   if((e_vals = malloc(n_states*sizeof(double))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
-to allocate memory for \"idxs_to\"\n");
+to allocate memory for \"e_vals\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
   if((groups = malloc(3*sizeof(int*))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
-to allocate memory for \"idxs_to\"\n");
+to allocate memory for \"groups\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
@@ -289,28 +487,13 @@ to allocate memory for \"idxs_to\"\n");
   for (j=0; j<3; j++) {
     if((groups[j] = malloc((n_states+1)*sizeof(int))) == NULL ){
       fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
-to allocate memory for \"idxs_to\"\n");
+to allocate memory for \"groups\"\n");
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
   }
 
-  /* loop over the info node list and find the one with the right string
-   identifier */
-
-  while(strstr((curr_info_node -> str_id),id) == NULL) {
-
-    next_info_node = curr_info_node -> next;
-    curr_info_node = next_info_node;
-
-    if (curr_info_node == NULL) {
-      fprintf(stderr, "parse_input.c: set_state_ll, no info node can be found\
- with a str_id == %s\n", id);
-      printf( "program terminating due to the previous error.\n");
-      exit(1);
-    }
-  }
-
+  curr_info_node = get_inode(id);
   curr_state = curr_info_node -> root_e_state;
 
   /* the first node in the llist is the lowest energy ground state */
@@ -363,14 +546,19 @@ left to process.\n",l);
       tmp_idxs[k] = parsed_input[1][j];
       tmp_evals[k] = parsed_input[3][j];
       tmp_tmoms[k] = parsed_input[4][j];
+      if (tmp_tmoms[k] > max_tm) {
+        max_tm = tmp_tmoms[k];
+      }
       k++;  /* increase counter for transitions counted */
     }
   }
-
+  curr_info_node -> max_tmom = max_tm;
   end_state = curr_state;
-  /* remove any unused nodes in the llist iterate backwards and free up\
+  /* remove any unused nodes in the llist iterate forwards and free up\
      the unused nodes. */
+
   for (j=0; j<l-n_states; j++) {
+    printf( "freed!\n" );
     next_state = curr_state -> next;
     free(curr_state);
     curr_state = next_state;
@@ -389,6 +577,10 @@ left to process.\n",l);
 
   end_state = curr_state -> last;
 
+  /* based on the fact that the transitions between states inside the same
+     group will be too low to get included in the data tree, we can sort
+     out any state indices that ended up in the wrong category in the k_means
+     sorting above.*/
   for (j=0; j<3; j++) {
     for (k=1; k<=groups[j][0]; k++) {
 
@@ -398,7 +590,6 @@ left to process.\n",l);
 
       while((next_state = curr_state -> next) != NULL){
 
-        curr_state -> rel_bw = (curr_state -> bw)/tmp_sum;
         to = (curr_state -> state_idx);
 
         if (to == sorted_idx) {
@@ -452,13 +643,28 @@ index %d could not be found in the linked list of states. error in state type\
         curr_state = next_state;
       }
     }
-
-    /* curr_state = curr_info_node -> root_e_state; */
+    curr_state = curr_info_node -> root_e_state;
     /* printf( "\n\n"); */
+    /* /\* count the state types *\/ */
     /* while((next_state = curr_state -> next) != NULL){ */
     /*   printf( "state %d, type = %d\n", curr_state -> state_idx, curr_state -> type); */
     /*   curr_state = next_state; */
     /* } */
+  }
+
+  /* count the state types */
+  curr_state = curr_info_node -> root_e_state;
+  while((next_state = curr_state -> next) != NULL){
+    if ((curr_state -> type) == 1) {
+      (curr_info_node -> n_gs) += 1;
+    }
+    else if ((curr_state -> type) == 2) {
+      (curr_info_node -> n_is) += 1;
+    }
+    else if ((curr_state -> type) == 3) {
+      (curr_info_node -> n_fs) += 1;
+    }
+    curr_state = next_state;
   }
 
   for (j=0; j<3; j++) {
@@ -472,7 +678,7 @@ index %d could not be found in the linked list of states. error in state type\
   free(tmp_evals);
   free(e_vals);
 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 int
@@ -794,8 +1000,7 @@ parse_input (char * fn_infile, /* name of input file */
       }
     }
   }
-  /* sort_states(parsed_input); */
 
   printf( "file processed\n" );
-  return 0;
+  return EXIT_SUCCESS;
 }

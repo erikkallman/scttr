@@ -20,7 +20,6 @@ struct e_state_s{
   int type;
 
   double bw; /* boltzmann weight */
-  double rel_bw; /* boltzmann weight of state / total bw for all states */
   double e_val; /* energy of the state on the node (the "from" energy) */
 
   /* number of transitions from this state */
@@ -58,16 +57,17 @@ struct info_node_s{
 
   /* sum of the boltzmann weights of all states in the system*/
   double bw_sum;
+  double max_tmom; /* maximum transition moment for all transitions */
 
   char * str_id; /* the input file name identifying this info node */
   e_state root_e_state;
-  struct info_node_s * next;
-  struct info_node_s * last;
+  info_node next;
+  info_node last;
 };
 
 typedef struct info_node_s * info_node;
 
-/* function group_states
+/* function get_inode
 
    * synopsis:
 
@@ -80,11 +80,11 @@ typedef struct info_node_s * info_node;
    * side-effects:
 
    */
-int
-group_states ();
+info_node
+get_inode (char * fn_infile);
 
-/* function sort_states
-   The sort_states function is used to reduce the number of states used
+/* function screen_states
+   The screen_states function is used to reduce the number of states used
    for generating the RIXS map. Through analyzing the boltzmann distribution
    of initial states, and screening of intensities for transitions,
    states that are unlikely to contribute to the RIXS process are disregarded.
@@ -94,10 +94,17 @@ group_states ();
    to run the program.
 
    * algorithm:
-   reads all initial states (k) contained in the array parsed_input[2]. from the
-   these energy values, the boltzmann distribution is calculated. All k states
-   with a weight value below the thrsh_b value gets excluded from the RIXS map
-   calculation.
+   1. For each initial state, if its relative boltzmann weight is above threshold,
+   include its state index in the array of screened initial states.
+
+   2. For each transition from that ground state, if its transition moment
+   relative to the maximum transition moment is above the intermediate state
+   threshold, include that intermediate state in the screened intermediate
+   states specific to that ground state.
+
+   3. For each intermediate state that passes stage 2 above, screen its final
+   state transitions if that has not already been done in subsequent screening
+   iterations.
 
    * input:
    - n_args: the number of threshold values included in the function call.
@@ -110,9 +117,28 @@ group_states ();
    * side-effects:
 
    */
-int
-sort_states (int n_args,
+int **
+screen_states (char * fn_infile,
+               int n_args,
              ...);
+
+/* function reduce_input
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+double **
+reduce_input (int ** sidxs /* state indices */
+              );
+
 
 int
 init_data_branch(double ** pi, /* parsed input */
