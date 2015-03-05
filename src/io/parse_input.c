@@ -13,6 +13,7 @@
 #include "parse_input.h"
 #include "input_formats.h"
 #include "sci_const.h"
+#include "dynarray.h"
 
 #define BUF_SIZE 256
 
@@ -80,7 +81,6 @@ screen_states (char * fn_infile,
 
   double * tmp_trans;
 
-
   n_states = inode -> n_states;
 
   e_state root_state = inode -> root_e_state;
@@ -91,6 +91,16 @@ screen_states (char * fn_infile,
 
   va_list argv;
   va_start(argv, n_args);
+
+  mdda_s igs1;
+  mdda_init(&igs1);
+  mdda_set(&igs1, 42, 42, 42);
+
+  printf( "got:%d\n", mdda_get(&igs1, 42, 42));
+  mdda_free(&igs1);
+
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
 
   if((igs = malloc((n_gs+1)*sizeof(int*))) == NULL ){
     fprintf(stderr, "parse_input:function screen_states, malloc: failed \
