@@ -26,7 +26,7 @@ struct mdda_s{
 
 void da_init(da_s *da);
 
-void mdda_init(mdda_s *mdda);
+mdda_s * mdda_init();
 
 void da_append(da_s *da, int value);
 

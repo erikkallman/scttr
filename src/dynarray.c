@@ -11,16 +11,17 @@ void da_init(da_s *da) {
   da->data = malloc(sizeof(int) * da->capacity);
 }
 
-void mdda_init(mdda_s * mdda) {
+mdda_s *
+mdda_init() {
   int j=0; /* looping variables */
   mdda_s * root_mdda;
   mdda_s * next_mdda;
   mdda_s * curr_mdda;
 
   /* create the mdda chain root */
-  root_mdda = malloc(sizeof(mdda));
+  root_mdda = malloc(sizeof(mdda_s));
   root_mdda -> idx = 0;
-  root_mdda -> size = 0; /* used to check if the da needs initialization */
+  root_mdda -> size = MDDA_INITIAL_CAPACITY ; /* used to check if the da needs initialization */
   root_mdda -> mdda_capacity = MDDA_INITIAL_CAPACITY;
 
   root_mdda->da = malloc(sizeof(da_s));
@@ -30,12 +31,10 @@ void mdda_init(mdda_s * mdda) {
   // allocate memory for da->data
   (root_mdda->da)->data = malloc(sizeof(int) * ((root_mdda->da)->capacity));
 
-  root_mdda -> next = malloc(sizeof(mdda));
+  root_mdda -> next = malloc(sizeof(mdda_s));
   root_mdda -> root = root_mdda;
   root_mdda -> head = root_mdda;
   curr_mdda = root_mdda;
-  mdda = root_mdda;
-  printf( "OUTSIDE %d\n", mdda -> idx);
 
   while(++j < MDDA_INITIAL_CAPACITY){
     printf( "initializing %d %d %d \n", j,  (curr_mdda->root) -> idx, root_mdda -> idx);
@@ -51,11 +50,11 @@ void mdda_init(mdda_s * mdda) {
 
     // allocate memory for da->data
     (curr_mdda->da)->data = malloc(sizeof(int) * ((curr_mdda->da)->capacity));
-å
+
     /* da_init(&(curr_mdda->da)); */
     printf( "da_inited\n" );
     printf( "allocating\n" );
-    curr_mdda -> next = malloc(sizeof(mdda));
+    curr_mdda -> next = malloc(sizeof(mdda_s));
     printf( "allocated\n" );
     curr_mdda -> root = root_mdda;
     curr_mdda -> head = root_mdda;
@@ -63,9 +62,9 @@ void mdda_init(mdda_s * mdda) {
     printf( "initialized %d \n\n", curr_mdda -> idx);
   }
   curr_mdda -> next = NULL;
-  printf( "OUTSIDE %d\n", mdda -> idx);
 
   /* each mdda node is just a column containing a pointer to the next column as well as a pointer to a da */
+  return root_mdda;
 }
 
 void da_append(da_s *da, int value) {
@@ -86,13 +85,14 @@ void mdda_append(mdda_s *mdda, int val) {
 
 int da_get(da_s *da, int index) {
   if (index >= da->size || index < 0) {
-    printf("Index %d out of bounds for da of size %d\n", index, da->size);
+    printf("da_get: Index %d out of bounds for da of size %d\n", index, da->size);
     exit(1);
   }
   return da->data[index];
 }
 
 int mdda_get(mdda_s *mdda, int c, int r) {
+
   int j;
 
   mdda_s * next = (mdda->root);
@@ -100,7 +100,7 @@ int mdda_get(mdda_s *mdda, int c, int r) {
   int sz = next -> size;
 
   if (c >= sz || c < 0) {
-    printf("Index %d out of bounds for da of size %d\n", c, mdda->size);
+    printf("mdda_get: Index %d out of bounds for da of size %d\n", c, mdda->size);
     exit(1);
   }
 
@@ -136,25 +136,21 @@ void mdda_set(mdda_s *mdda, int c, int r, int value) {
 
   int sz = next_mdda -> size;
 
-  if (c >= sz || c < 0) {
-    printf("Index %d out of bounds for da of size %d\n", c, mdda->size);
-    exit(1);
-  }
-  printf( "the size=%d\n", (mdda->root)->idx);
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+  /* if (c >= sz || c < 0) { */
+  /*   printf("mdda_set: Index %d out of bounds for da of size %d\n", c, mdda->size); */
+  /*   exit(1); */
+  /* } */
+
   /* loop from root and find the right mdda */
   for (j=0; j<=sz; j++) {
     mdda = next_mdda;
-    printf( "index=%d\n", (mdda -> idx));
     if ((mdda -> idx) == c) {
       break;
     } else {
       next_mdda = (mdda->next);
     }
   }
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+
   da_set((mdda->da), r, value);
 
 }
@@ -181,9 +177,9 @@ void mdda_free(mdda_s *mdda) {
     last_mdda = curr_mdda;
     curr_mdda = next_mdda;
 
-    /* data = (last_mdda -> da)->data; */
+    data = (last_mdda -> da)->data;
 
-    /* free(data); */
+    free(data);
 
 
     free(last_mdda);

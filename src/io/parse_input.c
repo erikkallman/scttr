@@ -92,15 +92,12 @@ screen_states (char * fn_infile,
   va_list argv;
   va_start(argv, n_args);
 
-  mdda_s igs1;
-  mdda_init(&igs1);
-  mdda_set(&igs1, 42, 42, 42);
+  mdda_s * igs1;
+  igs1 = mdda_init();
+  mdda_set(igs1, 42, 42, 99);
+  printf( "got:%d\n", mdda_get(igs1, 42, 42));
+  mdda_free(igs1);
 
-  printf( "got:%d\n", mdda_get(&igs1, 42, 42));
-  mdda_free(&igs1);
-
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
 
   if((igs = malloc((n_gs+1)*sizeof(int*))) == NULL ){
     fprintf(stderr, "parse_input:function screen_states, malloc: failed \
