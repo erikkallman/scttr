@@ -14,12 +14,12 @@
 #include "input_formats.h"
 #include "sci_const.h"
 #include "dynarray.h"
+#include "rmap_structs.h"
+#include "info_ll.h"
 
 #define BUF_SIZE 256
 
 int n_info_nodes; /* counter for number of  */
-double * input_data[4];
-int ** state_indices;
 
 info_node info_node_root;
 
@@ -47,7 +47,7 @@ get_inode (char * id
   return curr_info_node;
 }
 
-int **
+mdda_s *
 screen_states (char * fn_infile,
              int n_args,
              ...){
@@ -70,9 +70,8 @@ screen_states (char * fn_infile,
   int * tmp_idxs;
 
   /* arrays used for storing the screened..  */
-  int ** igs; /* .. ground states */
-  int ** tmp_iis; /* .. intermediate states */
-  int * tmp_ifs; /* .. final states */
+  mdda_s * igs; /* .. ground states */
+  mdda_s * iis; /* .. intermediate states */
 
   /* some hard-coded threshold values that will get replaced by the call
    values */
@@ -92,26 +91,9 @@ screen_states (char * fn_infile,
   va_list argv;
   va_start(argv, n_args);
 
-  mdda_s * igs1;
-  igs1 = mdda_init();
-  mdda_set(igs1, 42, 42, 99);
-  printf( "got:%d\n", mdda_get(igs1, 42, 42));
-  mdda_free(igs1);
-
-
-  if((igs = malloc((n_gs+1)*sizeof(int*))) == NULL ){
-    fprintf(stderr, "parse_input:function screen_states, malloc: failed \
-to allocate memory for \"igs\"\n");
-    printf( "program terminating due to the previous error.\n");
-    exit(1);
-  }
-
-  if((igs[0] = malloc((n_gs+1)*sizeof(int))) == NULL ){
-    fprintf(stderr, "parse_input:function screen_states, malloc: failed \
-to allocate memory for \"igs[0]\"\n");
-    printf( "program terminating due to the previous error.\n");
-    exit(1);
-  }
+/* initialize the data structures used to store the screened states */
+  igs = mdda_init();
+  iis = mdda_init();
 
   for (j=0; j<n_args; j++) {
     tmp_thrsh = (float)va_arg(argv, double); /* grab the next vararg */
@@ -122,7 +104,7 @@ to allocate memory for \"igs[0]\"\n");
 
   n_sgs = 0;
   while((next_state = curr_state -> next) != NULL){
-
+    gs_idx = curr_state -> state_idx;
     if ((curr_state -> type) == 1) { /* if we found a ground state */
 
       /* perform stage 1 of the screening process */
@@ -130,35 +112,21 @@ to allocate memory for \"igs[0]\"\n");
         /* we found a ground state with high enough boltzmann weight */
         gs_idx = curr_state -> state_idx;
         n_sgs++;
-        igs[0][0] = n_sgs;
-        igs[0][n_sgs] = gs_idx;
+        mdda_set(igs, 0, 0, n_sgs);
+        mdda_set(igs, 0, n_sgs, gs_idx );
 
-        printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
-        sleep(1);
+        /* store a pointer to the final state matrix in the ground state root node */
+        /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
+        /* sleep(1); */
         /* store a bookmark of where we found the last ground state */
         gs_bm = next_state;
 
         /* perform stage 2 of the screening process */
-        if((tmp_iis = malloc((n_is+1)*sizeof(int*))) == NULL ){
-          fprintf(stderr, "parse_input:function screen_states, malloc: failed \
-to allocate memory for \"iis\"\n");
-          printf( "program terminating due to the previous error.\n");
-          exit(1);
-        }
-
-        if((tmp_iis[0] = malloc((n_is+1)*sizeof(int))) == NULL ){
-          fprintf(stderr, "parse_input:function screen_states, malloc: failed \
-to allocate memory for \"iis[0]\"\n");
-          printf( "program terminating due to the previous error.\n");
-          exit(1);
-        }
-
-        igs[n_sgs] = *tmp_iis; /* store a pointer to the table of IS idices */
         n_sis = 0;
         tmp_trans = curr_state -> t_moms;
         tmp_idxs = curr_state -> idxs_to;
         for (j=0; j<((curr_state -> n_tfrom)-1); j++) {
-          printf( "IS:j = %d, sidx = %d, n_istrans = %d\n", j, tmp_idxs[j], (curr_state -> n_tfrom));
+          /* printf( "IS:j = %d, sidx = %d, n_istrans = %d\n", j, tmp_idxs[j], (curr_state -> n_tfrom)); */
           /* if IS transition has a transition moment above threshold */
           if ((tmp_trans[j]/(inode -> max_tmom)) >= thrsh_vals[1]) {
             is_bm = curr_state;
@@ -172,45 +140,42 @@ to allocate memory for \"iis[0]\"\n");
 
                 /* varify that it has been marked as an intermediate state */
                 if ((curr_state -> type) != 2){
-                  printf( "wrong type..\n" );
                   break; /* it wasnt. move on to the next transition */
                 }
-                printf( "found is idxs=%d\n", is_idx);
 
                 /* from the ground state found above, we also found an intermediate
                    state with high enough relative transition moment */
                 n_sis++;
-                tmp_iis[0][0] = n_sis;
-                tmp_iis[0][n_sis] = is_idx;
+                mdda_set(igs, n_sgs, 0, n_sis);
+                mdda_set(igs, n_sgs, n_sis, is_idx);
 
-                printf( "  is[%d] = %d %le\n", n_sis, tmp_iis[0][n_sis], (curr_state -> t_moms)[j]/(inode -> max_tmom));
+                /* printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> max_tmom)); */
 
-                if((tmp_ifs = malloc((n_fs+1)*sizeof(int))) == NULL ){
-                  fprintf(stderr, "parse_input:function screen_states, malloc: failed \
-to allocate memory for \"tmp_ifs\"\n");
-                  printf( "program terminating due to the previous error.\n");
-                  exit(1);
-                }
-                printf( "allocated\n" );
-                /* array for storing all final states reachable from the screened
-                   intermediate state */
-                tmp_iis[n_sis] = tmp_ifs;
                 n_sfs = 0;
 
-                /* perform stage 3 of the screening process */
-                /* find final state transitions that pass stage 3 screening */
-                for (k=0; k < (curr_state -> n_tfrom); k++) {
-                  if ((((curr_state -> t_moms)[k])/(inode -> max_tmom)) >= thrsh_vals[2]) {
-                    /* from the intermediate state found above, we also found a
-                       final state transition with high enough relative
-                       transition moment */
-                    n_sfs++;
-                    tmp_ifs[0] = n_sfs;
-                    tmp_ifs[n_sfs] = (curr_state -> idxs_to)[k];
-                    printf( "    fs[%d] = %d %le\n", n_sfs, tmp_ifs[n_sfs], (((curr_state -> t_moms)[k])/(inode -> max_tmom)));
+                /* before this is done, check so that the specific is_idx isnt
+                   in the iis already, in which case we would find its index in
+                the 0th column of that mdda */
+                if (mdda_intinint((iis->root), is_idx) == 0) {
+
+                    mdda_set(iis, 0, 0, n_sis);
+                    mdda_set(iis, 0, n_sis, is_idx);
+
+                    /* perform stage 3 of the screening process */
+                    /* find final state transitions that pass stage 3 screening */
+                    for (k=0; k < (curr_state -> n_tfrom); k++) {
+                      if ((((curr_state -> t_moms)[k])/(inode -> max_tmom)) >= thrsh_vals[2]) {
+                        /* from the intermediate state found above, we also found a
+                           final state transition with high enough relative
+                           transition moment */
+                        n_sfs++;
+                        mdda_set(iis, n_sis, 0, n_sfs);
+                        mdda_set(iis, n_sis, n_sfs, (curr_state -> idxs_to)[k]);
+
+                        /* printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> max_tmom))); */
+                      }
+                    }
                   }
-                }
-                printf( "scanned all final. breaking!\n" );
                 break; /* the IS has been processed , but is this break needed?*/
               }
               curr_state = next_state;
@@ -219,20 +184,21 @@ to allocate memory for \"tmp_ifs\"\n");
           }
         }
         /* jump back to the last ground state that was found in the list */
-        printf( "broke out!\n");
         next_state = gs_bm;
       } else {
-      printf( "fail! gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
+      /* printf( "unacceptable bw: gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
       }
     }
     curr_state = next_state;
   }
+  mdda_set_branch(igs, iis, 0, 0 );
+  /* mdda2s(igs); */
 
- return igs;
+  return (igs->root);
 }
 
 double **
-reduce_input (int ** sidxs /* state indices */
+reduce_input (mdda_s * sidxs /* screened state indices */
               ){
   int j; /* looping variables */
 
@@ -366,7 +332,6 @@ init_state_ll (char * str_id,
     curr_state -> type = 0;
     curr_state = next_state;
   }
-
   curr_state -> next = NULL;
 
   return root_state;
@@ -441,7 +406,7 @@ set_state_ll (double ** parsed_input,
   int ** groups;
 
   double tmp_energy;
-  double tmp_sum; /* sum of all boltzmann weights for the electronic states
+  double tmp_sum = 0; /* sum of all boltzmann weights for the electronic states
                    in the system */
   double max_tm = 0;
   info_node curr_info_node;
@@ -522,7 +487,7 @@ to allocate memory for \"groups\"\n");
 
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
-      tmp_sum += curr_state -> bw;
+
       /* printf( "\nto=%d, e_val=%le, type=%d\n",(curr_state -> state_idx), \ */
       /*         (curr_state -> e_val), (curr_state -> type)); */
       /* for (m=0; m<k; m++) { */
@@ -564,19 +529,17 @@ left to process.\n",l);
   /* remove any unused nodes in the llist iterate forwards and free up\
      the unused nodes. */
 
-  for (j=0; j<l-n_states; j++) {
-    printf( "freed!\n" );
-    next_state = curr_state -> next;
-    free(curr_state);
-    curr_state = next_state;
-  }
+  /* for (j=0; j<l-n_states; j++) { */
+  /*   printf( "freed!\n" ); */
+  /*   next_state = curr_state -> next; */
+  /*   free(curr_state); */
+  /*   curr_state = next_state; */
+  /* } */
 
   end_state -> next = NULL;
 
   /* the last node in the llist is the highest energy intermediate state */
   end_state -> type = 3;
-
-  curr_info_node -> bw_sum = tmp_sum;
   curr_info_node -> n_states = n_states - l;
 
   /* use the k-means algorithm to do a preliminary sorting of the states */
@@ -630,6 +593,7 @@ left to process.\n",l);
                     }
                   } else if ((j == 0) && (tmp_type == 1)) {
                     curr_state -> type = 1;
+                    tmp_sum += curr_state -> bw;
                   } else if ((tmp_type == 2) && (curr_state -> type == 0)) {
                     curr_state -> type = 2;
                   }
@@ -651,6 +615,10 @@ index %d could not be found in the linked list of states. error in state type\
       }
     }
     curr_state = curr_info_node -> root_e_state;
+
+    /* store the sum of boltzmann weights to later on use it for the state
+     screening process */
+    curr_info_node -> bw_sum = tmp_sum;
     /* printf( "\n\n"); */
     /* /\* count the state types *\/ */
     /* while((next_state = curr_state -> next) != NULL){ */

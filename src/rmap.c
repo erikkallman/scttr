@@ -9,7 +9,6 @@
 #include "rmap_cfg.h"
 #define BUF_SIZE 256
 
-
 int
 main (int argc, char * argv[]) {
   int j,k,l; /* iteration variables */
@@ -82,25 +81,7 @@ contained in %s.\n",fn_infile);
     argv++;
   }
 
-  calc_smap(method, reduce_input(screen_states(fn_infile, 3, 0.2, 0.00001, 0.00001)));
-  /* calc_smap(method, reduce_input(screen_states(fn_infile, 0))); */
-
-  /* at this point, the input data is sorted and stored in a llist inside of
-   the parsed_input scope. pass it through the screening function to obtain
-  the rigth data to plot */
-  /* screened_states = screen_states(); */
-
-  /* for (j=0; j<=3; j++) { */
-  /*     free(input_data[j]);/\* memory allocated in parse_input.c *\/ */
-  /* } */
-  /* free(input_data); */
-
-  /* for (j=0; j<3; j++) { */
-  /*   free(state_indices[j]); */
-  /* } */
-  /* free(state_indices); */
-
-  /* free(state_indices); */
+  calc_smap(method, fn_infile, screen_states(fn_infile, 3, 0.2, 0.00001, 0.00001));
 
   free(fn_infile);
   free(input_sbuff);

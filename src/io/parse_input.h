@@ -1,72 +1,7 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
-
-extern double * input_data[4]; /* defined in parse_input.c */
-extern int ** state_indices; /* post-screening state indices */
-
-struct e_state_s;
-typedef struct e_state_s * e_state;
-
-struct info_node_s;
-typedef struct info_node_s * info_node;
-
-struct e_state_s{
-
-  int list_idx;
-  int state_idx;
-
-  /* 0=not yet assigned, 1=ground state, 2=intermediate state, 3=final state,
-   23= either 2 or 3 */
-  int type;
-
-  double bw; /* boltzmann weight */
-  double e_val; /* energy of the state on the node (the "from" energy) */
-
-  /* number of transitions from this state */
-  int n_tfrom;
-
-  /* indices of states in transitions occuring from this state*/
-  int * idxs_to;
-
-   /* transition moments values for each transition found in idxs_to */
-  double * t_moms;
-
-  /* energy eigenvalues for the "to" state */
-  double * e_vals;
-
-  /* this list is doubly linked. */
-  info_node info;
-  e_state next;
-  e_state last;
-};
-
-typedef struct e_state_s * e_state;
-
-/* each input file loaded into the program has an associated info node
- containing general data about that specific input file*/
-struct info_node_s{
-
-  int idx; /* default index value */
-
-  int n_states; /* number of electronic states */
-  int n_trans; /* number of transitions */
-
-  int n_gs;
-  int n_is;
-  int n_fs;
-
-  /* sum of the boltzmann weights of all states in the system*/
-  double bw_sum;
-  double max_tmom; /* maximum transition moment for all transitions */
-
-  char * str_id; /* the input file name identifying this info node */
-  e_state root_e_state;
-  info_node next;
-  info_node last;
-};
-
-typedef struct info_node_s * info_node;
-
+#include "dynarray.h"
+#include "rmap_structs.h"
 /* function get_inode
 
    * synopsis:
@@ -117,7 +52,7 @@ get_inode (char * fn_infile);
    * side-effects:
 
    */
-int **
+mdda_s *
 screen_states (char * fn_infile,
                int n_args,
              ...);
@@ -136,7 +71,7 @@ screen_states (char * fn_infile,
 
    */
 double **
-reduce_input (int ** sidxs /* state indices */
+reduce_input (mdda_s * sidxs /* state indices */
               );
 
 

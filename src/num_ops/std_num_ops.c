@@ -32,6 +32,17 @@ power(int base,
   return power;
 }
 
+double
+powerl(double base,
+       int exp){
+  double power;
+  power = 1;
+  while(exp-- > 0)
+    power *=base;
+
+  return power;
+}
+
 int
 intinint (int * a,
           int num,

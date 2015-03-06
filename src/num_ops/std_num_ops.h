@@ -26,6 +26,9 @@ int power(int base,
           int exp
           );
 
+double
+powerl(double base,
+       int exp);
 /* function intinint
 
    * synopsis:
