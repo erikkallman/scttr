@@ -31,15 +31,17 @@ main (int argc, char * argv[]) {
 
     case 'h' :
       printf("some help was requested. \n");
+      exit(1);
       break;
 
     case 'i' :
-      printf( "processing input file.. \n" );
+      printf( "processing input file: " );
 
       for (j=3; argv[1][j] != '\0'; j++) {
         input_sbuff[j-3] = argv[1][j];
+        printf( "%c", input_sbuff[j-3]);
       }
-
+      printf( "\n" );
       len_fn = j-3;
       fn_infile = malloc(len_fn+1);
 
@@ -56,12 +58,14 @@ contained in %s.\n",fn_infile);
         printf( "program terminating due to the previous error.\n");
         exit(EXIT_FAILURE);
       }
+      break;
 
     case 'm' :
       /* the user specified a method to be used for calculating the scattering map */
       for (j=3; argv[1][j] != '\0'; j++) {
         input_sbuff[j-3] = argv[1][j];
       }
+      argv[1] + j;
 
       method = malloc(len_fn+1);
 
@@ -69,7 +73,7 @@ contained in %s.\n",fn_infile);
         method[j] = input_sbuff[j];
       }
       method[len_fn] = '\0';
-
+      printf( "got the method: %s\n", method);
       break;
 
     default :
@@ -77,12 +81,14 @@ contained in %s.\n",fn_infile);
  call tau with the flag \"-h\". Program terminating.\n",(char)argv [1][1]);
       exit(1);
     }
-    argc--;
     argv++;
+    argv++;
+    argc--;
+    argc--;
   }
 
-  calc_smap(method, fn_infile, screen_states(fn_infile, 3, 0.2, 0.00001, 0.00001));
-
+  calc_smap(method, fn_infile, screen_states(fn_infile, 3, 0.005, 0.000001, 0.000001));
+  free(method)
   free(fn_infile);
   free(input_sbuff);
   printf( "rmap successfully executed.\n" );

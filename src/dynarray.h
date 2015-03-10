@@ -30,6 +30,8 @@ struct mdda_s{
 
 void da_init(da_s *da);
 
+/* any node will always have a size of minimum 1 since the 0th element is
+   used to store the number of states in the array */
 mdda_s * mdda_init();
 
 void da_append(da_s *da, int value);

@@ -859,7 +859,7 @@ for pointers in \"input_data\"\n");
 
   num_idxs2[0] = 1;
   num_idxs2[1] = 2;
-  num_idxs2[2] = 9;
+  num_idxs2[2] = 7;
   int n_idxs2 = 3;
 
   for (j=0; j<n_lookup_str; j+=2) {
@@ -900,6 +900,7 @@ for pointers in \"input_data\"\n");
               /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
               /* exit(1); */
           /* sleep(1); */
+
           m++;
         }
         l=0; /* reset the buffer write head to start reading a the next line */

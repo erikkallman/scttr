@@ -5,7 +5,7 @@
 
 void da_init(da_s *da) {
   // initialize size and capacity
-  da->size = 0;
+  da->size = 1;
   da->capacity = DA_INITIAL_CAPACITY;
 
   // allocate memory for da->data
@@ -26,7 +26,7 @@ mdda_init() {
   root_mdda -> mdda_capacity = MDDA_INITIAL_CAPACITY;
 
   root_mdda->da = malloc(sizeof(da_s));
-  (root_mdda->da)->size = 0;
+  (root_mdda->da)->size = 1;
   (root_mdda->da)->capacity = DA_INITIAL_CAPACITY;
 
   // allocate memory for da->data
@@ -42,11 +42,11 @@ mdda_init() {
     next_mdda = (curr_mdda->next);
     curr_mdda = next_mdda;
     curr_mdda -> idx = j;
-    curr_mdda -> size = 0; /* used to check if the da needs initialization */
+    curr_mdda -> size = 1; /* used to check if the da needs initialization */
     curr_mdda -> mdda_capacity = MDDA_INITIAL_CAPACITY;
     /* printf( "da_initing\n" ); */
     curr_mdda->da = malloc(sizeof(da_s));
-    (curr_mdda->da)->size = 0;
+    (curr_mdda->da)->size = 1;
     (curr_mdda->da)->capacity = DA_INITIAL_CAPACITY;
 
     // allocate memory for da->data
@@ -85,7 +85,7 @@ void mdda_append(mdda_s *mdda, int val) {
 }
 
 int da_get(da_s *da, int index) {
-  if (index >= da->size || index < 0) {
+  if (index >= (da->size+1) || index < 0) {
     printf("da_get: Index %d out of bounds for da of size %d\n", index, da->size);
     exit(1);
   }
@@ -164,7 +164,7 @@ void mdda2s(mdda_s * mdda){
   int j,k,l,m; /* looping variables */
   int jgrid,kgrid; /* looping variables */
 
-  int n_fs;
+  int n_fs,n_is;
   int n_gs = mdda_get(mdda, 0, 0);
   int gs_idx,is_idx,fs_idx;
 
@@ -176,14 +176,14 @@ void mdda2s(mdda_s * mdda){
   /* get a pointer to the 0th column of iis */
 
   mdda_s * iis = root_mdda -> branch;
-  int n_is = mdda_get(iis, 0, 0);
+
   curr_mdda = next_mdda;
 
   for (j=1; j<n_gs+1; j++) {
     next_mdda = (curr_mdda -> next);
     gs_idx = mdda_get(mdda, 0, j);
-    printf( "gs[%d/%d]=%d\n", j, n_gs, gs_idx);
-
+    printf( "\ngs[%d/%d]=%d\n", j, n_gs, gs_idx);
+    n_is = mdda_get(mdda, j, 0);
     for (k=1; k<n_is+1; k++) {
       is_idx = mdda_get(curr_mdda, j, k);
       printf( "  is[%d/%d]=%d\n", k, n_is, is_idx);

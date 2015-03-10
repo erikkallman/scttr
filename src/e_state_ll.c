@@ -63,8 +63,8 @@ get_ediff (info_node inode, /* root of the electronic state llist */
       return ((es -> e_val) - (es -> e_vals)[j]);
     }
   }
-  fprintf(stderr, "e_state_ll.c, get_editt: unable to locate state of \
-index %d in the list of electronic states.\n", idx_es1);
+  fprintf(stderr, "e_state_ll.c, get_ediff: unable to locate state of \
+index %d in the list of transitions from state %d.\n", idx_es2, idx_es1);
   printf( "program terminating due to the previous error.\n");
   exit(1);
 }
