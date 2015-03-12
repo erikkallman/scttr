@@ -16,7 +16,7 @@ calc_smap (char * method,
            char * inode_id,
            mdda_s * mdda /* screened indices */
            ) {
-
+  printf( "  -calculating RIXS map.\n\n" );
   /* printf( "calc_smap got this method: %s \n", method); */
   FILE * fp;
   /* open the placeholder file */
@@ -128,8 +128,6 @@ to allocate memory for \"deltae[%d]\"\n",j);
     }
   }
 
-  printf( "Calculating RIXS map\n" );
-
   fwhm = (double)0.9/AUTOEV;
 
   eminj = (double)6900/AUTOEV;
@@ -217,7 +215,7 @@ to allocate memory for \"deltae[%d]\"\n",j);
       }
     }
   }
-
+  printf( "  -writing RIXS map to file:\n    %s\n\n","/home/kimchi/dev/rmap/output/map.dat");
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
       rixsmap[jgrid][kgrid] = rixsmap[jgrid][kgrid]/rmax;

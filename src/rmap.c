@@ -17,6 +17,14 @@ main (int argc, char * argv[]) {
   char * input_sbuff = malloc(BUF_SIZE);
   char * fn_infile;
   char * method;
+  char * num_buf;
+
+  /* threshold values for the three different state types */
+  double state_t[3] = {0.005, 0.00001, 0.000001};
+
+  /* number of threshold values processed from command line */
+  int n_t = 0;
+
   /* char fn_infile[BUF_SIZE] = {0}; */
 
   /* process the input arguments */
@@ -76,6 +84,29 @@ contained in %s.\n",fn_infile);
       printf( "got the method: %s\n", method);
       break;
 
+    case 't' :
+      /* the user specified a method to be used for calculating the scattering map */
+      for (j=3,k=0; argv[1][j] != '\0'; j++) {
+
+        input_sbuff[k++] = argv[1][j];
+        /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
+
+        if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
+          num_buf = malloc(k-1);
+          input_sbuff[k] = '\0';
+          for (l=0; l<k; l++) {
+            num_buf[l] = input_sbuff[l];
+          }
+
+          state_t[n_t] = atof(num_buf);
+          free(num_buf);
+          num_buf = NULL;
+          n_t++;
+          k = 0;
+        }
+      }
+      break;
+
     default :
       printf("Cannot process the flag \"-%c\". To read the help documentation, \
  call tau with the flag \"-h\". Program terminating.\n",(char)argv [1][1]);
@@ -87,10 +118,26 @@ contained in %s.\n",fn_infile);
     argc--;
   }
 
-  calc_smap(method, fn_infile, screen_states(fn_infile, 3, 0.005, 0.000001, 0.000001));
-  free(method)
+  printf( "\nexecuting rmap with the following..\n\n" );
+  printf( "  - data contained in the input file:\n    %s\n\n", fn_infile);
+  printf( "  - threshold values:\n    " );
+
+  for (j=0; j<3; j++) {
+    printf( "%le, ", state_t[j]);
+  }
+  printf( "\n\n" );
+  printf( "  - method:\n    %s\n", method);
+
+  printf( "\n\n" );
+  printf( "execution progress:\n\n");
+
+  calc_smap(method, fn_infile, screen_states(fn_infile, 3, state_t[0], state_t[1], state_t[2]));
+
+  free(method);
   free(fn_infile);
   free(input_sbuff);
-  printf( "rmap successfully executed.\n" );
+  printf( "\nrmap successfully executed.\n" );
+  printf( "program terminating.\n\n" );
+
   return 0;
 }

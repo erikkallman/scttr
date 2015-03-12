@@ -51,6 +51,7 @@ mdda_s *
 screen_states (char * fn_infile,
              int n_args,
              ...){
+  printf( "  -screening states\n\n" );
   info_node inode = get_inode(fn_infile);
 
   int j,k; /* looping variables */
@@ -139,7 +140,7 @@ screen_states (char * fn_infile,
               if ((curr_state -> state_idx) == is_idx) { /* find the state in the llist */
 
                 /* varify that it has been marked as an intermediate state */
-                if ((curr_state -> type) != 2){
+                if ((curr_state -> type) == 1){
                   break; /* it wasnt. move on to the next transition */
                 }
 
@@ -965,18 +966,18 @@ parse_input (char * fn_infile, /* name of input file */
     if (format[j] = '.') {
 
       if (strcmp(format,MOLCAS_FORMAT)){
-        printf( "found molcas.\n" );
         parse_input_molcas(fn_infile);
-        printf( "processed molcas\n" );
         break; /* for */
       }
 
       else {
-        printf( "format not found in input_formats.h\n" );
+        fprintf(stderr, "format not found in input_formats.h. are you sure the\
+ file extension %s is correct?\n",format);
+        printf( "program terminating due to the previous error.\n");
+        exit(1);
       }
     }
   }
 
-  printf( "file processed\n" );
   return EXIT_SUCCESS;
 }

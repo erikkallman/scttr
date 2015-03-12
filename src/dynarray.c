@@ -178,15 +178,15 @@ void mdda2s(mdda_s * mdda){
   mdda_s * iis = root_mdda -> branch;
 
   curr_mdda = next_mdda;
-
+  printf( "  -printing the content of the screened state matrix:");
   for (j=1; j<n_gs+1; j++) {
     next_mdda = (curr_mdda -> next);
     gs_idx = mdda_get(mdda, 0, j);
-    printf( "\ngs[%d/%d]=%d\n", j, n_gs, gs_idx);
+    printf( "\n   gs[%d/%d] = %d\n", j, n_gs, gs_idx);
     n_is = mdda_get(mdda, j, 0);
     for (k=1; k<n_is+1; k++) {
       is_idx = mdda_get(curr_mdda, j, k);
-      printf( "  is[%d/%d]=%d\n", k, n_is, is_idx);
+      printf( "     is[%d/%d] = %d\n", k, n_is, is_idx);
 
 
       if (mdda_intinint(iis, is_idx)) {
@@ -204,7 +204,7 @@ void mdda2s(mdda_s * mdda){
          we're interested in */
         for (m=1; m<n_fs+1; m++) {
           fs_idx = mdda_get(iis, l, m);
-          printf( "    fs[%d/%d]=%d\n", m, n_fs, fs_idx);
+          printf( "       fs[%d/%d] = %d\n", m, n_fs, fs_idx);
         }
       }
       /* check if the IS idx is in the iis index array on root*/
@@ -220,7 +220,7 @@ void mdda2s(mdda_s * mdda){
   /*   } */
 
   /*   curr_mdda = next_mdda; */
-
+  printf( "\n\n" );
 }
 
 
