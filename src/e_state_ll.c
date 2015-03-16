@@ -87,7 +87,6 @@ e_state2s(info_node inode){
     printf( "     state_idx = %d\n", curr_st->state_idx);
     printf( "     n_tfrom = %d\n", curr_st->n_tfrom);
     printf( "     e_val = %le\n", curr_st->e_val);
-    sleep(1);
     next_st = curr_st -> next;
   }
 }

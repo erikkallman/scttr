@@ -108,7 +108,7 @@ screen_states (char * fn_infile,
   while((next_state = curr_state -> next) != NULL){
     gs_idx = curr_state -> state_idx;
     if ((curr_state -> type) == 1) { /* if we found a ground state */
-        printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
+        /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
       /* perform stage 1 of the screening process */
       if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) {
         /* we found a ground state with high enough boltzmann weight */
@@ -118,8 +118,8 @@ screen_states (char * fn_infile,
         mdda_set(igs, 0, n_sgs, gs_idx );
 
         /* store a pointer to the final state matrix in the ground state root node */
-        printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
-        sleep(1);
+        /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
+        /* sleep(1); */
         /* store a bookmark of where we found the last ground state */
         gs_bm = next_state;
 
@@ -133,14 +133,14 @@ screen_states (char * fn_infile,
           if ((tmp_trans[j]/(inode -> max_tmom)) >= thrsh_vals[1]) {
             is_bm = curr_state;
             is_idx = tmp_idxs[j];
-            printf( "found one!\n" );
+            /* printf( "found one!\n" ); */
 
            /* locate the candidate intermediate state in the list and varify
                that the state is indeed an IS (has type == 2) */
 
             /* varify that it has been marked as an intermediate state */
             if (((curr_state = get_state(inode, is_idx)) != NULL)\
-                && ((curr_state -> type) != 1)){
+                && ((curr_state -> type) == 2)){
               /* from the ground state found above, we also found an intermediate
                  state with high enough relative transition moment */
               n_sis++;
@@ -173,6 +173,13 @@ screen_states (char * fn_infile,
                     printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> max_tmom)));
                   }
                 }
+              }
+              /* if we looped over all final state transitions for this specific
+                 intermediate state and didnt find any FS transitions of high
+                 enough intensity, remove that intermediate state from the list */
+              if (n_sfs == 0) {
+                n_sis--;
+                mdda_set(igs, n_sgs, 0, n_sis);
               }
             }
 
@@ -377,7 +384,7 @@ to allocate memory for \"tmoms\"\n");
   }
 
   st -> state_idx = s_idx;
-  st -> bw = exp(-(e - e_rel)*AUTOEV/(TEXP*TTOEV))/2;
+  st -> bw = exp(-(e - e_rel)*(double)AUTOEV/(double)(TEXP*TTOEV))/2;
   st -> e_val = e;
   st -> n_tfrom = n_trs_from;
   st -> idxs_to = idxs;
@@ -402,7 +409,7 @@ set_state_ll (double ** parsed_input,
   int ** groups;
 
   double tmp_energy;
-  double tmp_sum = 0; /* sum of all boltzmann weights for the electronic states
+  double tmp_sum; /* sum of all boltzmann weights for the electronic states
                    in the system */
   double max_tm = 0;
   info_node curr_info_node;
@@ -445,14 +452,14 @@ to allocate memory for \"e_vals\"\n");
     exit(1);
   }
 
-  if((groups = malloc(3*sizeof(int*))) == NULL ){
+  if((groups = malloc(2*sizeof(int*))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
 to allocate memory for \"groups\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
-  for (j=0; j<3; j++) {
+  for (j=0; j<2; j++) {
     if((groups[j] = malloc((n_states+1)*sizeof(int))) == NULL ){
       fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
 to allocate memory for \"groups\"\n");
@@ -547,96 +554,34 @@ left to process.\n",l);
      group will be too low to get included in the data tree, we can sort
      out any state indices that ended up in the wrong category in the k_means
      sorting above.*/
-  for (j=0; j<3; j++) {
+  tmp_sum = 0;
+  for (j=0; j<2; j++) {
     for (k=1; k<=groups[j][0]; k++) {
 
       sorted_idx = groups[j][k];
-      g = &groups[j][1];
-      curr_state = curr_info_node -> root_e_state;
-
-      while((next_state = curr_state -> next) != NULL){
-
-        to = (curr_state -> state_idx);
-
-        if (to == sorted_idx) {
-          /* store a pointer to the "to" state idxs_to array and check so that every foundstate is not inside of it as well */
-          ito = (curr_state -> idxs_to);
-          tmp_ntfrom = curr_state -> n_tfrom;
-          tmp_type = curr_state -> type;
-          tmp_state = curr_state;
-
-          /* loop over the llist once more and find all states that do not have
-             any transitions to the selected state */
-          curr_state = curr_info_node -> root_e_state;
-          while((next_state = curr_state -> next) != NULL){
-            tmp_idx = curr_state -> state_idx;
-
-            /* check if the state_idxs is even in the current group */
-            if (intinint(g,tmp_idx, groups[j][0]) == 1){
-
-              if ((tmp_idx != to) && (tmp_idx != 1)){
-                /* finally check if there are any transitions from the current
-                   state to the selected "to" index, and vice versa */
-                if ((intinint(curr_state -> idxs_to, to, curr_state -> n_tfrom) \
-                     == 0) && (intinint(ito, tmp_idx, curr_state -> n_tfrom) \
-                               == 0)){
-
-                  if (tmp_type == 0) {
-                    curr_state -> type = 2;
-                    if (j == 2) {
-                      curr_state -> type = 3;
-                      tmp_state -> type = 3;
-                    }
-                  } else if ((j == 0) && (tmp_type == 1)) {
-                    curr_state -> type = 1;
-                    tmp_sum += curr_state -> bw;
-                  } else if ((tmp_type == 2) && (curr_state -> type == 0)) {
-                    curr_state -> type = 2;
-                  }
-                }
-              }
-            }
-            curr_state = next_state;
-          }
-          break; /* the state of index "to" has been sorted. */
-        }
-        if ((curr_state -> next) == NULL) {
-          fprintf(stderr, "parse_input.c, function set_state_ll: the state of \
-index %d could not be found in the linked list of states. error in state type\
- is expected as a consequence of this.\n",to);
-          printf( "program terminating due to the previous error.\n");
-          exit(EXIT_FAILURE);
-        }
-        curr_state = next_state;
+      /* g = &groups[j][1]; */
+      curr_state = get_state(curr_info_node, sorted_idx);
+      curr_state -> type = j+1;
+      /* store the sum of boltzmann weights to later on use it for the state
+         screening process */
+      if (j == 0) {
+        tmp_sum += curr_state->bw;
+        (curr_info_node -> n_gs) += 1;
+      } else {
+        (curr_info_node -> n_is) += 1;
       }
+      /* printf( "\n\n"); */
+      /* /\* count the state types *\/ */
+      /* curr_state = curr_info_node -> root_e_state; */
+      /* while((next_state = curr_state -> next) != NULL){ */
+      /*   printf( "state %d, type = %d\n", curr_state -> state_idx, curr_state -> type); */
+      /*   curr_state = next_state; */
+      /* } */
     }
-    curr_state = curr_info_node -> root_e_state;
-
-    /* store the sum of boltzmann weights to later on use it for the state
-     screening process */
-    curr_info_node -> bw_sum = tmp_sum;
-    /* printf( "\n\n"); */
-    /* /\* count the state types *\/ */
-    /* while((next_state = curr_state -> next) != NULL){ */
-    /*   printf( "state %d, type = %d\n", curr_state -> state_idx, curr_state -> type); */
-    /*   curr_state = next_state; */
-    /* } */
   }
 
-  /* count the state types */
-  curr_state = curr_info_node -> root_e_state;
-  while((next_state = curr_state -> next) != NULL){
-    if ((curr_state -> type) == 1) {
-      (curr_info_node -> n_gs) += 1;
-    }
-    else if ((curr_state -> type) == 2) {
-      (curr_info_node -> n_is) += 1;
-    }
-    else if ((curr_state -> type) == 3) {
-      (curr_info_node -> n_fs) += 1;
-    }
-    curr_state = next_state;
-  }
+
+  curr_info_node -> bw_sum = tmp_sum;
 
   for (j=0; j<3; j++) {
     free(groups[j]);

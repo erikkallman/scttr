@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "sci_const.h"
 #include "std_num_ops.h"
 #include "k_meansl.h"
+
 
 int
 k_meansl (double * a,
@@ -12,23 +14,23 @@ k_meansl (double * a,
   int j,k,l,m,n; /* looping variables */
 
   /* group indices used to write to the correct element of the groups array */
-  int g_idxs[3] = {0,0,0};
+  int g_idxs[2] = {0,0};
 
   /* initialize the reference points */
   double sum,change,last_change,step; /* difference between two data points*/
-  double ref_p[3] = {a[0], arit_meanl(a, n_vals), a[n_vals-1]};
-
+  double ref_p[2] = {a[0], a[n_vals-1]};
+  double ss = 10000; /* iteration step scaling */
   /* distnance from each reference point to each data point */
   double ** dist;
 
-  if((dist = malloc(3*sizeof(double*))) == NULL ){
+  if((dist = malloc(2*sizeof(double*))) == NULL ){
       fprintf(stderr, "k_meansl, malloc: failed to allocate memory for\
  \"dist\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
-  for (j=0; j<3; j++) {
+  for (j=0; j<2; j++) {
     if((dist[j] = malloc(n_vals*sizeof(double))) == NULL ){
       fprintf(stderr, "k_meansl, malloc: failed to allocate memory for\
  \"dist\"\n");
@@ -36,6 +38,8 @@ k_meansl (double * a,
       exit(1);
     }
   }
+
+  /* form the relative energies */
 
   change = 1;
   last_change = 0;
@@ -46,7 +50,7 @@ k_meansl (double * a,
     /* sleep(1); */
     /* for each reference point, calculate the distance from it to all
    data points */
-    for (j=0; j<3; j++) {
+    for (j=0; j<2; j++) {
       for (k=0; k<n_vals; k++) {
         dist[j][k] = pyth_distl(ref_p[j],a[k]);
       }
@@ -54,9 +58,9 @@ k_meansl (double * a,
 
     /* compare the distances between the reference points and add data points
      to the corresponding group */
-    for (j=0; j<3; j++) {
+    for (j=0; j<2; j++) {
       for (m=0; m<n_vals; m++) { /* each value we want to group */
-        for (k=0; k<3; k++) {
+        for (k=0; k<2; k++) {
           /* only compare to differencenses not equal to the current */
           if (k != j) {
             if (dist[j][m] < dist[k][m]) {
@@ -75,7 +79,7 @@ k_meansl (double * a,
       }
     }
     /* calculate new mean values */
-    for (j=0; j<3; j++) {
+    for (j=0; j<2; j++) {
 
       sum = 0;
       for (k=0; k < g_idxs[j]; k++) {
@@ -84,22 +88,22 @@ k_meansl (double * a,
 
       step = sum/(g_idxs[j]+1);
       if (step > ref_p[j]) { /* remember that all energies are negative */
-        ref_p[j] -= step/1000;
+        ref_p[j] -= step/ss;
       } else {
-        ref_p[j] += step/1000;
+        ref_p[j] += step/ss;
       }
       /* ref_p[j] = sum/(g_idxs[j]+1); */
     }
 
-    change = arit_meanl(ref_p,3);
+    change = arit_meanl(ref_p,2);
     /* printf( "\n\nchange2=%le\nlast_change2=%le\ndiff2=%le\n\n",change,last_change,fabs(change-last_change)); */
-    for (j=0; j<3; j++) {
-      printf( "\ng_idxs[%d] = %d\n",j,g_idxs[j]);
-      printf( "ref_p[%d] = %le\n",j,ref_p[j]);
-      for (k=0; k<g_idxs[j]; k++) {
-      printf( "groups[%d][%d] = %d\n",j,k,groups[j][k+1]);
-        printf( "e_vals[%d] = %le\n",groups[j][k+1],a[groups[j][k+1]-1]);
-      }
+    for (j=0; j<2; j++) {
+      /* printf( "\ng_idxs[%d] = %d\n",j,g_idxs[j]); */
+      /* printf( "ref_p[%d] = %le\n",j,ref_p[j]); */
+      /* for (k=0; k<g_idxs[j]; k++) { */
+      /* printf( "groups[%d][%d] = %d\n",j,k,groups[j][k+1]); */
+      /*   printf( "e_vals[%d] = %le\n",groups[j][k+1],a[groups[j][k+1]-1]); */
+      /* } */
 
       /* store the number of indices in each group in the 0th element of the group
          matrix so that the callee can extract this value */
@@ -111,11 +115,10 @@ k_meansl (double * a,
     }
   }
 
-  for (j=0; j<3; j++) {
+  for (j=0; j<2; j++) {
     free(dist[j]);
   }
   free(dist);
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+
   return 0;
 }
