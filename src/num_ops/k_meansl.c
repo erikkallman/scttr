@@ -94,12 +94,12 @@ k_meansl (double * a,
     change = arit_meanl(ref_p,3);
     /* printf( "\n\nchange2=%le\nlast_change2=%le\ndiff2=%le\n\n",change,last_change,fabs(change-last_change)); */
     for (j=0; j<3; j++) {
-      /* printf( "\ng_idxs[%d] = %d\n",j,g_idxs[j]); */
-      /* printf( "ref_p[%d] = %le\n",j,ref_p[j]); */
-      /* for (k=0; k<g_idxs[j]; k++) { */
-      /* printf( "groups[%d][%d] = %d\n",j,k,groups[j][k+1]); */
-      /*   printf( "e_vals[%d] = %le\n",groups[j][k+1],a[groups[j][k+1]-1]); */
-      /* } */
+      printf( "\ng_idxs[%d] = %d\n",j,g_idxs[j]);
+      printf( "ref_p[%d] = %le\n",j,ref_p[j]);
+      for (k=0; k<g_idxs[j]; k++) {
+      printf( "groups[%d][%d] = %d\n",j,k,groups[j][k+1]);
+        printf( "e_vals[%d] = %le\n",groups[j][k+1],a[groups[j][k+1]-1]);
+      }
 
       /* store the number of indices in each group in the 0th element of the group
          matrix so that the callee can extract this value */
@@ -115,6 +115,7 @@ k_meansl (double * a,
     free(dist[j]);
   }
   free(dist);
-
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   return 0;
 }

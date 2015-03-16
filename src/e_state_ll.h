@@ -45,4 +45,6 @@ get_ediff (info_node inode, /* root of the electronic state llist */
            int idx_es2
            );
 
+void
+e_state2s(info_node inode);
 #endif /* E_STATE_LL_H */

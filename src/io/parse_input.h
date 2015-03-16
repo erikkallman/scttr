@@ -161,7 +161,8 @@ int
 set_state_ll (double ** parsed_input,
               int n_states,
               int n_trans,
-              char * id);
+              char * id /* info node id string */
+              );
 
 
 /* function get_bdist

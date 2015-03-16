@@ -178,7 +178,7 @@ void mdda2s(mdda_s * mdda){
   mdda_s * iis = root_mdda -> branch;
 
   curr_mdda = next_mdda;
-  printf( "  -printing the content of the screened state matrix:");
+  printf( "\n  -printing the content of the screened state matrix:");
   for (j=1; j<n_gs+1; j++) {
     next_mdda = (curr_mdda -> next);
     gs_idx = mdda_get(mdda, 0, j);

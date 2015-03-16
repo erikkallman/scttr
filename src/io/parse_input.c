@@ -16,6 +16,7 @@
 #include "dynarray.h"
 #include "rmap_structs.h"
 #include "info_ll.h"
+#include "e_state_ll.h"
 
 #define BUF_SIZE 256
 
@@ -97,7 +98,7 @@ screen_states (char * fn_infile,
   iis = mdda_init();
 
   for (j=0; j<n_args; j++) {
-    tmp_thrsh = (float)va_arg(argv, double); /* grab the next vararg */
+    tmp_thrsh = (double)va_arg(argv, double); /* grab the next vararg */
     thrsh_vals[j] = tmp_thrsh;
   }
   /* for a description of the screening algorithm below, look up this function
@@ -107,7 +108,7 @@ screen_states (char * fn_infile,
   while((next_state = curr_state -> next) != NULL){
     gs_idx = curr_state -> state_idx;
     if ((curr_state -> type) == 1) { /* if we found a ground state */
-
+        printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
       /* perform stage 1 of the screening process */
       if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) {
         /* we found a ground state with high enough boltzmann weight */
@@ -117,8 +118,8 @@ screen_states (char * fn_infile,
         mdda_set(igs, 0, n_sgs, gs_idx );
 
         /* store a pointer to the final state matrix in the ground state root node */
-        /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
-        /* sleep(1); */
+        printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
+        sleep(1);
         /* store a bookmark of where we found the last ground state */
         gs_bm = next_state;
 
@@ -127,60 +128,54 @@ screen_states (char * fn_infile,
         tmp_trans = curr_state -> t_moms;
         tmp_idxs = curr_state -> idxs_to;
         for (j=0; j<((curr_state -> n_tfrom)-1); j++) {
-          /* printf( "IS:j = %d, sidx = %d, n_istrans = %d\n", j, tmp_idxs[j], (curr_state -> n_tfrom)); */
+          printf( "IS:j = %d, sidx = %d, trans = %le, reltrans = %le\n", j, tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> max_tmom)));
           /* if IS transition has a transition moment above threshold */
           if ((tmp_trans[j]/(inode -> max_tmom)) >= thrsh_vals[1]) {
             is_bm = curr_state;
             is_idx = tmp_idxs[j];
+            printf( "found one!\n" );
 
-            /* locate the candidate intermediate state in the list and varify
+           /* locate the candidate intermediate state in the list and varify
                that the state is indeed an IS (has type == 2) */
-            curr_state = root_state;
-            while((next_state = curr_state -> next) != NULL){
-              if ((curr_state -> state_idx) == is_idx) { /* find the state in the llist */
 
-                /* varify that it has been marked as an intermediate state */
-                if ((curr_state -> type) == 1){
-                  break; /* it wasnt. move on to the next transition */
-                }
+            /* varify that it has been marked as an intermediate state */
+            if (((curr_state = get_state(inode, is_idx)) != NULL)\
+                && ((curr_state -> type) != 1)){
+              /* from the ground state found above, we also found an intermediate
+                 state with high enough relative transition moment */
+              n_sis++;
+              mdda_set(igs, n_sgs, 0, n_sis);
+              mdda_set(igs, n_sgs, n_sis, is_idx);
 
-                /* from the ground state found above, we also found an intermediate
-                   state with high enough relative transition moment */
-                n_sis++;
-                mdda_set(igs, n_sgs, 0, n_sis);
-                mdda_set(igs, n_sgs, n_sis, is_idx);
+              printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> max_tmom));
 
-                /* printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> max_tmom)); */
+              n_sfs = 0;
 
-                n_sfs = 0;
+              /* before this is done, check so that the specific is_idx isnt
+                 in the iis already, in which case we would find its index in
+                 the 0th column of that mdda */
+              if (mdda_intinint((iis->root), is_idx) == 0) {
 
-                /* before this is done, check so that the specific is_idx isnt
-                   in the iis already, in which case we would find its index in
-                the 0th column of that mdda */
-                if (mdda_intinint((iis->root), is_idx) == 0) {
+                mdda_set(iis, 0, 0, n_sis);
+                mdda_set(iis, 0, n_sis, is_idx);
 
-                    mdda_set(iis, 0, 0, n_sis);
-                    mdda_set(iis, 0, n_sis, is_idx);
+                /* perform stage 3 of the screening process */
+                /* find final state transitions that pass stage 3 screening */
+                for (k=0; k < (curr_state -> n_tfrom); k++) {
+                  if ((((curr_state -> t_moms)[k])/(inode -> max_tmom)) >= thrsh_vals[2]) {
+                    /* from the intermediate state found above, we also found a
+                       final state transition with high enough relative
+                       transition moment */
+                    n_sfs++;
+                    mdda_set(iis, n_sis, 0, n_sfs);
+                    mdda_set(iis, n_sis, n_sfs, (curr_state -> idxs_to)[k]);
 
-                    /* perform stage 3 of the screening process */
-                    /* find final state transitions that pass stage 3 screening */
-                    for (k=0; k < (curr_state -> n_tfrom); k++) {
-                      if ((((curr_state -> t_moms)[k])/(inode -> max_tmom)) >= thrsh_vals[2]) {
-                        /* from the intermediate state found above, we also found a
-                           final state transition with high enough relative
-                           transition moment */
-                        n_sfs++;
-                        mdda_set(iis, n_sis, 0, n_sfs);
-                        mdda_set(iis, n_sis, n_sfs, (curr_state -> idxs_to)[k]);
-
-                        /* printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> max_tmom))); */
-                      }
-                    }
+                    printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> max_tmom)));
                   }
-                break; /* the IS has been processed , but is this break needed?*/
+                }
               }
-              curr_state = next_state;
             }
+
             curr_state = is_bm; /* reset the state to the last initial state */
           }
         }
@@ -540,7 +535,7 @@ left to process.\n",l);
   end_state -> next = NULL;
 
   /* the last node in the llist is the highest energy intermediate state */
-  end_state -> type = 3;
+  end_state -> type = 2;
   curr_info_node -> n_states = n_states - l;
 
   /* use the k-means algorithm to do a preliminary sorting of the states */
@@ -654,6 +649,7 @@ index %d could not be found in the linked list of states. error in state type\
   free(tmp_evals);
   free(e_vals);
 
+  e_state2s(curr_info_node);
   return EXIT_SUCCESS;
 }
 
@@ -889,7 +885,7 @@ for pointers in \"input_data\"\n");
 
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
           /* printf( "e_eigval[%d] = %le\n", m, e_eigval[m]); */
-          /* fflush(stdout); */
+          /* sleep(1); */
           m++;
         }
 
@@ -898,8 +894,6 @@ for pointers in \"input_data\"\n");
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
           /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
-              /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-              /* exit(1); */
           /* sleep(1); */
 
           m++;
@@ -921,7 +915,7 @@ for pointers in \"input_data\"\n");
     parsed_input[3][j] = e_eigval[idx_to-1];
     parsed_input[4][j] = t_mom[j];
   }
-  /* fflush(stdout); */
+
   /* for (k=0; k<n_trans; k++) { */
   /*   printf( "%le   %le   %le   %le   %le\n", parsed_input[0][k], parsed_input[1][k], parsed_input[2][k], parsed_input[3][k], parsed_input[4][k]); */
   /* } */
