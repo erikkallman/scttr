@@ -101,15 +101,10 @@ get_numsl (char * str,
       numstr[k] = num_buf[k];
       /* printf( "%c", numstr[k]); */
     }
-    /* printf( "\n"); */
-    /* printf( "num=%le\n", (double)sci_atof(numstr)/(0.72013096e+20)); */
 
     /* *tmp_num = sci_atof(numstr); /\* extract the next memory location *\/ */
     *tmp_num = satof(numstr, k); /* extract the next memory location */
 
-    printf( "%le\n", *tmp_num);
-    fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-    exit(1);
     free(numstr);
     /* numstr = NULL; */
   }

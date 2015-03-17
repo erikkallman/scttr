@@ -17,6 +17,7 @@ struct e_state_s{
   int type;
 
   double bw; /* boltzmann weight */
+  double max_tmom;
   double e_val; /* energy of the state on the node (the "from" energy) */
 
   /* number of transitions from this state */
@@ -53,8 +54,8 @@ struct info_node_s{
   int n_fs;
 
   /* sum of the boltzmann weights of all states in the system*/
-  double bw_sum;
-  double max_tmom; /* maximum transition moment for all transitions */
+  double mt_is; /* maximum transition moment for the intermediate states */
+  double mt_fs; /* maximum transition moment for all final states */
 
   char * str_id; /* the input file name identifying this info node */
   e_state root_e_state;

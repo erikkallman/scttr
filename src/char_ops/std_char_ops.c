@@ -36,7 +36,9 @@ satopow(char * s,
     p++;
     j--;
   }
-
+  if (j == 0) {
+    return 0;
+  }
   /* check so that we're not trying to store a number that is larger than
      what can be contained in a double */
   if (p > MAX_POWERL) {
@@ -66,8 +68,7 @@ satof(char * s,
 
   double v = 0;
   double pval = satopow(s, len);
-  printf( "pval = %le\n", pval);
-
+  /* printf( "==pval origin = %le, len %d\n", pval, len); */
   if (s[0] == '-') {
     nsign = -1;
     j = 1;
@@ -78,26 +79,23 @@ satof(char * s,
 
   /* locate the decimal point, if there is one */
   for (; isdigit(s[j]); j++){
-    printf( "char = %d\n", (s[j] - '0'));
-
-    /* v += (double)((s[j] - '0') * p++); */
-    v = v*10 + (s[j] - '0');
+    v = v*10 + (double)(s[j] - '0');
   }
 
-  printf( "v.1 = %le\n", v);
-  printf( "==pval pre = %le\n", pval);
+  /* printf( "v.1 = %le\n", v); */
+  /* printf( "==pval pre = %le\n", pval); */
   if (s[j++] == '.') {
     /* account for all powers below the decimal */
     while(isdigit(s[j]) || (s[j] != '\0')){
-      printf( "char = %d\n", (s[j] - '0'));
-      v = v*10 + (s[j] - '0');
-      printf( "val = %le\n", v);
+      /* printf( "char = %d\n", (s[j] - '0')); */
+      v = v*10 + (double)(s[j] - '0');
+      /* printf( "val = %le\n", v); */
       pval = pval-1;
       j++;
     }
   }
 
-  printf( "==pval post1 = %le\n", pval);
+  /* printf( "==pval post1 = %le\n", pval); */
 
   if (pval<0) {
     pval = 1/powerl(10,-pval);
@@ -105,11 +103,10 @@ satof(char * s,
     pval = powerl(10,pval);
   }
 
-  printf( "==pval post2 = %le\n", pval);
-  printf( "v.2 = %le\n", v);
-  printf( "v.3 = %le\n", ((double)nsign)*v*pval);
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+  /* printf( "==pval post2 = %le\n", pval); */
+  /* printf( "v.2 = %le\n", v); */
+  /* printf( "v.3 = %le\n", ((double)nsign)*v*pval); */
+
   return ((double)nsign)*v*pval;
 }
 

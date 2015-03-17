@@ -165,23 +165,6 @@ set_state_ll (double ** parsed_input,
               );
 
 
-/* function get_bdist
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-double
-get_bdist (double e_val,
-           double temp);
-
 /* function sort_states
 
  * synopsis:

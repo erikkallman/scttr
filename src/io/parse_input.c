@@ -110,7 +110,8 @@ screen_states (char * fn_infile,
     if ((curr_state -> type) == 1) { /* if we found a ground state */
         /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
       /* perform stage 1 of the screening process */
-      if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) {
+      /* if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) { */
+      if ((curr_state ->  bw) >= thrsh_vals[0]) {
         /* we found a ground state with high enough boltzmann weight */
         gs_idx = curr_state -> state_idx;
         n_sgs++;
@@ -128,12 +129,12 @@ screen_states (char * fn_infile,
         tmp_trans = curr_state -> t_moms;
         tmp_idxs = curr_state -> idxs_to;
         for (j=0; j<((curr_state -> n_tfrom)-1); j++) {
-          printf( "IS:j = %d, sidx = %d, trans = %le, reltrans = %le\n", j, tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> max_tmom)));
+          /* printf( "IS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", j, tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> mt_is)), thrsh_vals[1]); */
           /* if IS transition has a transition moment above threshold */
-          if ((tmp_trans[j]/(inode -> max_tmom)) >= thrsh_vals[1]) {
+          if ((tmp_trans[j]/(inode -> mt_is)) >= thrsh_vals[1]) {
             is_bm = curr_state;
             is_idx = tmp_idxs[j];
-            /* printf( "found one!\n" ); */
+            /* printf( "found one IS!\n" ); */
 
            /* locate the candidate intermediate state in the list and varify
                that the state is indeed an IS (has type == 2) */
@@ -147,7 +148,7 @@ screen_states (char * fn_infile,
               mdda_set(igs, n_sgs, 0, n_sis);
               mdda_set(igs, n_sgs, n_sis, is_idx);
 
-              printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> max_tmom));
+              /* printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> mt_is)); */
 
               n_sfs = 0;
 
@@ -162,15 +163,17 @@ screen_states (char * fn_infile,
                 /* perform stage 3 of the screening process */
                 /* find final state transitions that pass stage 3 screening */
                 for (k=0; k < (curr_state -> n_tfrom); k++) {
-                  if ((((curr_state -> t_moms)[k])/(inode -> max_tmom)) >= thrsh_vals[2]) {
+                  /* printf( "FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), thrsh_vals[2]); */
+                  if ((((curr_state -> t_moms)[k])/(inode -> mt_fs)) >= thrsh_vals[2]) {
                     /* from the intermediate state found above, we also found a
                        final state transition with high enough relative
                        transition moment */
+                    /* printf( "found one FS!\n" ); */
                     n_sfs++;
                     mdda_set(iis, n_sis, 0, n_sfs);
                     mdda_set(iis, n_sis, n_sfs, (curr_state -> idxs_to)[k]);
 
-                    printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> max_tmom)));
+                    /* printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> mt_fs))); */
                   }
                 }
               }
@@ -384,13 +387,14 @@ to allocate memory for \"tmoms\"\n");
   }
 
   st -> state_idx = s_idx;
-  st -> bw = exp(-(e - e_rel)*(double)AUTOEV/(double)(TEXP*TTOEV))/2;
+  /* st -> bw = exp(-(e - e_rel)*(double)AUTOEV/(double)(TEXP*TTOEV))/2; */
+  st -> bw = get_bdist(-(e - e_rel));
   st -> e_val = e;
   st -> n_tfrom = n_trs_from;
   st -> idxs_to = idxs;
   st -> t_moms = tm;
   st -> e_vals = ev;
-
+  st -> max_tmom = get_maxl(tm, n_trs_from);
   return EXIT_SUCCESS;
 }
 
@@ -408,9 +412,9 @@ set_state_ll (double ** parsed_input,
   int * ito;
   int ** groups;
 
+  double tmax_is,tmax_fs; /*  */
   double tmp_energy;
-  double tmp_sum; /* sum of all boltzmann weights for the electronic states
-                   in the system */
+
   double max_tm = 0;
   info_node curr_info_node;
 
@@ -527,7 +531,7 @@ left to process.\n",l);
       k++;  /* increase counter for transitions counted */
     }
   }
-  curr_info_node -> max_tmom = max_tm;
+
   end_state = curr_state;
   /* remove any unused nodes in the llist iterate forwards and free up\
      the unused nodes. */
@@ -554,7 +558,8 @@ left to process.\n",l);
      group will be too low to get included in the data tree, we can sort
      out any state indices that ended up in the wrong category in the k_means
      sorting above.*/
-  tmp_sum = 0;
+
+  tmax_is = tmax_fs = -1;
   for (j=0; j<2; j++) {
     for (k=1; k<=groups[j][0]; k++) {
 
@@ -565,9 +570,19 @@ left to process.\n",l);
       /* store the sum of boltzmann weights to later on use it for the state
          screening process */
       if (j == 0) {
-        tmp_sum += curr_state->bw;
+
+        if ((curr_state -> max_tmom) > tmax_is) {
+          tmax_is = (curr_state -> max_tmom);
+        }
+
         (curr_info_node -> n_gs) += 1;
+
       } else {
+
+        if ((curr_state -> max_tmom) > tmax_fs) {
+          tmax_fs = (curr_state -> max_tmom);
+        }
+
         (curr_info_node -> n_is) += 1;
       }
       /* printf( "\n\n"); */
@@ -580,8 +595,8 @@ left to process.\n",l);
     }
   }
 
-
-  curr_info_node -> bw_sum = tmp_sum;
+  curr_info_node -> mt_is = tmax_is;
+  curr_info_node -> mt_fs = tmax_fs;
 
   for (j=0; j<3; j++) {
     free(groups[j]);
@@ -838,8 +853,8 @@ for pointers in \"input_data\"\n");
 
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
-          printf( "to %le from %le, %Le \n", trans_idxs[0][m], trans_idxs[1][m], (long double)t_mom[m]/(1e+10));
-          sleep(1);
+          /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
+          /* sleep(1); */
 
           m++;
         }
@@ -851,7 +866,6 @@ for pointers in \"input_data\"\n");
 
   /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
-    printf( "j=%d, %d, %d\n,", j, idx_from-1, idx_to-1);
     idx_from = trans_idxs[0][j];
     idx_to = trans_idxs[1][j];
     parsed_input[0][j] = idx_from;
@@ -860,8 +874,7 @@ for pointers in \"input_data\"\n");
     parsed_input[3][j] = e_eigval[idx_to-1];
     parsed_input[4][j] = t_mom[j];
   }
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+
   /* for (k=0; k<n_trans; k++) { */
   /*   printf( "%le   %le   %le   %le   %le\n", parsed_input[0][k], parsed_input[1][k], parsed_input[2][k], parsed_input[3][k], parsed_input[4][k]); */
   /* } */

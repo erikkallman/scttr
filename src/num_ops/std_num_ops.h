@@ -1,6 +1,23 @@
 #ifndef STD_NUM_OPS_H
 #define STD_NUM_OPS_H
 
+/* function get_maxl
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+double
+get_maxl (double * v,
+          int n);
+
 /* function arit_meanl
 
    * synopsis:
@@ -69,6 +86,5 @@ getintinint (int * a1,
              );
 
 double
-get_bdist (double e_val,
-           double temp);
+get_bdist (double e_val);
 #endif /* STD_NUM_OPS_H */

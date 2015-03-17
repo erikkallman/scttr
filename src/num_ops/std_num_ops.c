@@ -10,6 +10,19 @@ pyth_distl (double q,
 }
 
 double
+get_maxl (double * v,
+          int n){
+  int j;
+  double m = v[0];
+
+  for (j=0; j<n; j++)
+    if (v[j] > m)
+      m = v[j];
+
+  return m;
+}
+
+double
 arit_meanl (double * a,
             int n_vals){
   int j; /* looping variables */
@@ -81,7 +94,6 @@ allocate memory for \"state_indices\"\n");
 }
 
 double
-get_bdist (double e_val,
-           double temp){
+get_bdist (double e_val){
   return exp(e_val/((1.380648813e-23)*300));
 }

@@ -116,8 +116,8 @@ to allocate memory for \"deltae[%d]\"\n",j);
     }
   }
   printf( "  -printing screening parameters:\n");
-  printf( "    total boltzmann weight = %le\n",  (iroot -> bw_sum));
-  printf( "    maximum transition intensity = %le\n",  (iroot -> max_tmom));
+  printf( "    maximum IS transition intensity = %le\n",  (iroot -> mt_is));
+  printf( "    maximum FS transition intensity = %le\n",  (iroot -> mt_fs));
 
   mdda2s(root_mdda);
   for (j=1; j<n_gs+1; j++) { /* loop over ground states */

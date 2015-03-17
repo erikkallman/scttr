@@ -29,7 +29,7 @@ satof(char * s,
    -none
 
    */
-double
+/* double
 sci_atof(char * s);
 
 /* function isdashes:
