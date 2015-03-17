@@ -77,8 +77,8 @@ screen_states (char * fn_infile,
 
   /* some hard-coded threshold values that will get replaced by the call
    values */
-  float thrsh_vals[3] = {0.5, 0.2, 0.2};
-  float tmp_thrsh;
+  double thrsh_vals[3] = {0.5, 0.2, 0.2};
+  double tmp_thrsh;
 
   double * tmp_trans;
 
@@ -838,8 +838,8 @@ for pointers in \"input_data\"\n");
 
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
-          /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
-          /* sleep(1); */
+          printf( "to %le from %le, %Le \n", trans_idxs[0][m], trans_idxs[1][m], (long double)t_mom[m]/(1e+10));
+          sleep(1);
 
           m++;
         }
@@ -851,7 +851,7 @@ for pointers in \"input_data\"\n");
 
   /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
-
+    printf( "j=%d, %d, %d\n,", j, idx_from-1, idx_to-1);
     idx_from = trans_idxs[0][j];
     idx_to = trans_idxs[1][j];
     parsed_input[0][j] = idx_from;
@@ -860,7 +860,8 @@ for pointers in \"input_data\"\n");
     parsed_input[3][j] = e_eigval[idx_to-1];
     parsed_input[4][j] = t_mom[j];
   }
-
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   /* for (k=0; k<n_trans; k++) { */
   /*   printf( "%le   %le   %le   %le   %le\n", parsed_input[0][k], parsed_input[1][k], parsed_input[2][k], parsed_input[3][k], parsed_input[4][k]); */
   /* } */

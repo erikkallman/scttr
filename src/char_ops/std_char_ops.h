@@ -1,6 +1,15 @@
 #ifndef CHAR_OPS_H
 #define CHAR_OPS_H
 
+int
+satopow(char * s,
+        int len
+        );
+
+double
+satof(char * s,
+      int len);
+
 /* function sci_atof
 
    * synopsis:

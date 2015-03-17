@@ -15,8 +15,7 @@ get_numinstr (char * s,
   int j,k,l;
 
   int n_digits_found = 0;
-
-  static char num_key[] = {'-','.','E',};
+  static char num_key[5] = {'-','.','E','+'};
 
   /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
   int mode = 0;
@@ -103,11 +102,14 @@ get_numsl (char * str,
       /* printf( "%c", numstr[k]); */
     }
     /* printf( "\n"); */
-    /* printf( "%le\n", (double)sci_atof(numstr)); */
+    /* printf( "num=%le\n", (double)sci_atof(numstr)/(0.72013096e+20)); */
 
-    *tmp_num = sci_atof(numstr); /* extract the next memory location */
+    /* *tmp_num = sci_atof(numstr); /\* extract the next memory location *\/ */
+    *tmp_num = satof(numstr, k); /* extract the next memory location */
 
-    /* printf( "%le\n", *tmp_num); */
+    printf( "%le\n", *tmp_num);
+    fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+    exit(1);
     free(numstr);
     /* numstr = NULL; */
   }
