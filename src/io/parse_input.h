@@ -55,7 +55,7 @@ get_inode (char * fn_infile);
 mdda_s *
 screen_states (char * fn_infile,
                int n_args,
-             ...);
+               ...);
 
 int
 init_data_branch(double ** pi, /* parsed input */

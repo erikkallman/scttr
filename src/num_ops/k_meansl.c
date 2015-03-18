@@ -20,6 +20,7 @@ k_meansl (double * a,
   double sum,change,last_change,step; /* difference between two data points*/
   double ref_p[2] = {a[0], a[n_vals-1]};
   double ss = 10000; /* iteration step scaling */
+  double conv = 0.2;
   /* distnance from each reference point to each data point */
   double ** dist;
 
@@ -43,7 +44,7 @@ k_meansl (double * a,
 
   change = 1;
   last_change = 0;
-  while(fabs(change-last_change) > 0.2){
+  while(fabs(change-last_change) > conv){
   /* while(1){ */
     /* printf( "\n\nchange=%le\nlast_change=%le\ndiff=%le\n\n",change,last_change,fabs(change-last_change)); */
     last_change = change;
@@ -98,6 +99,7 @@ k_meansl (double * a,
     change = arit_meanl(ref_p,2);
     /* printf( "\n\nchange2=%le\nlast_change2=%le\ndiff2=%le\n\n",change,last_change,fabs(change-last_change)); */
     for (j=0; j<2; j++) {
+
       /* printf( "\ng_idxs[%d] = %d\n",j,g_idxs[j]); */
       /* printf( "ref_p[%d] = %le\n",j,ref_p[j]); */
       /* for (k=0; k<g_idxs[j]; k++) { */
@@ -109,9 +111,9 @@ k_meansl (double * a,
          matrix so that the callee can extract this value */
       groups[j][0] = g_idxs[j];
       g_idxs[j] = 0;
-      if (ref_p[j] > 0) {
-        exit(EXIT_FAILURE);
-      }
+      /* if (ref_p[j] > 0) { */
+      /*   exit(EXIT_FAILURE); */
+      /* } */
     }
   }
 
@@ -120,5 +122,5 @@ k_meansl (double * a,
   }
   free(dist);
 
-  return 0;
+  return EXIT_SUCCESS;
 }

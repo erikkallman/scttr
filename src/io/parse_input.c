@@ -377,6 +377,7 @@ to allocate memory for \"tmoms\"\n");
   st -> t_moms = tm;
   st -> e_vals = ev;
   st -> max_tmom = get_maxl(tm, n_trs_from);
+
   return EXIT_SUCCESS;
 }
 
@@ -459,13 +460,14 @@ to allocate memory for \"groups\"\n");
 
   /* the first node in the llist is the lowest energy ground state */
   curr_state -> type = 1;
+
   /* grab the transitions and energies */
-  for (k=0,j=0,l=0; j<=n_trans; j++) { /* j = read head for the parsed_input matrix */
+  for (k=0,j=0,l=0; j<n_trans; j++) { /* j = read head for the parsed_input matrix */
 
     from = parsed_input[0][j];
     to = parsed_input[1][j];
 
-    if (from != from_last) { /* we just started reading values for transitions
+    if (from != from_last || (j+1 == n_trans)) { /* we just started reading values for transitions
                                 from a new state */
 
       /* initialize the next state in the ll */
@@ -491,17 +493,20 @@ left to process.\n",l);
         printf( "program terminating due to the previous error.\n");
         exit(1);
       }
-
       if (l >= (n_states-1)) {
         break;
       }
+
       next_state = curr_state -> next;
       curr_state = next_state;
 
       from_last = from;
-
+      if ((j+1 == n_trans)) {
+        break;
+      }
       k=0;
       j--;
+
     }
     else {
       tmp_idxs[k] = parsed_input[1][j];
@@ -514,27 +519,36 @@ left to process.\n",l);
     }
   }
 
-  end_state = curr_state;
+  end_state = curr_state->last;
+
+  /* printf( "%d\n", curr_state->state_idx); */
+  /* printf( "%d\n", (curr_state-> last) -> state_idx); */
+  /* printf( "%d\n", end_state -> last -> state_idx); */
+  /* printf( "%d\n", end_state -> state_idx); */
+  /* printf( "%d\n", curr_info_node -> root_e_state -> state_idx); */
+  /*     fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   /* remove any unused nodes in the llist iterate forwards and free up\
      the unused nodes. */
 
-  /* for (j=0; j<l-n_states; j++) { */
-  /*   printf( "freed!\n" ); */
-  /*   next_state = curr_state -> next; */
-  /*   free(curr_state); */
-  /*   curr_state = next_state; */
-  /* } */
+  if (l < n_states) {
 
-  end_state -> next = NULL;
+    curr_info_node -> n_states = l;
+    for (j=0; j<n_states-l; j++) {
+      printf( "freed!\n" );
+      next_state = curr_state -> next;
+      free(curr_state);
+      curr_state = NULL; /* destroy the pointer */
+      curr_state = next_state;
+    }
+  }
 
   /* the last node in the llist is the highest energy intermediate state */
   end_state -> type = 2;
-  curr_info_node -> n_states = n_states - l;
+  end_state -> next = NULL;
 
   /* use the k-means algorithm to do a preliminary sorting of the states */
   k_meansl(e_vals, groups, l);
-
-  end_state = curr_state -> last;
 
   /* based on the fact that the transitions between states inside the same
      group will be too low to get included in the data tree, we can sort
@@ -554,8 +568,7 @@ left to process.\n",l);
         printf( "program terminating due to the previous error.\n");
         exit(EXIT_FAILURE);
       }
-      fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-      exit(1);
+
       curr_state -> type = j+1;
       /* store the sum of boltzmann weights to later on use it for the state
          screening process */
@@ -585,12 +598,12 @@ left to process.\n",l);
       /* } */
     }
   }
-    fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+
+
   curr_info_node -> mt_is = tmax_is;
   curr_info_node -> mt_fs = tmax_fs;
 
-  for (j=0; j<3; j++) {
+  for (j=0; j<2; j++) {
     free(groups[j]);
   }
   free(groups);
@@ -601,7 +614,12 @@ left to process.\n",l);
   free(tmp_evals);
   free(e_vals);
 
+  for (j=0; j<5; j++) {
+    free(parsed_input[j]);
+  }
+  free(parsed_input);
   e_state2s(curr_info_node);
+
   return EXIT_SUCCESS;
 }
 
@@ -803,7 +821,7 @@ for pointers in \"input_data\"\n");
   }
 
   /* int num_idxs1[1] = {2}; */
-  num_idxs1[0] = 1;
+  num_idxs1[0] = 2;
   int n_idxs1 = 1;
 
   num_idxs2[0] = 1;
@@ -837,12 +855,12 @@ for pointers in \"input_data\"\n");
 
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
           /* printf( "e_eigval[%d] = %le\n", m, e_eigval[m]); */
-          /* sleep(1); */
           m++;
         }
 
         if ((j == 2) && (isempty(str_buf,l) != 1)) { /* extract transition moments and transition indexes */
-
+          /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+          /* exit(1); */
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
           /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
@@ -855,7 +873,6 @@ for pointers in \"input_data\"\n");
       l++;
     }
   }
-
   /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
     idx_from = trans_idxs[0][j];
@@ -874,12 +891,13 @@ for pointers in \"input_data\"\n");
   fclose(fp_infile);
   fclose(fp_tmpdata);
 
+  free(str_buf);
   free(num_idxs1);
   free(num_idxs2);
-  free(str_buf);
   free(e_eigval);
-  free(trans_idxs);
   free(t_mom);
+  free(trans_idxs);
+
 
   return init_data_branch(parsed_input,n_states,n_trans,fn_infile);
 }

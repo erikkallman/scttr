@@ -83,7 +83,7 @@ e_state2s(info_node inode){
   printf( "\n  -printing the content of the electronic state list:");
 
   while((curr_st = next_st) != NULL){
-    printf( "\n   state[%d/%d], type %d\n", curr_st->list_idx, n_s, curr_st->type);
+    printf( "\n   state[%d/%d], type %d\n", curr_st->list_idx, n_s-1, curr_st->type);
     printf( "     state_idx = %d\n", curr_st->state_idx);
     printf( "     n_tfrom = %d\n", curr_st->n_tfrom);
     printf( "     e_val = %le\n", curr_st->e_val);
