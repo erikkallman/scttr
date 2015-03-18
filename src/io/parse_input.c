@@ -203,24 +203,6 @@ screen_states (char * fn_infile,
   return (igs->root);
 }
 
-double **
-reduce_input (mdda_s * sidxs /* screened state indices */
-              ){
-  int j; /* looping variables */
-
-  /* placeholder allocation to test out the function structure */
-  double ** ret = malloc(1*sizeof(double*));
-
-  ret[0] = malloc(sizeof(double));
-
-  /* for (j=0; j<3; j++) { */
-  /*   free(sidxs[j]); */
-  /* } */
-  /* free(sidxs); */
-
-  return ret;
-}
-
 int
 init_data_branch(double ** pi, /* parsed input */
                  int ns, /* n states */
@@ -257,7 +239,7 @@ init_info_node (char * s,
   char * si = malloc(strlen(s)+1); /* info node id string */
   info_node new_info_node;
 
-  if((new_info_node = (info_node)malloc(sizeof(struct info_node_s))) == NULL ){
+  if((new_info_node = malloc(sizeof(struct info_node_s))) == NULL ){
     fprintf(stderr, "parse_input.c:function init_info_node, malloc: failed \
 to allocate memory for \"new_info_node\"\n");
     printf( "program terminating due to the previous error.\n");
@@ -315,7 +297,7 @@ init_state_ll (char * str_id,
   curr_info_node = init_info_node(str_id, n_states, n_trans); /* this defines the root node and
                                               assigns it a non-NULL index */
 
-  root_state = (e_state)malloc(sizeof(struct e_state_s));
+  root_state = malloc(sizeof(struct e_state_s));
   root_state -> last = NULL;
   root_state -> next = NULL;
   root_state -> list_idx = 0;
@@ -330,7 +312,7 @@ init_state_ll (char * str_id,
   for (j=1; j<n_states; j++) {
     /* note that the idxs_to and t_moms arrays dont get allocated here. this
      is done in the set_state_ll function */
-    next_state = (e_state)malloc(sizeof(struct e_state_s));
+    next_state = malloc(sizeof(struct e_state_s));
     next_state -> last = curr_state;
     next_state -> list_idx = j;
     next_state -> info = curr_info_node;
@@ -560,15 +542,24 @@ left to process.\n",l);
      sorting above.*/
 
   tmax_is = tmax_fs = -1;
+
   for (j=0; j<2; j++) {
     for (k=1; k<=groups[j][0]; k++) {
 
       sorted_idx = groups[j][k];
-      /* g = &groups[j][1]; */
-      curr_state = get_state(curr_info_node, sorted_idx);
+
+      if ((curr_state = get_state(curr_info_node, sorted_idx)) == NULL) {
+        fprintf(stderr, "pare_input.c, function set_state_ll, get_state: unable\
+ to locate state of index %d in the list of electronic states.\n", sorted_idx);
+        printf( "program terminating due to the previous error.\n");
+        exit(EXIT_FAILURE);
+      }
+      fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+      exit(1);
       curr_state -> type = j+1;
       /* store the sum of boltzmann weights to later on use it for the state
          screening process */
+
       if (j == 0) {
 
         if ((curr_state -> max_tmom) > tmax_is) {
@@ -594,7 +585,8 @@ left to process.\n",l);
       /* } */
     }
   }
-
+    fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   curr_info_node -> mt_is = tmax_is;
   curr_info_node -> mt_fs = tmax_fs;
 

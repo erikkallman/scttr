@@ -57,24 +57,6 @@ screen_states (char * fn_infile,
                int n_args,
              ...);
 
-/* function reduce_input
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-double **
-reduce_input (mdda_s * sidxs /* state indices */
-              );
-
-
 int
 init_data_branch(double ** pi, /* parsed input */
                  int ns, /* n states */
