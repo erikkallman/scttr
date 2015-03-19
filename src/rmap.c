@@ -49,6 +49,7 @@ main (int argc, char * argv[]) {
         input_sbuff[j-3] = argv[1][j];
         printf( "%c", input_sbuff[j-3]);
       }
+
       printf( "\n" );
       len_fn = j-3;
       fn_infile = malloc(len_fn+1);
@@ -66,6 +67,7 @@ contained in %s.\n",fn_infile);
         printf( "program terminating due to the previous error.\n");
         exit(EXIT_FAILURE);
       }
+
       break;
 
     case 'm' :
@@ -82,6 +84,7 @@ contained in %s.\n",fn_infile);
       }
       method[len_fn] = '\0';
       printf( "got the method: %s\n", method);
+
       break;
 
     case 't' :
@@ -92,11 +95,16 @@ contained in %s.\n",fn_infile);
         /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
 
         if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
-          num_buf = malloc(k-1);
-          input_sbuff[k] = '\0';
+          /* k--; /\* we dont want the comma or null sent to atof *\/ */
+          num_buf = malloc(k+1);
+
           for (l=0; l<k; l++) {
             num_buf[l] = input_sbuff[l];
+            /* printf( "%c", num_buf[l]); */
           }
+          num_buf[k] = '\0';
+
+          /* printf( "\n" ); */
 
           state_t[n_t] = atof(num_buf);
           free(num_buf);
@@ -105,6 +113,7 @@ contained in %s.\n",fn_infile);
           k = 0;
         }
       }
+
       break;
 
     default :

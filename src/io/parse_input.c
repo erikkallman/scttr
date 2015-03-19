@@ -614,10 +614,6 @@ left to process.\n",l);
   free(tmp_evals);
   free(e_vals);
 
-  for (j=0; j<5; j++) {
-    free(parsed_input[j]);
-  }
-  free(parsed_input);
   e_state2s(curr_info_node);
 
   return EXIT_SUCCESS;
