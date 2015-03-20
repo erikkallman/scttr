@@ -87,4 +87,8 @@ getintinint (int * a1,
 
 double
 get_bdist (double e_val);
+
+double
+get_rbdist (double e_rel,
+            double e_val);
 #endif /* STD_NUM_OPS_H */

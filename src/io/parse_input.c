@@ -77,6 +77,8 @@ screen_states (char * fn_infile,
 
   /* some hard-coded threshold values that will get replaced by the call
    values */
+  double bw_sum = inode -> bw_sum;
+
   double thrsh_vals[3] = {0.5, 0.2, 0.2};
   double tmp_thrsh;
 
@@ -103,23 +105,26 @@ screen_states (char * fn_infile,
   }
   /* for a description of the screening algorithm below, look up this function
      in the parse_input.h file */
-
+  e_state2s(inode);
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   n_sgs = 0;
   while((next_state = curr_state -> next) != NULL){
     gs_idx = curr_state -> state_idx;
     if ((curr_state -> type) == 1) { /* if we found a ground state */
-        /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
+      /* printf( "GS: %d %le\n", gs_idx,((curr_state ->  bw)/bw_sum)); */
       /* perform stage 1 of the screening process */
       /* if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) { */
-      if ((curr_state ->  bw) >= thrsh_vals[0]) {
+      if (((curr_state ->  bw)/bw_sum) >= thrsh_vals[0]) {
         /* we found a ground state with high enough boltzmann weight */
         gs_idx = curr_state -> state_idx;
         n_sgs++;
         mdda_set(igs, 0, 0, n_sgs);
         mdda_set(igs, 0, n_sgs, gs_idx );
-
+        /* printf( "found one GS at %d!\n", gs_idx ); */
+        /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)/bw_sum)); */
         /* store a pointer to the final state matrix in the ground state root node */
-        /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
+
         /* sleep(1); */
         /* store a bookmark of where we found the last ground state */
         gs_bm = next_state;
@@ -134,7 +139,7 @@ screen_states (char * fn_infile,
           if ((tmp_trans[j]/(inode -> mt_is)) >= thrsh_vals[1]) {
             is_bm = curr_state;
             is_idx = tmp_idxs[j];
-            /* printf( "found one IS!\n" ); */
+            /* printf( "found one IS at %d!\n", is_idx ); */
 
            /* locate the candidate intermediate state in the list and varify
                that the state is indeed an IS (has type == 2) */
@@ -223,6 +228,7 @@ init_data_branch(double ** pi, /* parsed input */
   }
 
   free(pi);
+
   return EXIT_SUCCESS;
 }
 
@@ -369,8 +375,6 @@ to allocate memory for \"tmoms\"\n");
   }
 
   st -> state_idx = s_idx;
-  /* st -> bw = exp(-(e - e_rel)*(double)AUTOEV/(double)(TEXP*TTOEV))/2; */
-  st -> bw = get_bdist(-(e - e_rel));
   st -> e_val = e;
   st -> n_tfrom = n_trs_from;
   st -> idxs_to = idxs;
@@ -397,6 +401,7 @@ set_state_ll (double ** parsed_input,
 
   double tmax_is,tmax_fs; /*  */
   double tmp_energy;
+  double bw_s; /* sum of boltzmann weight */
 
   double max_tm = 0;
   info_node curr_info_node;
@@ -474,7 +479,7 @@ to allocate memory for \"groups\"\n");
       tmp_energy = parsed_input[2][j-1];
 
       /* we need these energies to sort the states later */
-      e_vals[l++] = tmp_energy;
+      e_vals[l] = tmp_energy;
 
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
@@ -506,6 +511,7 @@ left to process.\n",l);
       }
       k=0;
       j--;
+      l++;
 
     }
     else {
@@ -526,22 +532,22 @@ left to process.\n",l);
   /* printf( "%d\n", end_state -> last -> state_idx); */
   /* printf( "%d\n", end_state -> state_idx); */
   /* printf( "%d\n", curr_info_node -> root_e_state -> state_idx); */
+  /* printf( "%d\n", l); */
   /*     fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
   /* remove any unused nodes in the llist iterate forwards and free up\
      the unused nodes. */
+  curr_info_node -> n_states = l;
+  /* if (l < n_states) { */
 
-  if (l < n_states) {
-
-    curr_info_node -> n_states = l;
-    for (j=0; j<n_states-l; j++) {
-      printf( "freed!\n" );
-      next_state = curr_state -> next;
-      free(curr_state);
-      curr_state = NULL; /* destroy the pointer */
-      curr_state = next_state;
-    }
-  }
+  /*   for (j=0; j<n_states-l; j++) { */
+  /*     printf( "freed!\n" ); */
+  /*     next_state = curr_state -> next; */
+  /*     free(curr_state); */
+  /*     curr_state = NULL; /\* destroy the pointer *\/ */
+  /*     curr_state = next_state; */
+  /*   } */
+  /* } */
 
   /* the last node in the llist is the highest energy intermediate state */
   end_state -> type = 2;
@@ -556,50 +562,51 @@ left to process.\n",l);
      sorting above.*/
 
   tmax_is = tmax_fs = -1;
-
+  bw_s = 0;
   for (j=0; j<2; j++) {
     for (k=1; k<=groups[j][0]; k++) {
 
       sorted_idx = groups[j][k];
+      /* check if the sorted_idx state is even in the llist of electronic states */
 
-      if ((curr_state = get_state(curr_info_node, sorted_idx)) == NULL) {
-        fprintf(stderr, "pare_input.c, function set_state_ll, get_state: unable\
- to locate state of index %d in the list of electronic states.\n", sorted_idx);
-        printf( "program terminating due to the previous error.\n");
-        exit(EXIT_FAILURE);
-      }
+      if ((curr_state = get_state(curr_info_node, sorted_idx)) != NULL) {
+        curr_state -> type = j+1;
+        /* store the sum of boltzmann weights to later on use it for the state
+           screening process */
 
-      curr_state -> type = j+1;
-      /* store the sum of boltzmann weights to later on use it for the state
-         screening process */
+        if (j == 0) {
 
-      if (j == 0) {
+          if ((curr_state -> max_tmom) > tmax_is) {
+            tmax_is = (curr_state -> max_tmom);
+          }
 
-        if ((curr_state -> max_tmom) > tmax_is) {
-          tmax_is = (curr_state -> max_tmom);
+          curr_state -> bw = get_rbdist(parsed_input[2][0],curr_state -> e_val);
+          if (curr_state -> state_idx != 1) {
+            bw_s += curr_state -> bw;
+          }
+
+          (curr_info_node -> n_gs) += 1;
+
+        } else {
+
+          if ((curr_state -> max_tmom) > tmax_fs) {
+            tmax_fs = (curr_state -> max_tmom);
+          }
+
+          (curr_info_node -> n_is) += 1;
         }
-
-        (curr_info_node -> n_gs) += 1;
-
-      } else {
-
-        if ((curr_state -> max_tmom) > tmax_fs) {
-          tmax_fs = (curr_state -> max_tmom);
-        }
-
-        (curr_info_node -> n_is) += 1;
+        /* printf( "\n\n"); */
+        /* /\* count the state types *\/ */
+        /* curr_state = curr_info_node -> root_e_state; */
+        /* while((next_state = curr_state -> next) != NULL){ */
+        /*   printf( "state %d, type = %d\n", curr_state -> state_idx, curr_state -> type); */
+        /*   curr_state = next_state; */
+        /* } */
       }
-      /* printf( "\n\n"); */
-      /* /\* count the state types *\/ */
-      /* curr_state = curr_info_node -> root_e_state; */
-      /* while((next_state = curr_state -> next) != NULL){ */
-      /*   printf( "state %d, type = %d\n", curr_state -> state_idx, curr_state -> type); */
-      /*   curr_state = next_state; */
-      /* } */
     }
   }
 
-
+  curr_info_node -> bw_sum = bw_s;
   curr_info_node -> mt_is = tmax_is;
   curr_info_node -> mt_fs = tmax_fs;
 
@@ -630,9 +637,7 @@ parse_input_molcas (char * fn_infile) {
   int next_int;
   int idx_from;
   int idx_to;
-  int extr_i;
   int n_states,n_trans;
-  float extr_f;
 
   int * num_idxs1;
   int * num_idxs2;
@@ -817,7 +822,7 @@ for pointers in \"input_data\"\n");
   }
 
   /* int num_idxs1[1] = {2}; */
-  num_idxs1[0] = 2;
+  num_idxs1[0] = 1;
   int n_idxs1 = 1;
 
   num_idxs2[0] = 1;
@@ -869,6 +874,8 @@ for pointers in \"input_data\"\n");
       l++;
     }
   }
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
     idx_from = trans_idxs[0][j];

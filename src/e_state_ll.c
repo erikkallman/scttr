@@ -58,12 +58,13 @@ get_ediff (info_node inode, /* root of the electronic state llist */
   int j;
   e_state es = get_state(inode, idx_es1);
   int trs_max = es -> n_tfrom;
-
+  /* printf( "\neval = %le\n", (es -> e_val)); */
   int * ti = es -> idxs_to;
   /* printf( "looping\n" ); */
   for (j=0; j<=trs_max; j++) {
+    /* printf( "%le\n", (es -> e_vals)[j]); */
     if (ti[j] == idx_es2) {
-      return ((es -> e_val) - (es -> e_vals)[j]);
+      return ((es -> e_vals)[j] - (es -> e_val));
     }
   }
   fprintf(stderr, "e_state_ll.c, get_ediff: unable to locate state of \
@@ -74,6 +75,9 @@ index %d in the list of transitions from state %d.\n", idx_es2, idx_es1);
 
 void
 e_state2s(info_node inode){
+
+  int j;
+
   char * fn_in = inode -> str_id;
   int n_s = inode -> n_states;
   int n_t = inode -> n_trans;
@@ -82,8 +86,15 @@ e_state2s(info_node inode){
   e_state next_st = curr_st;
   printf( "\n  -printing the content of the electronic state list:");
 
-  while((curr_st = next_st) != NULL){
-    printf( "\n   state[%d/%d], type %d\n", curr_st->list_idx, n_s-1, curr_st->type);
+  for (j=0; j<n_s; j++) {
+    curr_st = next_st;
+    printf( "\n   state[%d/%d], type %d\n", curr_st->list_idx + 1, n_s, curr_st->type);
+    printf( "     state_idx = %d\n", curr_st->state_idx);
+
+    if ((curr_st->type) != 2) {
+      printf( "     boltzmann weight = %le\n", curr_st->bw);
+    }
+
     printf( "     state_idx = %d\n", curr_st->state_idx);
     printf( "     n_tfrom = %d\n", curr_st->n_tfrom);
     printf( "     e_val = %le\n", curr_st->e_val);

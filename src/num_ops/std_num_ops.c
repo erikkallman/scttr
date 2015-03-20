@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "std_num_ops.h"
+#include "sci_const.h"
 
 double
 pyth_distl (double q,
@@ -95,5 +96,14 @@ allocate memory for \"state_indices\"\n");
 
 double
 get_bdist (double e_val){
-  return exp(e_val/((1.380648813e-23)*300));
+  /* return exp((-e_val/(double)AUTOEV)/((1.380648813e-23)*(double)(TEXP*TTOEV))); */
+  return exp((-e_val*(double)AUTOEV)/((8.6173324e-05)*(double)(300)));
+}
+
+double
+get_rbdist (double e_rel,
+           double e_val){
+  /* return exp(-(e_val-e_rel)*(double)AUTOEV/((double)(TEXP*TTOEV)))/2; */
+  return exp((-(e_val-e_rel)*(double)AUTOEV)/((8.6173324e-05)*(double)(TEXP)));
+  /* return exp(-e_val/((1.380648813e-23)*300)); */
 }

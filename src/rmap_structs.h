@@ -56,6 +56,7 @@ struct info_node_s{
   /* sum of the boltzmann weights of all states in the system*/
   double mt_is; /* maximum transition moment for the intermediate states */
   double mt_fs; /* maximum transition moment for all final states */
+  double bw_sum; /* sum of all boltz  */
 
   char * str_id; /* the input file name identifying this info node */
   e_state root_e_state;

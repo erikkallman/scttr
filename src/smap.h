@@ -15,9 +15,14 @@
 
    */
 void
-calc_smap (char * method,
+calc_smap_m (char * method,
            char * inode_id,
            mdda_s * idxs
            );
 
+void
+calc_smap_e (char * method,
+           char * inode_id,
+           mdda_s * idxs
+           );
 #endif /* SMAP_H */

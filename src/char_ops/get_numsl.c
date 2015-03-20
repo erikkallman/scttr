@@ -15,7 +15,7 @@ get_numinstr (char * s,
   int j,k,l;
 
   int n_digits_found = 0;
-  char num_key[5] = {'-','.','E','+'};
+  static char num_key[5] = {'-','.','E','+'};
 
   /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
   int mode = 0;
@@ -101,16 +101,17 @@ get_numsl (char * str,
       numstr[k] = num_buf[k];
       /* printf( "%c", numstr[k]); */
     }
-
+    /* printf( "\n" ); */
+    /* sleep(1); */
     /* *tmp_num = sci_atof(numstr); /\* extract the next memory location *\/ */
     *tmp_num = satof(numstr, k); /* extract the next memory location */
 
     free(numstr);
-    /* numstr = NULL; */
+    numstr = NULL;
   }
 
   free(num_buf);
-  /* num_buf = NULL; */
+  num_buf = NULL;
   va_end(argv);
   return 0;
 }
