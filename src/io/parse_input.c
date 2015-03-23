@@ -105,7 +105,6 @@ screen_states (char * fn_infile,
   }
   /* for a description of the screening algorithm below, look up this function
      in the parse_input.h file */
-  e_state2s(inode);
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
   n_sgs = 0;
@@ -305,7 +304,6 @@ init_state_ll (char * str_id,
 
   root_state = malloc(sizeof(struct e_state_s));
   root_state -> last = NULL;
-  root_state -> next = NULL;
   root_state -> list_idx = 0;
   root_state -> info = curr_info_node;
 
@@ -491,13 +489,14 @@ to allocate memory for \"groups\"\n");
       /*           (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]); */
       /* } */
       /* sleep(1); */
-      if (((curr_state -> next) == NULL) && ((l+1) <= n_states)) {
-        fprintf(stderr, "parse_input.c:set_state_ll, the list of electronic \
-states ended before all input data was transfered. there are %d states \
-left to process.\n",l);
-        printf( "program terminating due to the previous error.\n");
-        exit(1);
-      }
+      /* if (((curr_state -> next) == NULL) && ((l+1) >= n_states)) { */
+/*       if ((l+1) >= n_states) { */
+/*         fprintf(stderr, "parse_input.c:set_state_ll, the list of electronic \ */
+/* states ended before all input data was transfered. there are %d out of %d \ */
+/* states left to process.\n", l, n_states); */
+/*         printf( "program terminating due to the previous error.\n"); */
+/*         exit(1); */
+/*       } */
       if (l >= (n_states-1)) {
         break;
       }
@@ -621,7 +620,7 @@ left to process.\n",l);
   free(tmp_evals);
   free(e_vals);
 
-  e_state2s(curr_info_node);
+  /* e_state2s(curr_info_node); */
 
   return EXIT_SUCCESS;
 }
@@ -825,9 +824,9 @@ for pointers in \"input_data\"\n");
   num_idxs1[0] = 1;
   int n_idxs1 = 1;
 
-  num_idxs2[0] = 1;
-  num_idxs2[1] = 2;
-  num_idxs2[2] = 7;
+  num_idxs2[0] = 0;
+  num_idxs2[1] = 1;
+  num_idxs2[2] = 6;
   int n_idxs2 = 3;
 
   for (j=0; j<n_lookup_str; j+=2) {

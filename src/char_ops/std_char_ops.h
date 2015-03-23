@@ -1,6 +1,23 @@
 #ifndef CHAR_OPS_H
 #define CHAR_OPS_H
 
+/* function charinstr
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+   returns the char in str equal to c if found, NULL otherwise.
+   * side-effects:
+
+   */
+int
+charinstr (char * str,
+           char c);
+
 int
 satopow(char * s,
         int len

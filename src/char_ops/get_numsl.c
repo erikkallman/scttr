@@ -5,6 +5,7 @@
 #include "std_char_ops.h"
 #include "get_numsl.h"
 
+
 int
 get_numinstr (char * s,
               char * buf,
@@ -15,8 +16,8 @@ get_numinstr (char * s,
   int j,k,l;
 
   int n_digits_found = 0;
-  static char num_key[5] = {'-','.','E','+'};
 
+  static char num_key[5] = {'-','.','E','+','\0'};
   /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
   int mode = 0;
   char c;
@@ -30,7 +31,8 @@ get_numinstr (char * s,
   for (j=0; j<str_len; c = s[j], j++) {
 
     /* check if we're still reading a number and avoid dashed lines */
-    if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0)) \
+    /* if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0)) \ */
+    if (((charinstr(num_key,c) != 0) || (isdigit(c) != 0)) \
         && ((isalpha(last_c) == 0 ) || (last_c == 'E'))) {
 
       /* check if we're reading the right digit, else ignore the result */

@@ -9,6 +9,18 @@
 #define isddash(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
 
 int
+charinstr (char * str,
+           char c){
+  int j;
+  for (j=0; str[j] != '\0' ; j++) {
+    if (str[j] == c) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+int
 satopow(char * s,
         int len
         ){
