@@ -17,7 +17,7 @@ get_numinstr (char * s,
 
   int n_digits_found = 0;
 
-  static char num_key[5] = {'-','.','E','+','\0'};
+  char num_key[5] = {'-','.','E','+','\0'};
   /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
   int mode = 0;
   char c;

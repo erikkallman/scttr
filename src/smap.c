@@ -121,6 +121,7 @@ to allocate memory for \"deltae[%d]\"\n",j);
   printf( "    maximum FS transition intensity = %le\n",  (iroot -> mt_fs));
 
   mdda2s(root_mdda);
+
   for (j=1; j<n_gs+1; j++) { /* loop over ground states */
 
     gs_idx= mdda_get(mdda, 0, j);

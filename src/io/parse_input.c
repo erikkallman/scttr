@@ -313,7 +313,7 @@ init_state_ll (char * str_id,
   curr_state = root_state;
 
   /* construct the list structure */
-  for (j=1; j<n_states; j++) {
+  for (j=1; j<(n_states+1); j++) {
     /* note that the idxs_to and t_moms arrays dont get allocated here. this
      is done in the set_state_ll function */
     next_state = malloc(sizeof(struct e_state_s));
@@ -371,6 +371,7 @@ to allocate memory for \"tmoms\"\n");
     tm[j] = moms_buf[j];
     ev[j] = evals_buf[j];
   }
+  printf( "idx = %d\n ", s_idx);
 
   st -> state_idx = s_idx;
   st -> e_val = e;
@@ -465,20 +466,24 @@ to allocate memory for \"groups\"\n");
   curr_state -> type = 1;
 
   /* grab the transitions and energies */
-  for (k=0,j=0,l=0; j<n_trans; j++) { /* j = read head for the parsed_input matrix */
+  for (k=0,j=0,l=0; j<=n_trans; j++) { /* j = read head for the parsed_input matrix */
 
-    from = parsed_input[0][j];
-    to = parsed_input[1][j];
+    if (j < n_trans) {
+      from = parsed_input[0][j];
+      to = parsed_input[1][j];
+    } else {
+      from = 0;
+    }
 
-    if (from != from_last || (j+1 == n_trans)) { /* we just started reading values for transitions
+    if (from != from_last) { /* we just started reading values for transitions
                                 from a new state */
-
+      printf( "from = %d, from_last = %d, n_trans_last = %d\n", from, from_last,k );
       /* initialize the next state in the ll */
       tmp_energy = parsed_input[2][j-1];
 
       /* we need these energies to sort the states later */
       e_vals[l] = tmp_energy;
-
+      printf( "read input %le \n", e_vals[l] );
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
 
@@ -489,14 +494,14 @@ to allocate memory for \"groups\"\n");
       /*           (curr_state -> e_vals)[m], m, (curr_state -> t_moms)[m]); */
       /* } */
       /* sleep(1); */
-      /* if (((curr_state -> next) == NULL) && ((l+1) >= n_states)) { */
+      if (((curr_state -> next) == NULL) && ((l+1) >= n_states)) {
 /*       if ((l+1) >= n_states) { */
-/*         fprintf(stderr, "parse_input.c:set_state_ll, the list of electronic \ */
-/* states ended before all input data was transfered. there are %d out of %d \ */
-/* states left to process.\n", l, n_states); */
-/*         printf( "program terminating due to the previous error.\n"); */
-/*         exit(1); */
-/*       } */
+        fprintf(stderr, "parse_input.c:set_state_ll, the list of electronic \
+states ended before all input data was transfered. there are %d out of %d \
+states left to process.\n", l, n_states);
+        printf( "program terminating due to the previous error.\n");
+        exit(1);
+      }
       if (l >= (n_states-1)) {
         break;
       }
@@ -505,15 +510,13 @@ to allocate memory for \"groups\"\n");
       curr_state = next_state;
 
       from_last = from;
-      if ((j+1 == n_trans)) {
-        break;
-      }
+
       k=0;
       j--;
       l++;
 
     }
-    else {
+    else if(j < n_trans) {
       tmp_idxs[k] = parsed_input[1][j];
       tmp_evals[k] = parsed_input[3][j];
       tmp_tmoms[k] = parsed_input[4][j];
@@ -523,7 +526,8 @@ to allocate memory for \"groups\"\n");
       k++;  /* increase counter for transitions counted */
     }
   }
-
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   end_state = curr_state->last;
 
   /* printf( "%d\n", curr_state->state_idx); */
@@ -750,10 +754,16 @@ parse_input_molcas (char * fn_infile) {
   n_states = match_vals[0];
   n_trans = match_vals[1];
 
+  /* convert the number of states and transitions read to offsets in bytes
+   that can be used with the fseek function */
   match_ln[0] = 0;
   match_ln[1] = (n_states+1)*256;
   match_ln[2] = (n_states)*256;
   match_ln[3] = match_ln[2] + ((n_trans+1)*256);
+
+  for (j=0; j<4; j++) {
+    printf( "match = %d\n", match_ln[j]);
+  }
 
   if((parsed_input = malloc(5*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
@@ -836,12 +846,12 @@ for pointers in \"input_data\"\n");
 
     match_start = match_ln[j];
     match_end = match_ln[j+1];
-
+    /* printf( "\nstart = %d , end = %d\n", match_start, match_end); */
     fseek(fp_tmpdata, match_start, 0);
 
     k_its = match_end-match_start;
 
-    for (k=0; k<k_its; k++) {
+    for (k=0; k<k_its; ) {
 
       if ((c = fgetc(fp_tmpdata)) == EOF) {
         break;
@@ -849,22 +859,26 @@ for pointers in \"input_data\"\n");
 
       str_buf[l] = (char)c;
 
+      if (j == 0) {
+        k++;
+      }
+
       if ((str_buf[l] == '\n') && (l > 0)) { /* dont send blank lines */
 
-        if ((j == 0) && (isempty(str_buf,l) != 1)) { /* extract energy eigenvalues and state indexes */
+        if ((j == 0) && (isempty(str_buf,l) != 1)) {
 
+          /* extract energy eigenvalues and state indexes */
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
           /* printf( "e_eigval[%d] = %le\n", m, e_eigval[m]); */
+
           m++;
         }
 
-        if ((j == 2) && (isempty(str_buf,l) != 1)) { /* extract transition moments and transition indexes */
-          /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-          /* exit(1); */
+        if ((j == 2) && (isempty(str_buf,l) != 1)) {
+           /* extract transition moments and transition indexes */
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
           /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
-          /* sleep(1); */
 
           m++;
         }
@@ -873,8 +887,7 @@ for pointers in \"input_data\"\n");
       l++;
     }
   }
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
+
   /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
     idx_from = trans_idxs[0][j];
@@ -896,7 +909,9 @@ for pointers in \"input_data\"\n");
   free(str_buf);
   free(num_idxs1);
   free(num_idxs2);
+
   free(e_eigval);
+
   free(t_mom);
   free(trans_idxs);
 
