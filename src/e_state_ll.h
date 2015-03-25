@@ -21,6 +21,11 @@ get_trans (e_state es_root, /* root of the electronic state llist */
            int idx_to /* index of the state transitioning to */
            );
 
+double
+get_eval (e_state es_root, /* root of the electronic state llist */
+           int idx_to /* index of the state transitioning to */
+           );
+
 /* function get_state
 
    * synopsis:

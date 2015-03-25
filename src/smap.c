@@ -25,8 +25,8 @@ calc_smap_m (char * method,
   }
 
   int j,k,l,m; /* control loop indices */
-  int maxgridj = 50;
-  int maxgridk = 50;
+  int maxgridj = 100;
+  int maxgridk = 100;
   int jgrid,kgrid;
 
   int gs_idx,is_idx,fs_idx;
@@ -37,9 +37,10 @@ calc_smap_m (char * method,
 
   double e_gs = iroot -> root_e_state -> e_val;
   double rmax = -0.1;
-  double xshift = -20/AUTOEV;
+  double xshift = 0/AUTOEV;
   double omegain, omegaut;
   double bw;
+  double bw_sum = iroot -> bw_sum;
   double ediffj,ediff_jk,tmom_jk,ediffk,ediff_km,tmom_km;
   double eminj,emaxj,emink,emaxk,dej,dek,fwhm;
 
@@ -50,6 +51,7 @@ calc_smap_m (char * method,
   mdda_s * next_mdda = (mdda -> next);
 
   /* get a pointer to the 0th column of iis */
+  mdda_s * igs = root_mdda;
   mdda_s * iis = root_mdda -> branch;
   curr_mdda = next_mdda;
 
@@ -57,7 +59,7 @@ calc_smap_m (char * method,
   double ** omega_y;
   double ** rixsmap;
   double ** deltae;
-  e_state tmp_gs, tmp_is;
+  e_state tmp_gs, tmp_is, tmp_fs;
 
   if((omega_x = malloc(maxgridj*sizeof(double*))) == NULL ){
     fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
@@ -121,7 +123,9 @@ to allocate memory for \"deltae[%d]\"\n",j);
   printf( "    maximum FS transition intensity = %le\n",  (iroot -> mt_fs));
 
   mdda2s(root_mdda);
-
+  /* e_state2s(iroot); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   for (j=1; j<n_gs+1; j++) { /* loop over ground states */
 
     gs_idx= mdda_get(mdda, 0, j);
@@ -147,25 +151,22 @@ to allocate memory for \"deltae[%d]\"\n",j);
   }
 
   fwhm = (double)0.9/AUTOEV;
-
   /* eminj = (double)(7130/AUTOEV); */
   /* emaxj = eminj + (double)(40/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for the Fe1s3d_ein.log file */
-  eminj = (double)(7100/AUTOEV);
-  emaxj = eminj + (double)(50/AUTOEV);
+  eminj = (double)(7146/AUTOEV);
+  emaxj = eminj + (double)(14/AUTOEV);
   dej = (emaxj-eminj)/(double)maxgridj;
 
-
   emink = -(double)(2/AUTOEV);
-  emaxk = emink + (double)(17/AUTOEV);
+  emaxk = emink + (double)(20/AUTOEV);
   dek = (emaxk-emink)/(double)maxgridk;
 
   c1 = 2.0*powerl((fwhm/(2*sqrt(2*log(2)))),2);
   c2 = fwhm/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
 
-  tmp = 0;
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     omegain = eminj+(jgrid*dej);
 
@@ -178,18 +179,19 @@ to allocate memory for \"deltae[%d]\"\n",j);
       for (j=1; j<n_gs+1; j++) { /* loop over ground states */
 
         /* printf( "ut = %le, in = %le", omegaut, omegain); */
-        gs_idx= mdda_get(mdda, 0, j);
+        gs_idx= mdda_get(igs, 0, j);
         tmp_gs = get_state(iroot,gs_idx);
-
+        /* printf( "%d, %le\n", gs_idx, tmp_gs -> e_val); */
+        /* sleep(1); */
         /* printf( "%le\n", tmp_gs -> e_val); */
         /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
         /* exit(1); */
 
         /* bw = get_rbdist(e_gs, tmp_gs -> e_val); */
-        bw = tmp_gs -> bw;
-        n_is = mdda_get(mdda, j, 0);
+        bw = (tmp_gs -> bw);
+        n_is = mdda_get(igs, j, 0);
         for (k=1; k<n_is+1; k++) { /* loop over intermediate states */
-          is_idx = mdda_get(mdda, j, k);
+          is_idx = mdda_get(igs, j, k);
           tmom_jk = get_trans(tmp_gs, is_idx);
 
           /* ediff_jk = get_ediff(iroot, gs_idx, is_idx); */
@@ -203,10 +205,13 @@ to allocate memory for \"deltae[%d]\"\n",j);
           }
 
           tmp_is = get_state(iroot,is_idx);
+          /* printf( "  %d, %le\n", is_idx, get_trans(tmp_gs,is_idx)); */
           n_fs = mdda_get(iis, l, 0);
 
           for (m=1; m<n_fs+1; m++) {/* loop over final states */
             fs_idx = mdda_get(iis, l, m);
+            tmp_fs = get_state(iroot,fs_idx);
+            /* printf( "    %d, %le\n", fs_idx, get_trans(tmp_is,fs_idx)); */
 
             tmom_km = get_trans(tmp_is, fs_idx);
             /* ediff_km = get_ediff(iroot, is_idx, fs_idx); */
@@ -219,18 +224,18 @@ to allocate memory for \"deltae[%d]\"\n",j);
             /*         ediff_jk, ediffk, ediff_km); */
             /* printf( "tmom_jk = %le\n", tmom_jk); */
             /* printf( "tmom_km = %le\n", tmom_km); */
-
+            /* sleep(1); */
             /* printf( "tmp0=%le\n", tmp); */
             /* printf( "tmoms=%le, exp=%le, dej=%le\n", tmom_jk*tmom_km, exp(-(powerl(ediffj,2))/c1), c2*dej); */
             /* printf( "power=%le, total=%le\n", (powerl(ediffj,2)), -powerl(ediffj,2)/c1); */
-            /* tmp = tmom_jk*tmom_km*bw*exp(-(powerl(ediffj,2))/c1)/c2*dej; */
-            tmp = tmom_jk*tmom_km*exp(-(powerl(ediffj,2))/c1)/c2*dej;
-            /* printf( "tmp1=%le\n", tmp); */
-            tmp *= exp(-(powerl(ediffk,2))/c1)/c2*dek;
-            /* printf( "tmp2=%le\n", tmp); */
-            rixsmap[jgrid][kgrid] += tmp;
 
-            /* sleep(n1); */
+
+            tmp = tmom_jk*tmom_km*bw*exp(-(powerl(ediffj,2))/c1)/c2*dej;
+            tmp *= exp(-(powerl(ediffk,2))/c1)/c2*dek;
+
+            /* tmp = tmom_jk*tmom_km*exp(-(powerl(ediffj,2))/c1)/c2*dej; */
+
+            rixsmap[jgrid][kgrid] += tmp;
           }
         }
       }
@@ -258,8 +263,9 @@ to allocate memory for \"deltae[%d]\"\n",j);
 
   for (j=0; j<maxgridj; j++) {
     free(omega_x[j]);
-     free(omega_y[j]);
+    free(omega_y[j]);
   }
+
   free(omega_x);
   free(omega_y);
   fclose(fp);

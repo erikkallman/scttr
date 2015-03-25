@@ -111,7 +111,7 @@ screen_states (char * fn_infile,
   while((next_state = curr_state -> next) != NULL){
     gs_idx = curr_state -> state_idx;
     if ((curr_state -> type) == 1) { /* if we found a ground state */
-      /* printf( "GS: %d %le\n", gs_idx,((curr_state ->  bw)/bw_sum)); */
+      printf( "GS: %d %le\n", gs_idx,((curr_state ->  bw)/bw_sum));
       /* perform stage 1 of the screening process */
       /* if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) { */
       if (((curr_state ->  bw)/bw_sum) >= thrsh_vals[0]) {
@@ -121,7 +121,7 @@ screen_states (char * fn_infile,
         mdda_set(igs, 0, 0, n_sgs);
         mdda_set(igs, 0, n_sgs, gs_idx );
         /* printf( "found one GS at %d!\n", gs_idx ); */
-        /* printf( "gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)/bw_sum)); */
+        printf( "\ngs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)/bw_sum));
         /* store a pointer to the final state matrix in the ground state root node */
 
         /* sleep(1); */
@@ -184,10 +184,10 @@ screen_states (char * fn_infile,
               /* if we looped over all final state transitions for this specific
                  intermediate state and didnt find any FS transitions of high
                  enough intensity, remove that intermediate state from the list */
-              if (n_sfs == 0) {
-                n_sis--;
-                mdda_set(igs, n_sgs, 0, n_sis);
-              }
+              /* if (n_sfs == 0) { */
+              /*   n_sis--; */
+              /*   mdda_set(igs, n_sgs, 0, n_sis); */
+              /* } */
             }
 
             curr_state = is_bm; /* reset the state to the last initial state */
@@ -201,8 +201,10 @@ screen_states (char * fn_infile,
     }
     curr_state = next_state;
   }
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   mdda_set_branch(igs, iis, 0, 0 );
-  /* mdda2s(igs); */
+
 
   return (igs->root);
 }
@@ -371,7 +373,6 @@ to allocate memory for \"tmoms\"\n");
     tm[j] = moms_buf[j];
     ev[j] = evals_buf[j];
   }
-  printf( "idx = %d\n ", s_idx);
 
   st -> state_idx = s_idx;
   st -> e_val = e;
@@ -394,6 +395,7 @@ set_state_ll (double ** parsed_input,
   int from_last = parsed_input[0][0];
   int from,to,sorted_idx,tmp_idx;
   int tmp_ntfrom, tmp_type;
+  int SYM = 1;
   int * g;
   int * ito;
   int ** groups;
@@ -414,6 +416,24 @@ set_state_ll (double ** parsed_input,
   double * tmp_tmoms;
   double * tmp_evals;
   double * e_vals;
+  double ** sym_dat;
+
+  if (SYM == 1) {
+    if((sym_dat = malloc((n_states+1)*sizeof(double*))) == NULL ){
+      fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"tmp_dat\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+    for (j=0; j<2; j++) {
+      if((sym_dat[j] = malloc(3*sizeof(double))) == NULL ){
+        fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
+to allocate memory for \"sym_dat[%d]\"\n",j);
+        printf( "program terminating due to the previous error.\n");
+        exit(1);
+      }
+    }
+  }
 
   if((tmp_idxs = malloc(n_states*sizeof(int))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
@@ -477,13 +497,11 @@ to allocate memory for \"groups\"\n");
 
     if (from != from_last) { /* we just started reading values for transitions
                                 from a new state */
-      printf( "from = %d, from_last = %d, n_trans_last = %d\n", from, from_last,k );
       /* initialize the next state in the ll */
       tmp_energy = parsed_input[2][j-1];
 
       /* we need these energies to sort the states later */
       e_vals[l] = tmp_energy;
-      printf( "read input %le \n", e_vals[l] );
       set_state_node(curr_state, from_last, tmp_idxs, tmp_evals, tmp_tmoms, k,\
                      parsed_input[2][0], tmp_energy);
 
@@ -526,6 +544,7 @@ states left to process.\n", l, n_states);
       k++;  /* increase counter for transitions counted */
     }
   }
+  printf( "%d, %d, %d\n",n_states, l,n_trans);
   fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
   exit(1);
   end_state = curr_state->last;
@@ -608,6 +627,13 @@ states left to process.\n", l, n_states);
       }
     }
   }
+
+  /* finally, if we want to take symmetric transitions into account, add the right ground
+   states to the corresponding final states */
+  if (SYM == 1) {
+
+  }
+
 
   curr_info_node -> bw_sum = bw_s;
   curr_info_node -> mt_is = tmax_is;
@@ -760,7 +786,6 @@ parse_input_molcas (char * fn_infile) {
   match_ln[1] = (n_states+1)*256;
   match_ln[2] = (n_states)*256;
   match_ln[3] = match_ln[2] + ((n_trans+1)*256);
-
   for (j=0; j<4; j++) {
     printf( "match = %d\n", match_ln[j]);
   }
@@ -879,7 +904,7 @@ for pointers in \"input_data\"\n");
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
           /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
-
+          /* sleep(1); */
           m++;
         }
         l=0; /* reset the buffer write head to start reading a the next line */

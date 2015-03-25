@@ -1,6 +1,24 @@
 #ifndef STD_NUM_OPS_H
 #define STD_NUM_OPS_H
 
+/* function cupto
+
+   * synopsis:
+   copy the content of @a1 to @a2 upto the element @upto
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+cupto (double * a1,
+       double * a2,
+       int upto);
+
 /* function get_maxl
 
    * synopsis:

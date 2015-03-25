@@ -3,7 +3,7 @@
 #include "e_state_ll.h"
 #include "rmap_structs.h"
 #include "info_ll.h"
-
+#include "sci_const.h"
 
 double
 get_trans (e_state es, /* root of the electronic state llist */
@@ -14,7 +14,8 @@ get_trans (e_state es, /* root of the electronic state llist */
 
   int * ti = es -> idxs_to;
   /* printf( "looping\n" ); */
-  for (j=0; j<=trs_max; j++) {
+  for (j=0; j<trs_max; j++) {
+    /* printf( "to = %d, from = %d, %d\n",idx_to, ti[j], trs_max); */
     if (ti[j] == idx_to) {
       return (es -> t_moms)[j];
     }
@@ -27,6 +28,28 @@ index %d in the list of transitions for state %d.\n", idx_to, es -> state_idx);
   exit(1);
 }
 
+double
+get_eval (e_state es, /* root of the electronic state llist */
+           int idx_to /* index of the state transitioning to */
+           ) {
+  int j; /* looping variables */
+  int trs_max = es -> n_tfrom;
+
+  int * ti = es -> idxs_to;
+  /* printf( "looping\n" ); */
+  for (j=0; j<trs_max; j++) {
+    /* printf( "to = %d, from = %d, %d\n",idx_to, ti[j], trs_max); */
+    if (ti[j] == idx_to) {
+      return (es -> e_vals)[j];
+    }
+  }
+  /* we looped over the entire list of electronic states but didnt find the
+   one that was requested */
+  fprintf(stderr, "e_state_ll.c, function get_trans: unable to locate state of \
+index %d in the list of transitions for state %d.\n", idx_to, es -> state_idx);
+  printf( "program terminating due to the previous error.\n");
+  exit(1);
+}
 e_state
 get_state (info_node inode, /* the info node at root of the state ll */
            int s_idx /* index of the state to get */
@@ -82,6 +105,7 @@ e_state2s(info_node inode){
   int n_s = inode -> n_states;
   int n_t = inode -> n_trans;
 
+  double gs_eval =  (inode -> root_e_state) -> e_val;
   e_state curr_st = (inode -> root_e_state);
   e_state next_st = curr_st;
   printf( "\n  -printing the content of the electronic state list:");
@@ -95,9 +119,10 @@ e_state2s(info_node inode){
       printf( "     boltzmann weight = %le\n", curr_st->bw);
     }
 
-    printf( "     state_idx = %d\n", curr_st->state_idx);
     printf( "     n_tfrom = %d\n", curr_st->n_tfrom);
-    printf( "     e_val = %le\n", curr_st->e_val);
+    printf( "     e_val(au) = %le\n", curr_st->e_val);
+    printf( "     max_tmom = %le\n", curr_st->max_tmom);
+    printf( "     delta e(ev) = %le\n", (gs_eval - (curr_st->e_val))*(double)AUTOEV);
     next_st = curr_st -> next;
   }
 }

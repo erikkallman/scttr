@@ -4,6 +4,17 @@
 #include "std_num_ops.h"
 #include "sci_const.h"
 
+int
+cupto (double * a1,
+       double * a2,
+       int upto){
+  int j = 0;
+  for (j=0; j<upto; j++) {
+    a2[j] = a1[j];
+  }
+  return 0;
+}
+
 double
 pyth_distl (double q,
             double p){
@@ -103,7 +114,5 @@ get_bdist (double e_val){
 double
 get_rbdist (double e_rel,
            double e_val){
-  /* return exp(-(e_val-e_rel)*(double)AUTOEV/((double)(TEXP*TTOEV)))/2; */
-  return exp((-(e_val-e_rel)*(double)AUTOEV)/((8.6173324e-05)*(double)(TEXP)));
-  /* return exp(-e_val/((1.380648813e-23)*300)); */
+  return exp((-(e_val-e_rel)*(double)AUTOEV)/(8.6173324e-05*TEXP));
 }
