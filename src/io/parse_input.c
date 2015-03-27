@@ -134,12 +134,12 @@ screen_states (char * fn_infile,
         tmp_trans = curr_state -> t_moms;
         tmp_idxs = curr_state -> idxs_to;
         for (j=0; j<((curr_state -> n_tfrom)-1); j++) {
-          /* printf( "IS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", j, tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> mt_is)), thrsh_vals[1]); */
+          printf( "IS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", j, tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> mt_is)), thrsh_vals[1]);
           /* if IS transition has a transition moment above threshold */
           if ((tmp_trans[j]/(inode -> mt_is)) >= thrsh_vals[1]) {
             is_bm = curr_state;
             is_idx = tmp_idxs[j];
-            /* printf( "found one IS at %d!\n", is_idx ); */
+            printf( "found one IS at %d!\n", is_idx );
 
            /* locate the candidate intermediate state in the list and varify
                that the state is indeed an IS (has type == 2) */
@@ -153,7 +153,7 @@ screen_states (char * fn_infile,
               mdda_set(igs, n_sgs, 0, n_sis);
               mdda_set(igs, n_sgs, n_sis, is_idx);
 
-              /* printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> mt_is)); */
+              printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> mt_is));
 
               n_sfs = 0;
 
@@ -168,17 +168,17 @@ screen_states (char * fn_infile,
                 /* perform stage 3 of the screening process */
                 /* find final state transitions that pass stage 3 screening */
                 for (k=0; k < (curr_state -> n_tfrom); k++) {
-                  /* printf( "FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), thrsh_vals[2]); */
+                  printf( "FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), thrsh_vals[2]);
                   if ((((curr_state -> t_moms)[k])/(inode -> mt_fs)) >= thrsh_vals[2]) {
                     /* from the intermediate state found above, we also found a
                        final state transition with high enough relative
                        transition moment */
-                    /* printf( "found one FS!\n" ); */
+                    printf( "found one FS!\n" );
                     n_sfs++;
                     mdda_set(iis, n_sis, 0, n_sfs);
                     mdda_set(iis, n_sis, n_sfs, (curr_state -> idxs_to)[k]);
 
-                    /* printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> mt_fs))); */
+                    printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> mt_fs)));
                   }
                 }
               }
@@ -197,7 +197,7 @@ screen_states (char * fn_infile,
         /* jump back to the last ground state that was found in the list */
         next_state = gs_bm;
       } else {
-      /* printf( "unacceptable bw: gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
+      printf( "unacceptable bw: gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
       }
     }
     curr_state = next_state;
@@ -205,8 +205,10 @@ screen_states (char * fn_infile,
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
   mdda_set_branch(igs, iis, 0, 0 );
-
-
+  mdda2s(igs);
+  printf( "n_sgs = %d, n_sis = %d, n_sfs = %d", n_sgs, n_sis, n_sfs);
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   return (igs->root);
 }
 
@@ -496,6 +498,7 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
 
             curr_state -> n_tfrom += sym_dat[0][0];
 
+            curr_state -> max_tmom = get_maxl(curr_state ->  t_moms, curr_state -> n_tfrom);
             curr_state = bookmark;
 
             /* printf( "====back at state = %d\n", (curr_state -> state_idx)); */
@@ -509,12 +512,12 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
     next_state = curr_state -> next;
   }
 
-  printf( "proc_idx=" );
-  for (j=0; j<n_proc; j++) {
-    printf( "%d, ", idxs_proc[j]);
-  }
-  printf( "\n" );
-  printf( "====done\n" );
+  /* printf( "proc_idx=" ); */
+  /* for (j=0; j<n_proc; j++) { */
+  /*   printf( "%d, ", idxs_proc[j]); */
+  /* } */
+  /* printf( "\n" ); */
+  /* printf( "====done\n" ); */
 
   for (j=0; j<3; j++) {
     free(sym_dat[j]);
@@ -522,10 +525,8 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
 
   free(sym_dat);
   free(idxs_proc);
-  e_statelist2s(inode, 1);
+  /* e_statelist2s(inode, 1); */
 
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
 }
 
 int
@@ -755,15 +756,18 @@ states left to process.\n", l, n_states);
     }
   }
 
+  if (SYM == 1) {
+    set_symtrans(curr_info_node);
+  }
+
   curr_info_node -> bw_sum = bw_s;
   curr_info_node -> mt_is = tmax_is;
   curr_info_node -> mt_fs = tmax_fs;
 
   /* finally, if we want to take symmetric transitions into account, add the right ground
    states to the corresponding final states */
-  if (SYM == 1) {
-    set_symtrans(curr_info_node);
-  }
+
+  /* e_statelist2s(curr_info_node,1); */
 
   for (j=0; j<2; j++) {
     free(groups[j]);

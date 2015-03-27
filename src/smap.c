@@ -123,6 +123,7 @@ to allocate memory for \"deltae[%d]\"\n",j);
   printf( "    maximum FS transition intensity = %le\n",  (iroot -> mt_fs));
 
   mdda2s(root_mdda);
+
   /* e_statelist2s(iroot); */
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
