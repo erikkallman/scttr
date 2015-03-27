@@ -9,6 +9,7 @@
 #include "k_meansl.h"
 #include "std_char_ops.h"
 #include "std_num_ops.h"
+#include "std_f.h"
 #include "get_numsl.h"
 #include "parse_input.h"
 #include "input_formats.h"
@@ -386,6 +387,148 @@ to allocate memory for \"tmoms\"\n");
 }
 
 int
+set_symtrans (info_node inode
+              ){
+  int j,k; /* looping variables */
+
+  int from,to, n_add, n_proc;
+  int tmp_n_tfrom;
+  int n_states = inode -> n_states;
+
+  /* a register of all intermediate states whos symmetric transitions
+   have been processed*/
+  int * idxs_proc;
+
+  double * tmp_e_vals;
+  double * tmp_idxs_to;
+  double * tmp_t_moms;
+
+  double ** sym_dat;
+
+  e_state bookmark;
+  e_state next_state;
+  e_state curr_state;
+
+  if((idxs_proc = malloc((n_states)*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input:function set_symtrans, malloc: failed \
+to allocate memory for \"ixds_proc\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((sym_dat = malloc(3*sizeof(double*))) == NULL ){
+    fprintf(stderr, "parse_input:function set_symtrans, malloc: failed \
+to allocate memory for \"tmp_dat\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<3; j++) {
+    if((sym_dat[j] = malloc((n_states+1)*sizeof(double))) == NULL ){
+      fprintf(stderr, "parse_input:function set_symtrans, malloc: failed \
+to allocate memory for \"sym_dat[%d]\"\n",j);
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  n_proc = 0;
+  curr_state;
+  next_state = inode -> root_e_state;
+  /* e_statelist2s(inode,1); */
+  while(next_state != NULL){
+    curr_state = next_state;
+    /* only check for symmetric transitions for non IS  */
+    /* printf( "====start at state = %d\n", (curr_state -> state_idx)); */
+    if ((curr_state -> type != 2) &&                            \
+      intinint(idxs_proc,curr_state -> state_idx,n_proc) == 0) {
+      /* printf( "====found state = %d\n", (curr_state -> state_idx)); */
+      bookmark = curr_state;
+
+      for (j=0; j<(curr_state -> n_tfrom); j++) {
+
+        from = (curr_state -> idxs_to)[j];
+        /* printf( "====new from = %d\n", from); */
+        /* first off, check if the state is even in the list.*/
+        if (is_state_inlist(inode, from)) {
+
+          /* printf( "from %d to %d\n", from, curr_state -> state_idx); */
+          /* check if the state has already been processed */
+          if (intinint(idxs_proc, from, n_proc) == 0) {
+            n_add = 1;
+            sym_dat[0][0] = 0;
+            sym_dat[1][0] = from;
+
+            /* locate all non-intermediate states that have transitions to the
+               "from" state defined above */
+            curr_state = inode -> root_e_state;
+
+            while((next_state = curr_state -> next) != NULL){
+
+              if (intinint(curr_state -> idxs_to, from, curr_state -> n_tfrom)) {
+                /* printf( "  from %d to %d\n", from, curr_state -> state_idx); */
+                sym_dat[0][n_add] = curr_state -> state_idx;
+                sym_dat[1][n_add] = get_trans(curr_state, from);
+                sym_dat[2][n_add] = curr_state -> e_val;
+                /* printf( "  sym_dat = %d %le %le\n", (int)sym_dat[0][n_add], sym_dat[1][n_add], sym_dat[2][n_add]); */
+                sym_dat[0][0] = ++n_add-1;
+                /* add the index of this inner state to the matrix */
+
+              }
+              curr_state = next_state;
+            }
+
+            curr_state = get_state(inode, from);
+            idxs_proc[n_proc++] = from;
+
+            /* the data we need for all symmetric transitions to the "from" state
+               is now stored in sym_dat. update the from state with that data. */
+            curr_state = get_state(inode, from);
+
+            curr_state -> idxs_to = appc_d((curr_state -> idxs_to), &sym_dat[0][1] \
+                                           , (curr_state -> n_tfrom), sym_dat[0][0]);
+
+            curr_state -> t_moms = appc((curr_state -> t_moms), &sym_dat[1][1] \
+                                        , (curr_state -> n_tfrom), sym_dat[0][0]);
+
+            curr_state -> e_vals = appc((curr_state -> e_vals), &sym_dat[2][1]\
+                                        , (curr_state -> n_tfrom), sym_dat[0][0]);
+
+            curr_state -> n_tfrom += sym_dat[0][0];
+
+            curr_state = bookmark;
+
+            /* printf( "====back at state = %d\n", (curr_state -> state_idx)); */
+          }
+        }
+        /* jump back to the bookmark to keep iterating from the last
+         position in the linked list */
+      }
+      curr_state = bookmark;
+    }
+    next_state = curr_state -> next;
+  }
+
+  printf( "proc_idx=" );
+  for (j=0; j<n_proc; j++) {
+    printf( "%d, ", idxs_proc[j]);
+  }
+  printf( "\n" );
+  printf( "====done\n" );
+
+  for (j=0; j<3; j++) {
+    free(sym_dat[j]);
+  }
+
+  free(sym_dat);
+  free(idxs_proc);
+  e_statelist2s(inode, 1);
+
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
+}
+
+int
 set_state_ll (double ** parsed_input,
               int n_states,
               int n_trans,
@@ -416,24 +559,7 @@ set_state_ll (double ** parsed_input,
   double * tmp_tmoms;
   double * tmp_evals;
   double * e_vals;
-  double ** sym_dat;
 
-  if (SYM == 1) {
-    if((sym_dat = malloc((n_states+1)*sizeof(double*))) == NULL ){
-      fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
-to allocate memory for \"tmp_dat\"\n");
-      printf( "program terminating due to the previous error.\n");
-      exit(1);
-    }
-    for (j=0; j<2; j++) {
-      if((sym_dat[j] = malloc(3*sizeof(double))) == NULL ){
-        fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
-to allocate memory for \"sym_dat[%d]\"\n",j);
-        printf( "program terminating due to the previous error.\n");
-        exit(1);
-      }
-    }
-  }
 
   if((tmp_idxs = malloc(n_states*sizeof(int))) == NULL ){
     fprintf(stderr, "parse_input:function init_state_ll, malloc: failed \
@@ -544,9 +670,9 @@ states left to process.\n", l, n_states);
       k++;  /* increase counter for transitions counted */
     }
   }
-  printf( "%d, %d, %d\n",n_states, l,n_trans);
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+  /* printf( "%d, %d, %d\n",n_states, l,n_trans); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   end_state = curr_state->last;
 
   /* printf( "%d\n", curr_state->state_idx); */
@@ -560,6 +686,7 @@ states left to process.\n", l, n_states);
   /* remove any unused nodes in the llist iterate forwards and free up\
      the unused nodes. */
   curr_info_node -> n_states = l;
+  n_states = l;
   /* if (l < n_states) { */
 
   /*   for (j=0; j<n_states-l; j++) { */
@@ -628,16 +755,15 @@ states left to process.\n", l, n_states);
     }
   }
 
-  /* finally, if we want to take symmetric transitions into account, add the right ground
-   states to the corresponding final states */
-  if (SYM == 1) {
-
-  }
-
-
   curr_info_node -> bw_sum = bw_s;
   curr_info_node -> mt_is = tmax_is;
   curr_info_node -> mt_fs = tmax_fs;
+
+  /* finally, if we want to take symmetric transitions into account, add the right ground
+   states to the corresponding final states */
+  if (SYM == 1) {
+    set_symtrans(curr_info_node);
+  }
 
   for (j=0; j<2; j++) {
     free(groups[j]);
@@ -650,7 +776,7 @@ states left to process.\n", l, n_states);
   free(tmp_evals);
   free(e_vals);
 
-  /* e_state2s(curr_info_node); */
+  /* e_statelist2s(curr_info_node); */
 
   return EXIT_SUCCESS;
 }
@@ -786,9 +912,9 @@ parse_input_molcas (char * fn_infile) {
   match_ln[1] = (n_states+1)*256;
   match_ln[2] = (n_states)*256;
   match_ln[3] = match_ln[2] + ((n_trans+1)*256);
-  for (j=0; j<4; j++) {
-    printf( "match = %d\n", match_ln[j]);
-  }
+  /* for (j=0; j<4; j++) { */
+  /*   printf( "match = %d\n", match_ln[j]); */
+  /* } */
 
   if((parsed_input = malloc(5*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\

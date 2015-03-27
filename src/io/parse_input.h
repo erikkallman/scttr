@@ -2,6 +2,7 @@
 #define PARSE_INPUT_H
 #include "dynarray.h"
 #include "rmap_structs.h"
+
 /* function get_inode
 
    * synopsis:
@@ -124,6 +125,25 @@ set_state_node (e_state st,
                 double e_rel,
                 double e
                 );
+
+/* function set_symtrans
+
+   * synopsis:
+   set_symtrans finds all symmetric transitions between initial and
+   intermediate states, and adds them to their corresponding
+   intermediate states.
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+set_symtrans (info_node inode_root);
 
 /* function set_state_ll
 

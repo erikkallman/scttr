@@ -67,17 +67,3 @@ struct info_node_s{
 typedef struct info_node_s * info_node;
 
 #endif /* RMAP_STRUCTS_H */
-
-  int idx;
-  int n_states;
-  int n_trans;
-
-  int n_os;
-  int n_is;
-
-  double mt_is;
-  double mt_fs;
-  double bw_sum;
-
-  char * str_id; /* the input file name identifying this info node */
-  e_state root_e_state;

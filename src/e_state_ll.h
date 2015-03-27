@@ -3,6 +3,44 @@
 #include "rmap_structs.h"
 #include "info_ll.h"
 
+/* function is_state_inlist
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+is_state_inlist (info_node inode,
+                 int idx
+                 );
+
+/* function swapd_estate
+   destructive swap. swaps state e1 with e2 and destructs e2
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+void
+swapd_estate(e_state e1,
+             e_state e2);
+
+void
+dstruct_estate(e_state e);
+
 /* function get_trans
 
    * synopsis:
@@ -51,5 +89,10 @@ get_ediff (info_node inode, /* root of the electronic state llist */
            );
 
 void
-e_state2s(info_node inode);
+e_statelist2s(info_node inode,
+              int flag);
+
+void
+e_state2s(e_state es,
+          int flag);
 #endif /* E_STATE_LL_H */

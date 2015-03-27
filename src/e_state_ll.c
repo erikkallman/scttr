@@ -3,7 +3,49 @@
 #include "e_state_ll.h"
 #include "rmap_structs.h"
 #include "info_ll.h"
+#include "std_f.h"
 #include "sci_const.h"
+
+int
+is_state_inlist (info_node inode,
+                 int idx
+                 ) {
+
+  e_state next_state = inode -> root_e_state;
+  e_state curr_state;
+
+  while(next_state != NULL){
+    curr_state = next_state;
+    if (curr_state -> state_idx == idx) {
+      return 1;
+    }
+
+    next_state = curr_state -> next;
+  }
+  return 0;
+}
+
+void
+swapd_estate(e_state e1,
+             e_state e2){
+
+  e2 -> next = e1 -> next;
+  e2 -> last = e1 -> last;
+  e2 -> info = e1 -> info;
+  e2 -> list_idx = e1 -> list_idx;
+
+  dstruct_estate(e1);
+}
+
+void
+dstruct_estate(e_state e){
+
+  free(e -> idxs_to);
+  free(e -> t_moms);
+  free(e -> e_vals);
+  free(e);
+  e = NULL;
+}
 
 double
 get_trans (e_state es, /* root of the electronic state llist */
@@ -50,6 +92,7 @@ index %d in the list of transitions for state %d.\n", idx_to, es -> state_idx);
   printf( "program terminating due to the previous error.\n");
   exit(1);
 }
+
 e_state
 get_state (info_node inode, /* the info node at root of the state ll */
            int s_idx /* index of the state to get */
@@ -97,7 +140,8 @@ index %d in the list of transitions from state %d.\n", idx_es2, idx_es1);
 }
 
 void
-e_state2s(info_node inode){
+e_statelist2s(info_node inode,
+              int flag){
 
   int j;
 
@@ -111,18 +155,47 @@ e_state2s(info_node inode){
   printf( "\n  -printing the content of the electronic state list:");
 
   for (j=0; j<n_s; j++) {
+
     curr_st = next_st;
-    printf( "\n   state[%d/%d], type %d\n", curr_st->list_idx + 1, n_s, curr_st->type);
-    printf( "     state_idx = %d\n", curr_st->state_idx);
+    if (flag == 1) {
+      e_state2s(curr_st,1);
+    } else {
 
-    if ((curr_st->type) != 2) {
-      printf( "     boltzmann weight = %le\n", curr_st->bw);
+      printf( "\n   state[%d/%d], type %d\n", curr_st->list_idx + 1, n_s, curr_st->type);
+      printf( "     state_idx = %d\n", curr_st->state_idx);
+
+      if ((curr_st->type) != 2) {
+        printf( "     boltzmann weight = %le\n", curr_st->bw);
+      }
+
+      printf( "     n_tfrom = %d\n", curr_st->n_tfrom);
+      printf( "     e_val(au) = %le\n", curr_st->e_val);
+      printf( "     max_tmom = %le\n", curr_st->max_tmom);
+      printf( "     delta e(ev) = %le\n", (gs_eval - (curr_st->e_val))*(double)AUTOEV);
+
     }
-
-    printf( "     n_tfrom = %d\n", curr_st->n_tfrom);
-    printf( "     e_val(au) = %le\n", curr_st->e_val);
-    printf( "     max_tmom = %le\n", curr_st->max_tmom);
-    printf( "     delta e(ev) = %le\n", (gs_eval - (curr_st->e_val))*(double)AUTOEV);
     next_st = curr_st -> next;
+  }
+}
+
+void
+  e_state2s(e_state es,
+            int flag){
+  int j;
+
+  printf( "\n   state[%d], type %d\n", es->list_idx + 1, es->type);
+  printf( "     state_idx = %d\n", es->state_idx);
+
+  if ((es->type) != 2) {
+    printf( "     boltzmann weight = %le\n", es->bw);
+  }
+
+  printf( "     n_tfrom = %d\n", es->n_tfrom);
+  printf( "     e_val(au) = %le\n", es->e_val);
+  printf( "     max_tmom = %le\n", es->max_tmom);
+  if (flag == 1) {
+    for (j=0; j<es->n_tfrom; j++) {
+      printf( "     -> %d e = %le, tmom = %le\n", es->idxs_to[j], es->e_vals[j], es->t_moms[j]);
+    }
   }
 }
