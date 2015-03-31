@@ -115,5 +115,5 @@ get_bdist (double e_val){
 double
 get_rbdist (double e_rel,
            double e_val){
-  return exp((-(e_val-e_rel)*(double)AUTOEV)/(8.6173324e-05*TEXP));
+  return exp((-(e_val-e_rel)*(double)AUTOEV)/((8.6173324e-05)*TEXP));
 }

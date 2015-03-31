@@ -5,6 +5,7 @@
 #include "info_ll.h"
 #include "std_f.h"
 #include "sci_const.h"
+#include "std_num_ops.h"
 
 int
 is_state_inlist (info_node inode,
@@ -57,7 +58,7 @@ get_trans (e_state es, /* root of the electronic state llist */
   int * ti = es -> idxs_to;
   /* printf( "looping\n" ); */
   for (j=0; j<trs_max; j++) {
-    /* printf( "to = %d, from = %d, %d\n",idx_to, ti[j], trs_max); */
+    /* printf( "in state %d: to = %d, from = %d, %d\n", es -> state_idx,idx_to, ti[j], trs_max); */
     if (ti[j] == idx_to) {
       return (es -> t_moms)[j];
     }
@@ -66,6 +67,7 @@ get_trans (e_state es, /* root of the electronic state llist */
    one that was requested */
   fprintf(stderr, "e_state_ll.c, function get_trans: unable to locate state of \
 index %d in the list of transitions for state %d.\n", idx_to, es -> state_idx);
+  e_state2s(es, 1);
   printf( "program terminating due to the previous error.\n");
   exit(1);
 }
@@ -148,7 +150,7 @@ e_statelist2s(info_node inode,
   char * fn_in = inode -> str_id;
   int n_s = inode -> n_states;
   int n_t = inode -> n_trans;
-
+  double bw_sum = inode -> bw_sum;
   double gs_eval =  (inode -> root_e_state) -> e_val;
   e_state curr_st = (inode -> root_e_state);
   e_state next_st = curr_st;
@@ -198,4 +200,41 @@ void
       printf( "     -> %d e = %le, tmom = %le\n", es->idxs_to[j], es->e_vals[j], es->t_moms[j]);
     }
   }
+}
+
+void
+reset_info_maxvals (info_node inode) {
+
+  double maxt_fs, maxt_is;
+  double tmp_max;
+
+  double * trans;
+
+  e_state curr_st = (inode -> root_e_state);
+  e_state next_st = curr_st;
+  inode -> mt_is = 0;
+  inode -> mt_fs = 0;
+
+  maxt_fs = -0.1;
+  maxt_is = -0.1;
+
+  while((curr_st = next_st) != NULL){
+    tmp_max = get_maxl(curr_st -> t_moms, curr_st -> n_tfrom);
+    printf( "%le\n", tmp_max);
+    if ((curr_st -> state_idx) != 2) {
+      if (tmp_max >= maxt_fs) {
+        maxt_fs = tmp_max;
+      }
+    }
+    else {
+      if (tmp_max >= maxt_is) {
+        maxt_is = tmp_max;
+      }
+    }
+    next_st = curr_st -> next;
+  }
+
+  inode -> mt_is = maxt_is;
+  inode -> mt_fs = maxt_fs;
+
 }

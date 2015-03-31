@@ -20,4 +20,9 @@ calc_smap_m (char * method,
            mdda_s * idxs
            );
 
+void
+calc_smap_dbg (char * method,
+           char * inode_id,
+           mdda_s * idxs
+           );
 #endif /* SMAP_H */

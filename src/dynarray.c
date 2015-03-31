@@ -211,6 +211,7 @@ void mdda2s(mdda_s * mdda){
       /* print error message if it isnt */
       /* else, repeat the printing process above */
     }
+    curr_mdda = next_mdda;
   }
 
   /* while((next_mdda = (curr_mdda -> next)) != NULL ){ */
@@ -219,7 +220,7 @@ void mdda2s(mdda_s * mdda){
 
   /*   } */
 
-  /*   curr_mdda = next_mdda; */
+
   printf( "\n\n" );
 }
 
@@ -235,6 +236,44 @@ mdda_intinint(mdda_s * mdda, int val){
 void da_free(da_s *da) {
   free(da->data);
 }
+
+void
+mdda_show (mdda_s * mdda){
+
+  int j,k;
+  int n_fs,n_is;
+
+  mdda_s * root_mdda = (mdda -> root);
+  mdda_s * curr_mdda = mdda;
+  mdda_s * next_mdda = (mdda -> next);
+
+  mdda_s * igs = root_mdda;
+  mdda_s * iis = root_mdda -> branch;
+
+  int n_gs  = mdda_get(igs,0,0);
+
+  printf( "\ntranspose of igs:\n" );
+  for (j=0; j<n_gs+1; j++) { /* loop over ground states */
+
+    n_is = mdda_get(igs, j, 0);
+    for (k=0; k<n_is+1; k++) {
+      printf( "%d, ", mdda_get(igs, j, k));
+    }
+    printf( "\n" );
+  }
+
+  printf( "\ntranspose of iis:\n" );
+  n_is = mdda_get(iis, 0, 0);
+  for (j=0; j<n_is+1; j++) { /* loop over ground states */
+
+    n_fs = mdda_get(iis, j, 0);
+    for (k=0; k<n_fs+1; k++) {
+      printf( "%d, ", mdda_get(iis, j, k));
+    }
+    printf( "\n" );
+  }
+}
+
 
 void mdda_free(mdda_s *mdda) {
 

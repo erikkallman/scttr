@@ -67,6 +67,22 @@ mdda_intinint(mdda_s * mdda, int val);
 
 void da_free(da_s *da);
 
+/* function mdda_show
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+void
+mdda_show (mdda_s * mdda);
+
 void mdda_free(mdda_s *mdda);
 
 #endif /* DA_H */

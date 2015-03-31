@@ -95,4 +95,21 @@ e_statelist2s(info_node inode,
 void
 e_state2s(e_state es,
           int flag);
+
+/* function reset_info_maxvals
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+void
+reset_info_maxvals (info_node inode);
+
 #endif /* E_STATE_LL_H */
