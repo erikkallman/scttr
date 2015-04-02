@@ -30,7 +30,7 @@ calc_smap_m (char * method,
   int jgrid,kgrid;
 
   int gs_idx,is_idx,fs_idx;
-  int n_gs = mdda_get(mdda, 0, 0);
+  int n_gfs = mdda_get(mdda, 0, 0);
 
   int n_is,n_fs;
 
@@ -44,7 +44,7 @@ calc_smap_m (char * method,
   double bw_sum = iroot -> bw_sum;
   double ediffj,ediff_jk,tmom_jk,ediffk,ediff_km,tmom_km;
   double eminj,emaxj,emink,emaxk,dej,dek,fwhm;
-
+  double tmp_e;
   /* variables used in the Kramers-Heisenberg formula */
   double c1,c2,tmp;
   mdda_s * root_mdda = (mdda -> root);
@@ -60,7 +60,6 @@ calc_smap_m (char * method,
   double ** omega_x;
   double ** omega_y;
   double ** rixsmap;
-  double ** deltae;
   e_state tmp_gs, tmp_is, tmp_fs;
 
   if((omega_x = malloc(maxgridj*sizeof(double*))) == NULL ){
@@ -73,13 +72,6 @@ to allocate memory for \"omega_x\"\n");
   if((omega_y = malloc(maxgridj*sizeof(double*))) == NULL ){
     fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
 to allocate memory for \"omega_y\"\n");
-    printf( "program terminating due to the previous error.\n");
-    exit(1);
-  }
-
-  if((deltae = malloc(maxgridj*sizeof(double*))) == NULL ){
-    fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
-to allocate memory for \"deltae\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
@@ -112,44 +104,13 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
-
-    if((deltae[j] = malloc(maxgridk*sizeof(double))) == NULL ){
-      fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
-to allocate memory for \"deltae[%d]\"\n",j);
-      printf( "program terminating due to the previous error.\n");
-      exit(1);
-    }
   }
   printf( "  -printing screening parameters:\n");
   printf( "    maximum IS transition intensity = %le\n",  (iroot -> mt_is));
-  printf( "    maximum FS transition intensity = %le\n",  (iroot -> mt_fs));
+  printf( "    maximum FS transition intensity = %le\n\n",  (iroot -> mt_fs));
   /* mdda_show(root_mdda); */
   /* mdda2s(root_mdda); */
-
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
-
-  for (j=1; j<n_gs+1; j++) { /* loop over ground states */
-
-    gs_idx= mdda_get(mdda, 0, j);
-    tmp_gs = get_state(iroot,gs_idx);
-    n_is = mdda_get(mdda, j, 0);
-    for (k=1; k<n_is+1; k++) { /* loop over intermediate states */
-
-      is_idx = mdda_get(mdda, j, k);
-      deltae[j][k] = get_ediff(iroot, gs_idx, is_idx) + xshift;
-      if (deltae[j][k] < 0) {
-        fprintf(stderr, "smap.c, function calc_smap: initial state energy\
- higher than intermediate state energy. check energy levels in your\
- input file\n");
-        printf( "program terminating due to the previous error.\n");
-        exit(1);
-      }
-
-      deltae[j][k] = deltae[k][j];
-    }
-  }
-
+  /* e_statelist2s(iroot,1); */
   fwhm = (double)0.9/AUTOEV;
   /* eminj = (double)(7130/AUTOEV); */
   /* emaxj = eminj + (double)(40/AUTOEV); */
@@ -160,7 +121,7 @@ to allocate memory for \"deltae[%d]\"\n",j);
   emaxj = eminj + (double)(14/AUTOEV);
   dej = (emaxj-eminj)/(double)maxgridj;
 
-  emink = -(double)(2/AUTOEV);
+  emink = -(double)(700/AUTOEV);
   emaxk = emink + (double)(20/AUTOEV);
   dek = (emaxk-emink)/(double)maxgridk;
 
@@ -176,12 +137,12 @@ to allocate memory for \"deltae[%d]\"\n",j);
 
       omega_x[jgrid][kgrid] = omegain;
       omega_y[jgrid][kgrid] = omegaut;
-      for (j=1; j<n_gs+1; j++) { /* loop over ground states */
+      for (j=1; j<n_gfs+1; j++) { /* loop over ground states */
 
         /* printf( "ut = %le, in = %le", omegaut, omegain); */
         gs_idx= mdda_get(igs, 0, j);
-        tmp_gs = get_state(iroot,gs_idx);
-        /* printf( "[%d]/%d, %le\n", gs_idx,n_gs, tmp_gs -> e_val); */
+        tmp_gs = get_state_si(iroot,gs_idx);
+        /* printf( "[%d]/%d, %le\n", gs_idx,n_gfs, tmp_gs -> e_val); */
         /* sleep(1); */
         /* printf( "%le\n", tmp_gs -> e_val); */
         /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
@@ -205,14 +166,14 @@ to allocate memory for \"deltae[%d]\"\n",j);
             }
           }
           /* printf( "l=%d/%d", l, n_is); */
-          tmp_is = get_state(iroot,is_idx);
+          tmp_is = get_state_si(iroot,is_idx);
           /* printf( "  [%d,%d]/%d, %le\n", gs_idx,is_idx,n_is, tmom_jk); */
 
           n_fs = mdda_get(iis, l, 0);
 
           for (m=1; m<n_fs+1; m++) {/* loop over final states */
             fs_idx = mdda_get(iis, l, m);
-            tmp_fs = get_state(iroot,fs_idx);
+            tmp_fs = get_state_si(iroot,fs_idx);
 
             tmom_km = get_trans(tmp_is, fs_idx);
 
@@ -221,8 +182,9 @@ to allocate memory for \"deltae[%d]\"\n",j);
 
             /* ediffj = omega_x[jgrid][kgrid] - ediff_jk + xshift; */
             /* ediffk = omega_y[jgrid][kgrid] - (edifaf_jk - ediff_km + 2*xshift); */
-            ediffj = omega_x[jgrid][kgrid] - get_ediff(iroot, gs_idx, is_idx);
-            ediffk = omega_y[jgrid][kgrid] - (get_ediff(iroot, gs_idx, is_idx) + get_ediff(iroot, is_idx, fs_idx));
+            tmp_e = get_ediff(iroot, gs_idx, is_idx);
+            ediffj = omega_x[jgrid][kgrid] - tmp_e;
+            ediffk = omega_y[jgrid][kgrid] - (tmp_e + get_ediff(iroot, is_idx, fs_idx));
             /* printf( "ej = %le, ejk = %le , ek = %le, ekm = %le\n", ediffj, \ */
             /*         ediff_jk, ediffk, ediff_km); */
             /* printf( "tmom_jk = %le\n", tmom_jk); */
@@ -292,7 +254,7 @@ calc_smap_dbg (char * method,
   int jgrid,kgrid;
 
   int gs_idx,is_idx,fs_idx;
-  int n_gs = mdda_get(mdda, 0, 0);
+  int n_gfs = mdda_get(mdda, 0, 0);
 
   int n_is,n_fs;
 
@@ -322,57 +284,20 @@ calc_smap_dbg (char * method,
   double ** omega_x;
   double ** omega_y;
   double ** rixsmap;
-  double ** deltae;
+
   e_state tmp_gs, tmp_is, tmp_fs;
-
-
-  if((deltae = malloc(maxgridj*sizeof(double*))) == NULL ){
-    fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
-to allocate memory for \"deltae\"\n");
-    printf( "program terminating due to the previous error.\n");
-    exit(1);
-  }
-  for (j=0; j<maxgridj; j++) {
-    if((deltae[j] = malloc(maxgridk*sizeof(double))) == NULL ){
-      fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
-to allocate memory for \"deltae[%d]\"\n",j);
-      printf( "program terminating due to the previous error.\n");
-      exit(1);
-    }
-  }
 
   printf( "  -printing screening parameters:\n");
   printf( "    maximum IS transition intensity = %le\n",  (iroot -> mt_is));
-  printf( "    maximum FS transition intensity = %le\n",  (iroot -> mt_fs));
+  printf( "    maximum FS transition intensity = %le\n\n",  (iroot -> mt_fs));
   mdda_show(root_mdda);
   /* mdda2s(root_mdda); */
   /* e_statelist2s(iroot,1); */
 
-  for (j=1; j<n_gs+1; j++) { /* loop over ground states */
-
-    gs_idx= mdda_get(mdda, 0, j);
-    tmp_gs = get_state(iroot,gs_idx);
-    n_is = mdda_get(mdda, j, 0);
-    for (k=1; k<n_is+1; k++) { /* loop over intermediate states */
-
-      is_idx = mdda_get(mdda, j, k);
-      deltae[j][k] = get_ediff(iroot, gs_idx, is_idx) + xshift;
-      if (deltae[j][k] < 0) {
-        fprintf(stderr, "smap.c, function calc_smap: initial state energy\
- higher than intermediate state energy. check energy levels in your\
- input file\n");
-        printf( "program terminating due to the previous error.\n");
-        exit(1);
-      }
-
-      deltae[j][k] = deltae[k][j];
-    }
-  }
-
-  for (j=1; j<n_gs+1; j++) { /* loop over ground states */
+  for (j=1; j<n_gfs+1; j++) { /* loop over ground states */
 
     gs_idx= mdda_get(igs, 0, j);
-    tmp_gs = get_state(iroot,gs_idx);
+    tmp_gs = get_state_si(iroot,gs_idx);
 
     n_is = mdda_get(igs, j, 0);
     for (k=1; k<n_is+1; k++) { /* loop over intermediate states */
@@ -388,13 +313,13 @@ to allocate memory for \"deltae[%d]\"\n",j);
         }
       }
 
-      tmp_is = get_state(iroot,is_idx);
+      tmp_is = get_state_si(iroot,is_idx);
       n_fs = mdda_get(iis, l, 0);
 
       for (m=1; m<n_fs+1; m++) {/* loop over final states */
 
         fs_idx = mdda_get(iis, l, m);
-        tmp_fs = get_state(iroot,fs_idx);
+        tmp_fs = get_state_si(iroot,fs_idx);
 
         tmom_km = get_trans(tmp_is, fs_idx);
 
@@ -404,11 +329,6 @@ to allocate memory for \"deltae[%d]\"\n",j);
     }
   }
 
-  for (j=0; j<maxgridk; j++) {
-    free(deltae[j]);
-  }
-
-  free(deltae);
   fclose(fp);
   mdda_free(mdda);
 

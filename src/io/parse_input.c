@@ -61,9 +61,8 @@ screen_states (char * fn_infile,
   int gs_idx; /* ground state index */
   int is_idx; /* intermediate state index */
 
-  int n_gs = inode -> n_gs;
+  int n_gfs = inode -> n_gfs;
   int n_is = inode -> n_is;
-  int n_fs = inode -> n_fs;
 
   /* number of screen GS, IS, and FS */
   int n_sgs = 0;
@@ -147,7 +146,7 @@ screen_states (char * fn_infile,
                that the state is indeed an IS (has type == 2) */
 
             /* varify that it has been marked as an intermediate state */
-            if (((curr_state = get_state(inode, is_idx)) != NULL)\
+            if (((curr_state = get_state_si(inode, is_idx)) != NULL)\
                 && ((curr_state -> type) == 2)){
               /* from the ground state found above, we also found an intermediate
                  state with high enough relative transition moment */
@@ -266,14 +265,12 @@ to allocate memory for \"new_info_node\"\n");
   new_info_node -> str_id = si;
   new_info_node -> n_states = ns;
   new_info_node -> n_trans = nt;
-  new_info_node -> n_gs = 0;
+  new_info_node -> n_gfs = 0;
   new_info_node -> n_is = 0;
-  new_info_node -> n_fs = 0;
 
   if (n_info_nodes == 0) { /* there is no root info node defined  */
     n_info_nodes = 1;
     new_info_node -> last = NULL;
-    new_info_node -> next = NULL;
     info_node_root = new_info_node;
     last_info_node = info_node_root;
   }
@@ -281,8 +278,8 @@ to allocate memory for \"new_info_node\"\n");
     n_info_nodes++;
     new_info_node -> last = last_info_node;
     last_info_node -> next = new_info_node;
-    new_info_node -> next = NULL;
   }
+  new_info_node -> next = NULL;
   new_info_node -> idx = n_info_nodes-1;
 
   return new_info_node;
@@ -374,19 +371,28 @@ to allocate memory for \"tmoms\"\n");
     exit(1);
   }
 
-  for (j=0; j<n_trs_from; j++) {
-    idxs[j] = idxs_buf[j];
-    tm[j] = moms_buf[j];
-    ev[j] = evals_buf[j];
-  }
+
 
   st -> state_idx = s_idx;
   st -> e_val = e;
   st -> n_tfrom = n_trs_from;
-  st -> idxs_to = idxs;
-  st -> t_moms = tm;
-  st -> e_vals = ev;
-  st -> max_tmom = get_maxl(tm, n_trs_from);
+
+  if (idxs_buf != NULL) {
+    for (j=0; j<n_trs_from; j++) {
+      idxs[j] = idxs_buf[j];
+      tm[j] = moms_buf[j];
+      ev[j] = evals_buf[j];
+    }
+    st -> idxs_to = idxs;
+    st -> t_moms = tm;
+    st -> e_vals = ev;
+    st -> max_tmom = get_maxl(tm, n_trs_from);
+  } else {
+    st -> idxs_to = NULL;
+    st -> t_moms = NULL;
+    st -> e_vals = NULL;
+    st -> max_tmom = 0;
+  }
 
   return EXIT_SUCCESS;
 }
@@ -472,36 +478,37 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
 
               if (intinint(curr_state -> idxs_to, from, curr_state -> n_tfrom)) {
                 /* printf( "  from %d to %d\n", from, curr_state -> state_idx); */
-                sym_dat[0][n_add] = curr_state -> state_idx;
+                sym_dat[0][n_add] = (double)curr_state -> state_idx;
                 sym_dat[1][n_add] = get_trans(curr_state, from);
                 sym_dat[2][n_add] = curr_state -> e_val;
+                sym_dat[0][0] = (++n_add)-1;
+                /* printf( "sym_dat[0][0] = %le\n", sym_dat[0][0]); */
                 /* printf( "  sym_dat = %d %le %le\n", (int)sym_dat[0][n_add], sym_dat[1][n_add], sym_dat[2][n_add]); */
-                sym_dat[0][0] = ++n_add-1;
                 /* add the index of this inner state to the matrix */
-
               }
+
               curr_state = next_state;
             }
-
-            curr_state = get_state(inode, from);
+            /* printf( "  assigning new data1\n" ); */
+            curr_state = get_state_si(inode, from);
             idxs_proc[n_proc++] = from;
-
+            /* printf( "  assigning new data\n" ); */
             /* the data we need for all symmetric transitions to the "from" state
                is now stored in sym_dat. update the from state with that data. */
-            curr_state = get_state(inode, from);
+            curr_state = get_state_si(inode, from);
 
             curr_state -> idxs_to = appc_d((curr_state -> idxs_to), &sym_dat[0][1] \
-                                           , (curr_state -> n_tfrom), sym_dat[0][0]);
+                                           , (curr_state -> n_tfrom), (int)sym_dat[0][0]);
 
             curr_state -> t_moms = appc((curr_state -> t_moms), &sym_dat[1][1] \
-                                        , (curr_state -> n_tfrom), sym_dat[0][0]);
+                                        , (curr_state -> n_tfrom), (int)sym_dat[0][0]);
 
             curr_state -> e_vals = appc((curr_state -> e_vals), &sym_dat[2][1]\
-                                        , (curr_state -> n_tfrom), sym_dat[0][0]);
+                                        , (curr_state -> n_tfrom), (int)sym_dat[0][0]);
 
             curr_state -> n_tfrom += sym_dat[0][0];
-
-            curr_state -> max_tmom = get_maxl(curr_state ->  t_moms, curr_state -> n_tfrom);
+            /* printf( "sym_dat[0][0] = %d\n", sym_dat[0][0]); */
+            /* curr_state -> max_tmom = get_maxl(curr_state ->  t_moms, curr_state -> n_tfrom); */
             curr_state = bookmark;
 
             /* printf( "====back at state = %d\n", (curr_state -> state_idx)); */
@@ -528,9 +535,7 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
 
   free(sym_dat);
   free(idxs_proc);
-  /* e_statelist2s(inode, 1); */
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
+
 }
 
 int
@@ -541,14 +546,13 @@ set_state_ll (double ** parsed_input,
 
   int j,k,l,m; /* looping variables */
   int from_last = parsed_input[0][0];
-  int from,to,sorted_idx,tmp_idx;
+  int from,to,sorted_idx,tmp_idx,state_bookmark;
   int tmp_ntfrom, tmp_type;
   int SYM = 1;
   int * g;
   int * ito;
   int ** groups;
 
-  double tmax_is,tmax_fs; /*  */
   double tmp_energy;
   double bw_s; /* sum of boltzmann weight */
 
@@ -623,6 +627,7 @@ to allocate memory for \"groups\"\n");
       from = parsed_input[0][j];
       to = parsed_input[1][j];
     } else {
+      /* store the data of the final state in the transition list */
       from = 0;
     }
 
@@ -675,47 +680,88 @@ states left to process.\n", l, n_states);
       k++;  /* increase counter for transitions counted */
     }
   }
+  /* the last state that had transitions found in the output */
+  end_state = curr_state -> last;
+
+
   /* printf( "%d, %d, %d\n",n_states, l,n_trans); */
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
-  end_state = curr_state->last;
 
   /* printf( "%d\n", curr_state->state_idx); */
   /* printf( "%d\n", (curr_state-> last) -> state_idx); */
   /* printf( "%d\n", end_state -> last -> state_idx); */
   /* printf( "%d\n", end_state -> state_idx); */
   /* printf( "%d\n", curr_info_node -> root_e_state -> state_idx); */
-  /* printf( "%d\n", l); */
-  /*     fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
-  /* remove any unused nodes in the llist iterate forwards and free up\
-     the unused nodes. */
-  curr_info_node -> n_states = l;
-  n_states = l;
-  /* if (l < n_states) { */
 
-  /*   for (j=0; j<n_states-l; j++) { */
-  /*     printf( "freed!\n" ); */
-  /*     next_state = curr_state -> next; */
-  /*     free(curr_state); */
-  /*     curr_state = NULL; /\* destroy the pointer *\/ */
-  /*     curr_state = next_state; */
-  /*   } */
-  /* } */
+  if (SYM == 1) {
+    /* loop over the state list and check so that every "from" index is in the
+       the list. if not, add it to the end of the list */
+    state_bookmark = end_state -> list_idx;
+    curr_state = curr_info_node -> root_e_state;
+    next_state = curr_state;
+
+    while((curr_state = next_state) != NULL && (curr_state -> list_idx) != state_bookmark+1){
+
+      for (j=0; j<curr_state -> n_tfrom; j++) {
+
+        tmp_idx = (curr_state -> idxs_to)[j];
+        /* printf( "idx %d\n", tmp_idx); */
+        if (get_state_si(curr_info_node,tmp_idx) == NULL) {
+
+          /* printf( "found state %d not in list\n", tmp_idx); */
+          /* sleep(1); */
+          set_state_node(end_state -> next, tmp_idx, NULL, NULL, NULL, 0, \
+                         parsed_input[2][0],(curr_state -> e_vals)[j]);
+          e_vals[l++] = (curr_state -> e_vals)[j];
+          end_state = end_state -> next;
+        }
+      }
+      next_state = curr_state -> next;
+      /* printf( "next state %d\n", next_state -> list_idx); */
+    }
+
+    curr_state = curr_state-> last;
+
+  } else {
+
+
+
+
+    curr_state = end_state;
+    /* remove any unused nodes in the llist iterate forwards and free up \
+       the unused nodes. */
+    /* for (j=0; j<n_states-l; j++) { */
+    /*   printf( "freed!\n" ); */
+    /*   next_state = curr_state -> next; */
+    /*   free(curr_state); */
+    /*   curr_state = NULL; /\* destroy the pointer *\/ */
+    /*   curr_state = next_state; */
+    /* } */
+  }
+  end_state -> next = NULL;
+  n_states = l;
+  curr_info_node -> n_states = l;
 
   /* the last node in the llist is the highest energy intermediate state */
-  end_state -> type = 2;
-  end_state -> next = NULL;
+
+  /* for (j=0; j<n_states; j++) { */
+  /*   printf( "%le\n", e_vals[j]); */
+  /* } */
 
   /* use the k-means algorithm to do a preliminary sorting of the states */
-  k_meansl(e_vals, groups, l);
+  k_meansl(e_vals, groups, n_states);
+
+  /* for (j=0; j<2; j++) { */
+  /*   for (k=1; k<=groups[j][0]; k++) { */
+  /*     printf( "groups[%d][%d] = %d\n", j, k, groups[j][k]); */
+  /*   } */
+  /* } */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
 
   /* based on the fact that the transitions between states inside the same
      group will be too low to get included in the data tree, we can sort
      out any state indices that ended up in the wrong category in the k_means
      sorting above.*/
-
-  tmax_is = tmax_fs = -1;
   bw_s = 0;
   for (j=0; j<2; j++) {
     for (k=1; k<=groups[j][0]; k++) {
@@ -723,29 +769,21 @@ states left to process.\n", l, n_states);
       sorted_idx = groups[j][k];
       /* check if the sorted_idx state is even in the llist of electronic states */
 
-      if ((curr_state = get_state(curr_info_node, sorted_idx)) != NULL) {
+      if ((curr_state = get_state_li(curr_info_node, sorted_idx)) != NULL) {
         curr_state -> type = j+1;
         /* store the sum of boltzmann weights to later on use it for the state
            screening process */
 
         if (j == 0) {
 
-          if ((curr_state -> max_tmom) > tmax_is) {
-            tmax_is = (curr_state -> max_tmom);
-          }
-
           curr_state -> bw = get_rbdist(parsed_input[2][0],curr_state -> e_val);
           if (curr_state -> state_idx != 1) {
             bw_s += curr_state -> bw;
           }
 
-          (curr_info_node -> n_gs) += 1;
+          (curr_info_node -> n_gfs) += 1;
 
         } else {
-
-          if ((curr_state -> max_tmom) > tmax_fs) {
-            tmax_fs = (curr_state -> max_tmom);
-          }
 
           (curr_info_node -> n_is) += 1;
         }
@@ -765,8 +803,8 @@ states left to process.\n", l, n_states);
   }
 
   curr_info_node -> bw_sum = bw_s;
-
   reset_info_maxvals(curr_info_node);
+
   /* finally, if we want to take symmetric transitions into account, add the right ground
    states to the corresponding final states */
 
@@ -782,8 +820,6 @@ states left to process.\n", l, n_states);
   free(tmp_tmoms);
   free(tmp_evals);
   free(e_vals);
-
-  /* e_statelist2s(curr_info_node); */
 
   return EXIT_SUCCESS;
 }
@@ -1027,7 +1063,7 @@ for pointers in \"input_data\"\n");
 
           /* extract energy eigenvalues and state indexes */
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
-          /* printf( "e_eigval[%d] = %le\n", m, e_eigval[m]); */
+          printf( "e_eigval[%d] = %le\n", m+1, e_eigval[m]);
 
           m++;
         }
@@ -1045,7 +1081,8 @@ for pointers in \"input_data\"\n");
       l++;
     }
   }
-
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
     idx_from = trans_idxs[0][j];

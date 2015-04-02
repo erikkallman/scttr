@@ -73,6 +73,7 @@ intinint (int * a,
           int num,
           int n_el){
   int j; /* looping variables */
+
   for (j=0; j<n_el; j++){
     if (a[j] == num) {
       return 1;

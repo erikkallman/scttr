@@ -165,7 +165,7 @@ void mdda2s(mdda_s * mdda){
   int jgrid,kgrid; /* looping variables */
 
   int n_fs,n_is;
-  int n_gs = mdda_get(mdda, 0, 0);
+  int n_gfs = mdda_get(mdda, 0, 0);
   int gs_idx,is_idx,fs_idx;
 
 
@@ -179,10 +179,10 @@ void mdda2s(mdda_s * mdda){
 
   curr_mdda = next_mdda;
   printf( "\n  -printing the content of the screened state matrix:");
-  for (j=1; j<n_gs+1; j++) {
+  for (j=1; j<n_gfs+1; j++) {
     next_mdda = (curr_mdda -> next);
     gs_idx = mdda_get(mdda, 0, j);
-    printf( "\n   gs[%d/%d] = %d\n", j, n_gs, gs_idx);
+    printf( "\n   gs[%d/%d] = %d\n", j, n_gfs, gs_idx);
     n_is = mdda_get(mdda, j, 0);
     for (k=1; k<n_is+1; k++) {
       is_idx = mdda_get(curr_mdda, j, k);
@@ -250,10 +250,10 @@ mdda_show (mdda_s * mdda){
   mdda_s * igs = root_mdda;
   mdda_s * iis = root_mdda -> branch;
 
-  int n_gs  = mdda_get(igs,0,0);
+  int n_gfs  = mdda_get(igs,0,0);
 
   printf( "\ntranspose of igs:\n" );
-  for (j=0; j<n_gs+1; j++) { /* loop over ground states */
+  for (j=0; j<n_gfs+1; j++) { /* loop over ground states */
 
     n_is = mdda_get(igs, j, 0);
     for (k=0; k<n_is+1; k++) {
@@ -272,6 +272,7 @@ mdda_show (mdda_s * mdda){
     }
     printf( "\n" );
   }
+  printf( "\n\n" );
 }
 
 

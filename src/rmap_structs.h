@@ -49,9 +49,8 @@ struct info_node_s{
   int n_states; /* number of electronic states */
   int n_trans; /* number of transitions */
 
-  int n_gs;
+  int n_gfs;
   int n_is;
-  int n_fs;
 
   /* sum of the boltzmann weights of all states in the system*/
   double mt_is; /* maximum transition moment for the intermediate states */

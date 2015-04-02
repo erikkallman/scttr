@@ -11,9 +11,14 @@ k_meansl (double * a,
           int ** groups,
           int n_vals) {
 
-  int j,k,l,m,n; /* looping variables */
+  int j,k,l,n; /* looping variables */
 
-  /* group indices used to write to the correct element of the groups array */
+  /* the m index corresponds to the element index in the a array */
+  int m;
+
+  /* group indices used to write to the correct element of the groups array.
+   it functions like a bookmark to the last assigned element in the groups
+   array.*/
   int g_idxs[2] = {0,0};
 
   /* initialize the reference points */

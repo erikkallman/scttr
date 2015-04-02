@@ -11,7 +11,11 @@ appc_d (int * a1,
   int j,k; /* looping variables */
   int sz3 = sz1+sz2;
   int * a3;
-
+  /* if (a1 == NULL) { */
+  /*   fprintf(stderr, "Found NULL\n"); */
+  /*   printf( "program terminating due to the previous error.\n"); */
+  /*   exit(1); */
+  /* } */
   if((a3 = malloc((sz1+sz2)*sizeof(int))) == NULL ){
     fprintf(stderr, "std_f.c:function comb_array, malloc: failed \
 to allocate memory for \"tmp_dat\"\n");

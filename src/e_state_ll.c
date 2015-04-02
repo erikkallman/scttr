@@ -52,6 +52,11 @@ double
 get_trans (e_state es, /* root of the electronic state llist */
            int idx_to /* index of the state transitioning to */
            ) {
+  /*                if (a1 == NULL) { */
+  /*   fprintf(stderr, "Found NULL\n"); */
+  /*   printf( "program terminating due to the previous error.\n"); */
+  /*   exit(1); */
+  /* } */
   int j; /* looping variables */
   int trs_max = es -> n_tfrom;
 
@@ -96,7 +101,7 @@ index %d in the list of transitions for state %d.\n", idx_to, es -> state_idx);
 }
 
 e_state
-get_state (info_node inode, /* the info node at root of the state ll */
+get_state_si (info_node inode, /* the info node at root of the state ll */
            int s_idx /* index of the state to get */
            ){
 
@@ -118,13 +123,36 @@ get_state (info_node inode, /* the info node at root of the state ll */
   return NULL;
 }
 
+e_state
+get_state_li (info_node inode, /* the info node at root of the state ll */
+              int l_idx /* list index of the state to get */
+              ){
+
+  int n_s = inode -> n_states;
+  int n_t = inode -> n_trans;
+
+  e_state curr_st = (inode -> root_e_state);
+  e_state next_st = curr_st;
+
+  while((curr_st = next_st) != NULL){
+
+    if ((curr_st -> list_idx) == l_idx) {
+      return curr_st;
+    }
+    next_st = curr_st -> next;
+  }
+
+  /* unable to locate state of in the list of electronic states */
+  return NULL;
+}
+
 double
 get_ediff (info_node inode, /* root of the electronic state llist */
            int idx_es1,
            int idx_es2
            ) {
   int j;
-  e_state es = get_state(inode, idx_es1);
+  e_state es = get_state_si(inode, idx_es1);
   int trs_max = es -> n_tfrom;
   /* printf( "\neval = %le\n", (es -> e_val)); */
   int * ti = es -> idxs_to;
@@ -220,7 +248,7 @@ reset_info_maxvals (info_node inode) {
 
   while((curr_st = next_st) != NULL){
     tmp_max = get_maxl(curr_st -> t_moms, curr_st -> n_tfrom);
-    printf( "%le\n", tmp_max);
+    curr_st -> max_tmom = tmp_max;
     if ((curr_st -> state_idx) != 2) {
       if (tmp_max >= maxt_fs) {
         maxt_fs = tmp_max;

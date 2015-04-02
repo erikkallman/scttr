@@ -64,10 +64,10 @@ get_eval (e_state es_root, /* root of the electronic state llist */
            int idx_to /* index of the state transitioning to */
            );
 
-/* function get_state
+/* function get_state_si
 
    * synopsis:
-
+   Get a state from the list based on its state index, obtained from the input to the program.
    * algorithm:
 
    * input:
@@ -78,9 +78,28 @@ get_eval (e_state es_root, /* root of the electronic state llist */
 
    */
 e_state
-get_state (info_node inode,
-           int s_idx /* index of the state to get */
-           );
+get_state_si (info_node inode,
+              int s_idx /* state index of the state to get */
+              );
+
+
+/* function get_state_si
+
+   * synopsis:
+   Get a state from the list based on its list index.
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+e_state
+get_state_li (info_node inode,
+              int l_idx /* list index of the state to get */
+              );
 
 double
 get_ediff (info_node inode, /* root of the electronic state llist */
