@@ -109,21 +109,25 @@ screen_states (char * fn_infile,
      in the parse_input.h file */
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
+  e_statelist2s(inode,0);
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   n_sgs = 0;
   while((next_state = curr_state -> next) != NULL){
+
     gs_idx = curr_state -> state_idx;
     if ((curr_state -> type) == 1) { /* if we found a ground state */
-      /* printf( "GS: %d %le\n", gs_idx,((curr_state ->  bw)/bw_sum)); */
+      printf( "GS: %d %le\n", gs_idx,((curr_state ->  bw)/bw_sum));
       /* perform stage 1 of the screening process */
       /* if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) { */
-      if (((curr_state ->  bw)/bw_sum) >= thrsh_vals[0]) {
+      if ((((curr_state ->  bw)/bw_sum) >= thrsh_vals[0]) || (curr_state -> state_idx == 1)) {
         /* we found a ground state with high enough boltzmann weight */
         gs_idx = curr_state -> state_idx;
         n_sgs++;
         mdda_set(igs, 0, 0, n_sgs);
         mdda_set(igs, 0, n_sgs, gs_idx );
-        /* printf( "found one GS at %d!\n", gs_idx ); */
-        /* printf( "\ngs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)/bw_sum)); */
+        printf( "found one GS at %d!\n\n", gs_idx );
+        printf( "\ngs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)/bw_sum));
         /* store a pointer to the final state matrix in the ground state root node */
 
         /* sleep(1); */
@@ -135,12 +139,12 @@ screen_states (char * fn_infile,
         tmp_trans = curr_state -> t_moms;
         tmp_idxs = curr_state -> idxs_to;
         for (j=0; j<(curr_state -> n_tfrom); j++) {
-          /* printf( "IS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", j, tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> mt_is)), thrsh_vals[1]); */
+          printf( "  IS:j = %d/%d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", j, (curr_state -> n_tfrom), tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> mt_is)), thrsh_vals[1]);
           /* if IS transition has a transition moment above threshold */
           if ((tmp_trans[j]/(inode -> mt_is)) >= thrsh_vals[1]) {
             is_bm = curr_state;
             is_idx = tmp_idxs[j];
-            /* printf( "found one IS at %d!\n", is_idx ); */
+            printf( "  found one IS at %d!\n\n", is_idx );
 
            /* locate the candidate intermediate state in the list and varify
                that the state is indeed an IS (has type == 2) */
@@ -155,7 +159,7 @@ screen_states (char * fn_infile,
               mdda_set(igs, n_sgs, 0, n_tmpsis);
               mdda_set(igs, n_sgs, n_tmpsis, is_idx);
 
-              /* printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> mt_is)); */
+              printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/(inode -> mt_is));
 
               n_sfs = 0;
 
@@ -170,17 +174,19 @@ screen_states (char * fn_infile,
                 /* perform stage 3 of the screening process */
                 /* find final state transitions that pass stage 3 screening */
                 for (k=0; k < (curr_state -> n_tfrom); k++) {
-                  /* printf( "FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), thrsh_vals[2]); */
+                  printf( "    FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), thrsh_vals[2]);
                   if ((((curr_state -> t_moms)[k])/(inode -> mt_fs)) >= thrsh_vals[2]) {
                     /* from the intermediate state found above, we also found a
                        final state transition with high enough relative
                        transition moment */
-                    /* printf( "found one FS!\n" ); */
+                    printf( "    found one FS!\n\n" );
                     n_sfs++;
                     mdda_set(iis, n_sis, 0, n_sfs);
                     mdda_set(iis, n_sis, n_sfs, (curr_state -> idxs_to)[k]);
 
-                    /* printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> mt_fs))); */
+                    printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> mt_fs)));
+                  } else {
+                  printf( "    FS not accepted.\n" );
                   }
                 }
               }
@@ -195,21 +201,28 @@ screen_states (char * fn_infile,
             }
 
             curr_state = is_bm; /* reset the state to the last initial state */
+          } else {
+            printf( "  IS not accepted.\n" );
           }
         }
         /* jump back to the last ground state that was found in the list */
         next_state = gs_bm;
       } else {
-      /* printf( "unacceptable bw: gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); */
+      printf( "unacceptable bw: gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)));
       }
     }
+    mdda_show(igs);
+    e_statelist2s(inode,0);
+    fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+    exit(1);
     curr_state = next_state;
   }
   /* mdda_show(igs); */
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
   mdda_set_branch(igs, iis, 0, 0 );
-  /* mdda2s(igs); */
+  mdda2s(igs);
+
 
   return (igs->root);
 }
@@ -767,8 +780,8 @@ states left to process.\n", l, n_states);
     for (k=1; k<=groups[j][0]; k++) {
 
       sorted_idx = groups[j][k];
-      /* check if the sorted_idx state is even in the llist of electronic states */
 
+      /* check if the sorted_idx state is even in the llist of electronic states */
       if ((curr_state = get_state_li(curr_info_node, sorted_idx)) != NULL) {
         curr_state -> type = j+1;
         /* store the sum of boltzmann weights to later on use it for the state
@@ -808,7 +821,7 @@ states left to process.\n", l, n_states);
   /* finally, if we want to take symmetric transitions into account, add the right ground
    states to the corresponding final states */
 
-  /* e_statelist2s(curr_info_node,1); */
+  e_statelist2s(curr_info_node,1);
 
   for (j=0; j<2; j++) {
     free(groups[j]);
@@ -853,14 +866,12 @@ parse_input_molcas (char * fn_infile) {
   int n_matchfound = 0;
   int match_vals[2] = {0,0}; /* place to store the indexes of the lines containing the
                               matches */
-  /* place to store the indexes of the lines containing the
-     matches. each data block will start after,  and end after the offset values.*/
-  int match_ln[n_lookup_str];
 
   int c; /* temporary char for storing input file characters */
   /* we are looking for four strings in the output file: one at the beginning
      of each data block, and one at the end. */
   char * str_buf = malloc(BUF_SIZE*2);
+  const char DAT_DELIM[32] =  "============ data block finish\n";
 
   const char s1[26] = "        Relative EVac(au)";
   const char s2[51] = " Weights of the five most important spin-orbit-free";
@@ -905,7 +916,7 @@ parse_input_molcas (char * fn_infile) {
           /* we found the first substring, the data we're looking for is
              inside the coming block of text. switch to mode 1.*/
           if (mode == 0) {
-            match_ln[m++] = j;
+            m++;
             l++;
             mode = bin_flip(mode);
           }
@@ -933,6 +944,8 @@ parse_input_molcas (char * fn_infile) {
               /*                        string of the block *\/ */
               l++;
               mode = bin_flip(mode); /* switch back to mode 0 */
+              match_vals[n_matchfound];
+              fprintf(fp_tmpdata,DAT_DELIM, n_matchfound );
               n_matchfound++; /* one data block was found */
             }
           }
@@ -948,16 +961,6 @@ parse_input_molcas (char * fn_infile) {
      as the number of possible transitions.*/
   n_states = match_vals[0];
   n_trans = match_vals[1];
-
-  /* convert the number of states and transitions read to offsets in bytes
-   that can be used with the fseek function */
-  match_ln[0] = 0;
-  match_ln[1] = (n_states+1)*256;
-  match_ln[2] = (n_states)*256;
-  match_ln[3] = match_ln[2] + ((n_trans+1)*256);
-  /* for (j=0; j<4; j++) { */
-  /*   printf( "match = %d\n", match_ln[j]); */
-  /* } */
 
   if((parsed_input = malloc(5*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
@@ -1003,11 +1006,11 @@ for pointers in \"input_data\"\n");
 
   for (j=0; j<2; j++) {
     if((trans_idxs[j] = malloc(n_trans*sizeof(double))) == NULL ){
-        fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
-        printf( "program terminating due to the previous error.\n");
-        exit(1);
-      }
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
   }
 
   if((num_idxs1 = malloc(sizeof(int))) == NULL ){
@@ -1024,7 +1027,6 @@ for pointers in \"input_data\"\n");
     exit(1);
   }
 
-  /* int num_idxs1[1] = {2}; */
   num_idxs1[0] = 1;
   int n_idxs1 = 1;
 
@@ -1032,57 +1034,51 @@ for pointers in \"input_data\"\n");
   num_idxs2[1] = 1;
   num_idxs2[2] = 6;
   int n_idxs2 = 3;
+  j = l = m = 0;
 
-  for (j=0; j<n_lookup_str; j+=2) {
+  rewind(fp_tmpdata);
+  while ((c = fgetc(fp_tmpdata)) != EOF) {
 
-    l = 0; /* index for string matches */
-    m = 0;
+    str_buf[l] = (char)c;
 
-    match_start = match_ln[j];
-    match_end = match_ln[j+1];
-    /* printf( "\nstart = %d , end = %d\n", match_start, match_end); */
-    fseek(fp_tmpdata, match_start, 0);
-
-    k_its = match_end-match_start;
-
-    for (k=0; k<k_its; ) {
-
-      if ((c = fgetc(fp_tmpdata)) == EOF) {
-        break;
+    if ((str_buf[l] == '\n') && (l > 0)) { /* dont send blank lines */
+      /* printf( "%s",str_buf ); */
+      if (strcmp(DAT_DELIM, str_buf) <= 0) {
+        l = 0; /* index for string matches */
+        m = 0;
+        j=2;
+        /* printf( "Found the delimiter\n" ); */
+        /* sleep(1); */
       }
-
-      str_buf[l] = (char)c;
-
-      if (j == 0) {
-        k++;
-      }
-
-      if ((str_buf[l] == '\n') && (l > 0)) { /* dont send blank lines */
-
+      else{
         if ((j == 0) && (isempty(str_buf,l) != 1)) {
 
           /* extract energy eigenvalues and state indexes */
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
-          printf( "e_eigval[%d] = %le\n", m+1, e_eigval[m]);
+          /* printf( "e_eigval[%d] = %le\n", m+1, e_eigval[m]); */
 
           m++;
         }
+        else if ((j == 2) && (isempty(str_buf,l) != 1)) {
+          /* extract transition moments and transition indexes */
 
-        if ((j == 2) && (isempty(str_buf,l) != 1)) {
-           /* extract transition moments and transition indexes */
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
                     &trans_idxs[1][m],&t_mom[m]);
-          /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
-          /* sleep(1); */
+          if (trans_idxs[1][m] >= 1000) {
+            /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
+            /* sleep(1); */
+            /* exit(1); */
+          }
+
           m++;
         }
         l=0; /* reset the buffer write head to start reading a the next line */
       }
+    }
+    else{
       l++;
     }
   }
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
   /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
     idx_from = trans_idxs[0][j];
@@ -1110,8 +1106,8 @@ for pointers in \"input_data\"\n");
   free(t_mom);
   free(trans_idxs);
 
-
   return init_data_branch(parsed_input,n_states,n_trans,fn_infile);
+
 }
 
 int

@@ -225,7 +225,7 @@ void
   printf( "     max_tmom = %le\n", es->max_tmom);
   if (flag == 1) {
     for (j=0; j<es->n_tfrom; j++) {
-      printf( "     -> %d e = %le, tmom = %le\n", es->idxs_to[j], es->e_vals[j], es->t_moms[j]);
+      printf( "     -> %d [%d/%d] e = %le, tmom = %le\n", es->idxs_to[j], j+1, j<es->n_tfrom, es->e_vals[j], es->t_moms[j]);
     }
   }
 }

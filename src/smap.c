@@ -109,21 +109,42 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   printf( "    maximum IS transition intensity = %le\n",  (iroot -> mt_is));
   printf( "    maximum FS transition intensity = %le\n\n",  (iroot -> mt_fs));
   /* mdda_show(root_mdda); */
-  /* mdda2s(root_mdda); */
+  mdda2s(root_mdda);
   /* e_statelist2s(iroot,1); */
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   fwhm = (double)0.9/AUTOEV;
   /* eminj = (double)(7130/AUTOEV); */
   /* emaxj = eminj + (double)(40/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
-  /* for the Fe1s3d_ein.log file */
+  /* for Fe3p 1s->3d transitions */
   eminj = (double)(7146/AUTOEV);
-  emaxj = eminj + (double)(14/AUTOEV);
+  emaxj = eminj + (double)(10/AUTOEV);
   dej = (emaxj-eminj)/(double)maxgridj;
 
-  emink = -(double)(700/AUTOEV);
+  /* for FeCN 1s->3d transitions */
+  /* eminj = (double)(2622/AUTOEV); */
+  /* emaxj = eminj + (double)(13/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
+
+
+  /* eminj = (double)(725/AUTOEV); */
+  /* emaxj = eminj + (double)(30/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
+
+
+  /* eminj = (double)(1395/AUTOEV); */
+  /* emaxj = eminj + (double)(18/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
+
+  emink = -(double)(2/AUTOEV);
   emaxk = emink + (double)(20/AUTOEV);
   dek = (emaxk-emink)/(double)maxgridk;
+
+  /* emink = (double)(1390/AUTOEV); */
+  /* emaxk = emink + (double)(25/AUTOEV); */
+  /* dek = (emaxk-emink)/(double)maxgridk; */
 
   c1 = 2.0*powerl((fwhm/(2*sqrt(2*log(2)))),2);
   c2 = fwhm/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);

@@ -1,8 +1,8 @@
 #ifndef DA_H
 #define DA_H
 
-#define DA_INITIAL_CAPACITY 100
-#define MDDA_INITIAL_CAPACITY 100
+#define DA_INITIAL_CAPACITY 500
+#define MDDA_INITIAL_CAPACITY 500
 typedef struct mdda_s mdda_s;
 typedef struct da_s da_s;
 

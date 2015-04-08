@@ -90,7 +90,7 @@ satof(char * s,
   }
 
   /* locate the decimal point, if there is one */
-  for (; isdigit(s[j]); j++){
+  for (; isdigit(s[j]) && (j < len); j++){
     v = v*10 + (double)(s[j] - '0');
   }
 
