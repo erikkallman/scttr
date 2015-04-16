@@ -11,6 +11,10 @@
 #include "signal.h"
 #include "std_num_ops.h" /* power */
 
+static double xshift;
+
+/* const double xshift = -19/AUTOEV; /\* Fe2pCN 1s -> 3d *\/ */
+
 void
 calc_smap_m (char * method,
              char * inode_id,
@@ -38,12 +42,12 @@ calc_smap_m (char * method,
 
   double e_gs = iroot -> root_e_state -> e_val;
   double rmax = -0.1;
-  double xshift = 0/AUTOEV;
+
   double omegain, omegaut;
   double bw;
   double bw_sum = iroot -> bw_sum;
   double ediffj,ediff_jk,tmom_jk,ediffk,ediff_km,tmom_km;
-  double eminj,emaxj,emink,emaxk,dej,dek,fwhm;
+  double eminj,emaxj,emink,emaxk,dej,dek,fwhm,fwhm_trs;
   double tmp_e;
   /* variables used in the Kramers-Heisenberg formula */
   double c1,c2,tmp;
@@ -109,37 +113,40 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   printf( "    maximum IS transition intensity = %le\n",  (iroot -> mt_is));
   printf( "    maximum FS transition intensity = %le\n\n",  (iroot -> mt_fs));
   /* mdda_show(root_mdda); */
-  mdda2s(root_mdda);
+  /* mdda2s(root_mdda); */
   /* e_statelist2s(iroot,1); */
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
-  fwhm = (double)0.9/AUTOEV;
-  /* eminj = (double)(7130/AUTOEV); */
-  /* emaxj = eminj + (double)(40/AUTOEV); */
+
+  /* fwhm = (double)0.9/AUTOEV; */
+  fwhm = (double)1.06/AUTOEV;
+  /* for Fe2p 2p->3d transitions */
+  /* eminj = (double)(716/AUTOEV); */
+  /* emaxj = (double)(744/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
-  /* for Fe3p 1s->3d transitions */
-  eminj = (double)(7146/AUTOEV);
-  emaxj = eminj + (double)(10/AUTOEV);
+  /* for Fe2p 1s->3d transitions */
+  xshift = -40/AUTOEV;
+  eminj = (double)(7148/AUTOEV);
+  emaxj = (double)(7160/AUTOEV);
   dej = (emaxj-eminj)/(double)maxgridj;
 
-  /* for FeCN 1s->3d transitions */
-  /* eminj = (double)(2622/AUTOEV); */
-  /* emaxj = eminj + (double)(13/AUTOEV); */
+  /* for Fe3p 2p->3d transitions */
+  /* eminj = (double)(726/AUTOEV); */
+  /* emaxj = (double)(750/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
-
-  /* eminj = (double)(725/AUTOEV); */
-  /* emaxj = eminj + (double)(30/AUTOEV); */
+  /* for Fe3p 1s->p3d transitions */
+  /* xshift = -49.5/AUTOEV; */
+  /* eminj = (double)(7158/AUTOEV); */
+  /* emaxj = (double)(7168/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
-
-  /* eminj = (double)(1395/AUTOEV); */
-  /* emaxj = eminj + (double)(18/AUTOEV); */
+  /* Fe2pCN 1s -> 3d */
+  /* eminj = (double)(7125/AUTOEV); */
+  /* emaxj = (double)(7140/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   emink = -(double)(2/AUTOEV);
-  emaxk = emink + (double)(20/AUTOEV);
+  emaxk = emink + (double)(14/AUTOEV);
   dek = (emaxk-emink)/(double)maxgridk;
 
   /* emink = (double)(1390/AUTOEV); */
@@ -193,32 +200,26 @@ to allocate memory for \"omega_y[%d]\"\n",j);
           n_fs = mdda_get(iis, l, 0);
 
           for (m=1; m<n_fs+1; m++) {/* loop over final states */
-            fs_idx = mdda_get(iis, l, m);
-            tmp_fs = get_state_si(iroot,fs_idx);
 
+            fs_idx = mdda_get(iis, l, m);
+
+            tmp_fs = get_state_si(iroot,fs_idx);
             tmom_km = get_trans(tmp_is, fs_idx);
 
-            /* printf( "    [%d,%d,%d]/%d, %le\n", gs_idx, is_idx, fs_idx,n_fs, tmom_km); */
-            /* ediff_km = get_ediff(iroot, is_idx, fs_idx); */
-
-            /* ediffj = omega_x[jgrid][kgrid] - ediff_jk + xshift; */
-            /* ediffk = omega_y[jgrid][kgrid] - (edifaf_jk - ediff_km + 2*xshift); */
             tmp_e = get_ediff(iroot, gs_idx, is_idx);
-            ediffj = omega_x[jgrid][kgrid] - tmp_e;
+
+            /* differences for.. */
+            ediffj = omega_x[jgrid][kgrid] - tmp_e; /* .. excitation energy */
+
+            /* .. energy transfer */
             ediffk = omega_y[jgrid][kgrid] - (tmp_e + get_ediff(iroot, is_idx, fs_idx));
-            /* printf( "ej = %le, ejk = %le , ek = %le, ekm = %le\n", ediffj, \ */
-            /*         ediff_jk, ediffk, ediff_km); */
-            /* printf( "tmom_jk = %le\n", tmom_jk); */
-            /* printf( "tmom_km = %le\n", tmom_km); */
-            /* sleep(1); */
-            /* printf( "tmp0=%le\n", tmp); */
-            /* printf( "tmoms=%le, exp=%le, dej=%le\n", tmom_jk*tmom_km, exp(-(powerl(ediffj,2))/c1), c2*dej); */
-            /* printf( "power=%le, total=%le\n", (powerl(ediffj,2)), -powerl(ediffj,2)/c1); */
 
             tmp = tmom_jk*tmom_km*bw*exp(-(powerl(ediffj,2))/c1)/c2*dej;
-            /* tmp = tmom_jk*tmom_km*exp(-(powerl(ediffj,2))/c1)/c2*dej; */
-            tmp *= exp(-(powerl(ediffk,2))/c1)/c2*dek;
 
+            /* add lorentzian broadening w.r.t the excitation energy and
+             gaussian broadening w.r.t the energy transfer */
+            tmp *= lorz(ediffj,1.25);
+            tmp *= exp(-(powerl(ediffk,2))/c1)/c2*dek;
             rixsmap[jgrid][kgrid] += tmp;
           }
         }
@@ -239,7 +240,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
       rixsmap[jgrid][kgrid] = rixsmap[jgrid][kgrid]/rmax;
       /* write the map */
-      fprintf(fp,"%le %le %le\n", omega_x[jgrid][kgrid]*AUTOEV, omega_y[jgrid][kgrid]*AUTOEV, rixsmap[jgrid][kgrid]);
+      fprintf(fp,"%le %le %le\n", (omega_x[jgrid][kgrid] + xshift)*AUTOEV, omega_y[jgrid][kgrid]*AUTOEV, rixsmap[jgrid][kgrid]);
     }
     fprintf(fp,"\n");
   }
@@ -283,7 +284,7 @@ calc_smap_dbg (char * method,
 
   double e_gs = iroot -> root_e_state -> e_val;
   double rmax = -0.1;
-  double xshift = 0/AUTOEV;
+
   double omegain, omegaut;
   double bw;
   double bw_sum = iroot -> bw_sum;
@@ -344,7 +345,7 @@ calc_smap_dbg (char * method,
 
         tmom_km = get_trans(tmp_is, fs_idx);
 
-        fprintf(fp,"%d %d %d %le %le %le\n", gs_idx, is_idx, fs_idx, get_ediff(iroot, gs_idx, is_idx)*AUTOEV, (get_ediff(iroot, gs_idx, is_idx) + get_ediff(iroot, is_idx, fs_idx))*AUTOEV, tmom_jk*tmom_km);
+        fprintf(fp,"%d %d %d %le %le %le\n", gs_idx, is_idx, fs_idx, (get_ediff(iroot, gs_idx, is_idx)+xshift)*AUTOEV, (get_ediff(iroot, gs_idx, is_idx) + get_ediff(iroot, is_idx, fs_idx))*AUTOEV, tmom_jk*tmom_km);
 
       }
     }

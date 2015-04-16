@@ -145,13 +145,14 @@ contained in %s.\n",fn_infile);
   printf( "\n\n" );
   printf( "execution progress:\n\n");
 
+
+  calc_smap_m(method, fn_infile, \
+  screen_states(fn_infile, 3, state_t[0], state_t[1], state_t[2]));
+
   if (dbg_flag) {
     calc_smap_dbg(method, fn_infile,\
     screen_states(fn_infile, 3, state_t[0], state_t[1], state_t[2]));
   }
-
-  calc_smap_m(method, fn_infile, \
-  screen_states(fn_infile, 3, state_t[0], state_t[1], state_t[2]));
 
   free(method);
   free(fn_infile);

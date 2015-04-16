@@ -8,5 +8,5 @@
 /* #define AUTOEV AUTOJ/ECHARGE /\* atomic units to eV conversion factor *\/  */
 #define TEXP 300 /* experimental ambient temperature */
 #define TTOEV 8.617385e-05 /* temperature to eV conversion factor */
-
+#define PI 3.14159265359
 #endif /* CONST_H */

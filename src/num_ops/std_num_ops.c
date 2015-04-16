@@ -118,3 +118,9 @@ get_rbdist (double e_rel,
            double e_val){
   return exp((-(e_val-e_rel)*(double)AUTOEV)/((8.6173324e-05)*TEXP));
 }
+
+double
+lorz (double x_diff,
+      double fwhm){
+  return (1/PI)*((0.5*fwhm)/((x_diff*x_diff) + (0.25*fwhm*fwhm)));
+}

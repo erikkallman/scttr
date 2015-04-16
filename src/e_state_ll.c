@@ -213,8 +213,9 @@ void
             int flag){
   int j;
 
-  printf( "\n   state[%d], type %d\n", es->list_idx + 1, es->type);
-  printf( "     state_idx = %d\n", es->state_idx);
+  printf( "\n   state_idx = %d\n", es->state_idx);
+  printf( "     list_idx = %d\n", es->list_idx);
+  printf( "     state type %d\n", es->type);
 
   if ((es->type) != 2) {
     printf( "     boltzmann weight = %le\n", es->bw);

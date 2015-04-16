@@ -109,4 +109,21 @@ get_bdist (double e_val);
 double
 get_rbdist (double e_rel,
             double e_val);
+
+/* function lorz
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+double
+lorz (double x_diff,
+      double fwhm);
 #endif /* STD_NUM_OPS_H */
