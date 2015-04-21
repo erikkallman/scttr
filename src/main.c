@@ -6,7 +6,7 @@
 #include "input_formats.h"
 #include "parse_input.h" /* for input_data array, as well as other
                             calculation-specific variables */
-#include "rmap_cfg.h"
+#include "smap_cfg.h"
 #define BUF_SIZE 256
 
 int
@@ -67,7 +67,7 @@ main (int argc, char * argv[]) {
 
       /* extract the needed data from the input */
       if (parse_input(fn_infile, len_fn+1)) {
-        fprintf(stderr, "rmap.c, main: unable to parse the input data \
+        fprintf(stderr, "smap.c, main: unable to parse the input data \
 contained in %s.\n",fn_infile);
         printf( "program terminating due to the previous error.\n");
         exit(EXIT_FAILURE);
@@ -132,7 +132,7 @@ contained in %s.\n",fn_infile);
     argc--;
   }
 
-  printf( "\nexecuting rmap with the following..\n\n" );
+  printf( "\nexecuting smap with the following..\n\n" );
   printf( "  - data contained in the input file:\n    %s\n\n", fn_infile);
   printf( "  - threshold values:\n    " );
 
@@ -157,7 +157,7 @@ contained in %s.\n",fn_infile);
   free(method);
   free(fn_infile);
   free(input_sbuff);
-  printf( "\nrmap successfully executed.\n" );
+  printf( "\nsmap successfully executed.\n" );
   printf( "program terminating.\n\n" );
 
   return 0;

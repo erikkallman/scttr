@@ -1,23 +1,7 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
 #include "dynarray.h"
-#include "rmap_structs.h"
-
-/* function get_inode
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-info_node
-get_inode (char * fn_infile);
+#include "structs.h"
 
 /* function screen_states
    The screen_states function is used to reduce the number of states used
@@ -64,138 +48,7 @@ init_data_branch(double ** pi, /* parsed input */
                  int nt, /* n transitions */
                  char * fs);
 
-/* function init_info_node
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-info_node
-init_info_node (char * s,
-                int ns,
-                int nt);
-
-/* function init_state_ll
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-e_state
-init_state_ll (char * str_id,
-               int n_states,
-               int n_trans
-               );
-
-/* function set_state_node
-
-   * synopsis:
-   uses the parsed_input defined in parse_input to declare the variables
-   in the linked list of states.
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-set_state_node (e_state st,
-                int s_idx,
-                int * idxs_buf,
-                double * evals_buf,
-                double * moms_buf,
-                int n_trs_from,
-                double e_rel,
-                double e
-                );
-
-/* function set_symtrans
-
-   * synopsis:
-   set_symtrans finds all symmetric transitions between initial and
-   intermediate states, and adds them to their corresponding
-   intermediate states.
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-set_symtrans (info_node inode_root);
-
-/* function set_state_ll
-
-   * synopsis:
-   uses the parsed_input defined in parse_input to declare the variables
-   in the linked list of states.
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-set_state_ll (double ** parsed_input,
-              int n_states,
-              int n_trans,
-              char * id /* info node id string */
-              );
-
-
-/* function sort_states
-
- * synopsis:
- The sort_states function is used to reduce the number of states used
- for generating the RIXS map. Through analyzing the boltzmann distribution
- of initial states, and screening of intensities for transitions,
- states that are unlikely to contribute to the RIXS process are disregarded.
- This effectively lowers the time needed to generate a given RIXS map. The
- thresholdsused to exclude states from the calculation can be used to find
- an optimal compromise between number of states included and the time needed
- to run the program.
-
- * algorithm:
- reads all initial states (k) contained in the array parsed_input[2]. from the
- these energy values, the boltzmann distribution is calculated. All k states
- with a weight value below the thrsh_b value gets excluded from the RIXS map
- calculation.
-
- * input:
-
- * output:
-
- * side-effects:
-
- */
-/* int */
-/* sort_states (double ** parsed_input); */
-
-/* function getinput_molcas:
+/* function parse_input_molcas:
 
    * algorithm:
 
@@ -214,7 +67,7 @@ parse_input_molcas (char * fn_infile
 
 /* function parse_input:
  * synopsis:
- parse_input is the output data file interface to rmap. For a given output type,
+ parse_input is the output data file interface to smap. For a given output type,
  be it from Molcas, RACAH or other electron energy calculation programs,
  an input parsing function needs to be defined. this function will need to
  define; 1. the number of states (n_states); 2.transitions (n_trans) in found in

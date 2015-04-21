@@ -1,7 +1,50 @@
 #ifndef E_STATE_LL_H
 #define E_STATE_LL_H
-#include "rmap_structs.h"
-#include "info_ll.h"
+#include "structs.h"
+
+/* function set_estate
+
+   * synopsis:
+   uses the parsed_input defined in parse_input to declare the variables
+   in the linked list of states.
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+set_estate (estate st,
+                int s_idx,
+                int * idxs_buf,
+                double * evals_buf,
+                double * moms_buf,
+                int n_trs_from,
+                double e_rel,
+                double e
+                );
+
+/* function init_estate_list
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+estate
+init_estate_list (char * str_id,
+               int n_states,
+               int n_trans
+               );
 
 /* function is_state_inlist
 
@@ -35,11 +78,11 @@ is_state_inlist (info_node inode,
 
    */
 void
-swapd_estate(e_state e1,
-             e_state e2);
+swapd_estate(estate e1,
+             estate e2);
 
 void
-dstruct_estate(e_state e);
+dstruct_estate(estate e);
 
 /* function get_trans
 
@@ -55,12 +98,12 @@ dstruct_estate(e_state e);
 
    */
 double
-get_trans (e_state es_root, /* root of the electronic state llist */
+get_trans (estate es_root, /* root of the electronic state llist */
            int idx_to /* index of the state transitioning to */
            );
 
 double
-get_eval (e_state es_root, /* root of the electronic state llist */
+get_eval (estate es_root, /* root of the electronic state llist */
            int idx_to /* index of the state transitioning to */
            );
 
@@ -77,7 +120,7 @@ get_eval (e_state es_root, /* root of the electronic state llist */
    * side-effects:
 
    */
-e_state
+estate
 get_state_si (info_node inode,
               int s_idx /* state index of the state to get */
               );
@@ -96,7 +139,7 @@ get_state_si (info_node inode,
    * side-effects:
 
    */
-e_state
+estate
 get_state_li (info_node inode,
               int l_idx /* list index of the state to get */
               );
@@ -112,7 +155,7 @@ e_statelist2s(info_node inode,
               int flag);
 
 void
-e_state2s(e_state es,
+e_state2s(estate es,
           int flag);
 
 /* function reset_info_maxvals

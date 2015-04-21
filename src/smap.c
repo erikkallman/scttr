@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <signal.h>
 #include "dynarray.h"
 #include "smap.h"
 #include "parse_input.h" /* struct types */
-#include "e_state_ll.h" /* for operations on e_state structs */
-#include "info_ll.h" /* the ll of input data */
-#include "rmap_structs.h"
+#include "estate.h" /* for operations on estate structs */
+#include "info_node.h" /* the ll of input data */
+#include "structs.h"
 #include "sci_const.h"
-#include "signal.h"
 #include "std_num_ops.h" /* power */
 
 static double xshift;
@@ -24,8 +24,8 @@ calc_smap_m (char * method,
   /* printf( "calc_smap got this method: %s \n", method); */
   FILE * fp;
   /* open the placeholder file */
-  if((fp=fopen("/home/kimchi/dev/rmap/output/map.dat", "w"))==NULL) {
-    printf("Cannot open file %s.\n","/home/kimchi/dev/rmap/output/map.dat");
+  if((fp=fopen("/home/kimchi/dev/smap/output/map.dat", "w"))==NULL) {
+    printf("Cannot open file %s.\n","/home/kimchi/dev/smap/output/map.dat");
   }
 
   int j,k,l,m; /* control loop indices */
@@ -64,7 +64,7 @@ calc_smap_m (char * method,
   double ** omega_x;
   double ** omega_y;
   double ** rixsmap;
-  e_state tmp_gs, tmp_is, tmp_fs;
+  estate tmp_gs, tmp_is, tmp_fs;
 
   if((omega_x = malloc(maxgridj*sizeof(double*))) == NULL ){
     fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
@@ -218,7 +218,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
             /* add lorentzian broadening w.r.t the excitation energy and
              gaussian broadening w.r.t the energy transfer */
-            tmp *= lorz(ediffj,1.25);
+            /* tmp *= lorz(ediffj,1.25)*dej; */
             tmp *= exp(-(powerl(ediffk,2))/c1)/c2*dek;
             rixsmap[jgrid][kgrid] += tmp;
           }
@@ -235,7 +235,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       }
     }
   }
-  printf( "  -writing RIXS map to file:\n    %s\n\n","/home/kimchi/dev/rmap/output/map.dat");
+  printf( "  -writing RIXS map to file:\n    %s\n\n","/home/kimchi/dev/smap/output/map.dat");
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
       rixsmap[jgrid][kgrid] = rixsmap[jgrid][kgrid]/rmax;
@@ -266,8 +266,8 @@ calc_smap_dbg (char * method,
   /* printf( "calc_smap got this method: %s \n", method); */
   FILE * fp;
   /* open the placeholder file */
-  if((fp=fopen("/home/kimchi/dev/rmap/output/map_dbg.dat", "w"))==NULL) {
-    printf("Cannot open file %s.\n","/home/kimchi/dev/rmap/output/map_dbg.dat");
+  if((fp=fopen("/home/kimchi/dev/smap/output/map_dbg.dat", "w"))==NULL) {
+    printf("Cannot open file %s.\n","/home/kimchi/dev/smap/output/map_dbg.dat");
   }
 
   int j,k,l,m; /* control loop indices */
@@ -307,7 +307,7 @@ calc_smap_dbg (char * method,
   double ** omega_y;
   double ** rixsmap;
 
-  e_state tmp_gs, tmp_is, tmp_fs;
+  estate tmp_gs, tmp_is, tmp_fs;
 
   printf( "  -printing screening parameters:\n");
   printf( "    maximum IS transition intensity = %le\n",  (iroot -> mt_is));

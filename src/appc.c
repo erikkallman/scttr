@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "std_f.h"
+#include "appc.h"
 
 int *
 appc_d (int * a1,
@@ -17,7 +17,7 @@ appc_d (int * a1,
   /*   exit(1); */
   /* } */
   if((a3 = malloc((sz1+sz2)*sizeof(int))) == NULL ){
-    fprintf(stderr, "std_f.c:function comb_array, malloc: failed \
+    fprintf(stderr, "appc.c:function comb_array, malloc: failed \
 to allocate memory for \"tmp_dat\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
@@ -53,7 +53,7 @@ appc (double * a1,
   double * a3;
 
   if((a3 = malloc((sz1+sz2)*sizeof(double))) == NULL ){
-    fprintf(stderr, "std_f.c:function comb_array, malloc: failed \
+    fprintf(stderr, "appc.c:function comb_array, malloc: failed \
 to allocate memory for \"tmp_dat\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
