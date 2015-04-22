@@ -6,7 +6,6 @@
 #include "structs.h"
 #include "estate.h"
 
-
 info_node
 get_inode (char * id
            ){
@@ -60,6 +59,7 @@ to allocate memory for \"new_inode\"\n");
   new_inode -> n_trans = nt;
   new_inode -> n_gfs = 0;
   new_inode -> n_is = 0;
+  new_inode -> n_spec = 0;
 
   if (n_inodes == 0) { /* there is no root info node defined  */
     n_inodes = 1;

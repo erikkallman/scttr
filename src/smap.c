@@ -10,6 +10,7 @@
 #include "structs.h"
 #include "sci_const.h"
 #include "std_num_ops.h" /* power */
+#include "spec.h"
 
 static double xshift;
 
@@ -249,6 +250,13 @@ to allocate memory for \"omega_y[%d]\"\n",j);
     free(omega_x[j]);
     free(omega_y[j]);
   }
+
+  /* add a spectrum to the node */
+  /* iroot -> n_spec++; */
+  /* init_spec(iroot, rixsmap, iroot -> n_spec, 0,250,250); */
+  /* specs2s(iroot); */
+  /* free_spec_stack(iroot -> n_spec); */
+  /* specs2s(iroot); */
 
   free(omega_x);
   free(omega_y);

@@ -1,0 +1,76 @@
+-*- mode: grep; default-directory: "~/dev/smap/src/" -*-
+Grep started at Wed Apr 22 11:44:35
+
+find . -type d \( -path \*/SCCS -o -path \*/RCS -o -path \*/CVS -o -path \*/MCVS -o -path \*/.svn -o -path \*/.git -o -path \*/.hg -o -path \*/.bzr -o -path \*/_MTN -o -path \*/_darcs -o -path \*/\{arch\} \) -prune -o \! -type d \( -name .\#\* -o -name \*.o -o -name \*\~ -o -name \*.bin -o -name \*.lbin -o -name \*.so -o -name \*.a -o -name \*.ln -o -name \*.blg -o -name \*.bbl -o -name \*.elc -o -name \*.lof -o -name \*.glo -o -name \*.idx -o -name \*.lot -o -name \*.fmt -o -name \*.tfm -o -name \*.class -o -name \*.fas -o -name \*.lib -o -name \*.mem -o -name \*.x86f -o -name \*.sparcf -o -name \*.dfsl -o -name \*.pfsl -o -name \*.d64fsl -o -name \*.p64fsl -o -name \*.lx64fsl -o -name \*.lx32fsl -o -name \*.dx64fsl -o -name \*.dx32fsl -o -name \*.fx64fsl -o -name \*.fx32fsl -o -name \*.sx64fsl -o -name \*.sx32fsl -o -name \*.wx64fsl -o -name \*.wx32fsl -o -name \*.fasl -o -name \*.ufsl -o -name \*.fsl -o -name \*.dxl -o -name \*.lo -o -name \*.la -o -name \*.gmo -o -name \*.mo -o -name \*.toc -o -name \*.aux -o -name \*.cp -o -name \*.fn -o -name \*.ky -o -name \*.pg -o -name \*.tp -o -name \*.vr -o -name \*.cps -o -name \*.fns -o -name \*.kys -o -name \*.pgs -o -name \*.tps -o -name \*.vrs -o -name \*.pyc -o -name \*.pyo \) -prune -o  -type f \( -name \*.\[ch\] \) -exec grep -i -nH -e spectrum {} +
+./spec.c:4:#include "spec.h"
+./spec.c:7:spec
+./spec.c:8:get_spec (spec root_s,
+./spec.c:12:  spec next_spec = root_s;
+./spec.c:13:  spec curr_spec;
+./spec.c:20:      fprintf(stderr, "spec.c:function get_spec, tried to locate\
+./spec.c:21:layer %d of spec %d, but failed. spec not found in list.\n",idx,layer);
+./spec.c:27:  if (layer != 0) { /* locate the right layer of the spec */
+./spec.c:40:free_spec (spec s,
+./spec.c:69:free_spec_stack (int idx){
+./spec.c:74:  /* get the root spec of the stack on idex idx */
+./spec.c:75:  spec s = get_spec(s, idx, 0);
+./spec.c:77:  s = get_spec(s, idx, n_s);
+./spec.c:80:    free_spec(s, idxs, j);
+./spec.c:85:spec
+./spec.c:86:get_last_layer (spec root_s,
+./spec.c:89:  spec next_spec = root_s;
+./spec.c:90:  spec curr_spec;
+./spec.c:102:append_spec_layer (spec s,
+./spec.c:103:                       spec root_s
+./spec.c:106:  /* spec to append to */
+./spec.c:107:  spec s_a = get_spec(root_s, s->idx);
+./spec.c:109:  /* the last layer appended to that spec */
+./spec.c:110:  spec s_l;
+./spec.c:113:    fprintf(stderr, "spec.c, function append_spec: tried to add \
+./spec.c:114:spec of idx %d as a layer, but the zero-layer spec for that index was\
+./spec.c:128:append_spec (spec s,
+./spec.c:129:                 spec root_s
+./spec.c:132:  /* spec to append to */
+./spec.c:133:  spec s_a = get_spec(root_s, s->idx);
+./spec.c:142:init_spec (double ** s_data,
+./spec.c:152:  spec new_spec;
+./spec.c:154:  if((new_spec = malloc(sizeof(struct spec_s))) == NULL ){
+./spec.c:155:    fprintf(stderr, "spec.c:function init_spec, malloc: failed \
+./spec.c:179:    else{ /* append the new spec to the list */
+./spec.c:180:      append_spec(new_spec, inode->root_spec);
+./spec.c:184:         the spec as a layer instead */
+./spec.c:185:    append_spec_layer(new_spec, inode->root_spec);
+./spec.c:192:  printf( "\n  -printing the content of the spec list for the inode \
+./spec.c:194:  spec rs  = inode -> root_spec;
+./spec.c:195:  spec cs, ns, cs_l, ns_l;
+./spec.h:1:#ifndef SPEC_H
+./spec.h:2:#define SPEC_H
+./spec.h:4:/* function get_spec
+./spec.h:5:   Searches the list of specta connected to the root spec @root_s of a given
+./spec.h:7:   requested spec is not in the list, the last spec in the list is
+./spec.h:21:spec
+./spec.h:22:get_spec (spec root_s,
+./spec.h:25:/* function append_spec
+./spec.h:28:   appends the spec @s of index @idx to the list of spectra connected to the
+./spec.h:29:   root spec @root_s of an info node.
+./spec.h:42:append_spec (spec s,
+./spec.h:43:                 spec root_s,
+./spec.h:46:/* function append_spec_layer
+./spec.h:47:   append spec @s with index @s->idx to the spec of the same index
+./spec.h:61:append_spec_layer (spec s,
+./spec.h:62:                       spec root_s
+./spec.h:66:#endif /* SPEC_H */
+./structs.h:13:struct spec_s;
+./structs.h:14:typedef spec_s * spec;
+./structs.h:40:  spec root_spec;
+./structs.h:78:struct spec_s{
+./structs.h:86:  double ** sdat; /* the actual spec data */
+./structs.h:88:  /* next spec for the information node */
+./structs.h:89:  spec next;
+./structs.h:90:  spec last;
+./structs.h:92:  /* next layer of this spec */
+./structs.h:93:  spec next_l;
+./structs.h:94:  spec last_l;
+./structs.h:95:  spec root_l;
+
+Grep finished (matches found) at Wed Apr 22 11:44:35
