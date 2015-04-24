@@ -30,7 +30,9 @@ free_spec (spec s,
            int layer);
 
 void
-free_spec_stack (int idx);
+free_spec_stack (info_node inode,
+                 spec root_s,
+                 int idx);
 
 spec
 get_last_layer (spec root_s );

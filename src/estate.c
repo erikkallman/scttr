@@ -17,12 +17,12 @@ sort_states (double * state_er,
 
   k = l = 1;
   for (j=0; j<n_states; j++) {
-    if ((state_er[1] < e_vals[j]) && (state_er[2] > e_vals[j])) {
-      groups[0][k] = j;
+    if ((state_er[1] <= e_vals[j]) && (state_er[2]>=e_vals[j])) {
+      groups[0][k] = j+1;
       groups[0][0] = k++;
     }
-    else if ((state_er[3] < e_vals[j]) && (state_er[4] > e_vals[j])){
-      groups[1][l] = j;
+    else if ((state_er[3] <= e_vals[j]) && (state_er[4] >= e_vals[j])){
+      groups[1][l] = j+1;
       groups[1][0] = l++;
     }
   }
@@ -214,9 +214,6 @@ states left to process.\n", l, n_states);
 
   } else {
 
-
-
-
     curr_state = end_state;
     /* remove any unused nodes in the llist iterate forwards and free up \
        the unused nodes. */
@@ -243,7 +240,13 @@ states left to process.\n", l, n_states);
   } else {
     sort_states(state_er, e_vals, groups, n_states);
   }
-
+  /* for (j=0; j<2; j++) { */
+  /*   for (k=1; k<=groups[j][0]; k++) { */
+  /*     printf( "groups[%d][%d] = %d\n", j, k, groups[j][k]); */
+  /*   } */
+  /* } */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   /* check so that all states were classified */
   if ((groups[0][0] + groups[1][0]) != n_states) {
     fprintf(stderr, "\n\nError: parse_input.c:set_estate_list, some states\
@@ -252,13 +255,6 @@ final, or intermediate.\n", l, n_states);
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
-  for (j=0; j<2; j++) {
-    for (k=1; k<=groups[j][0]; k++) {
-      printf( "groups[%d][%d] = %d\n", j, k, groups[j][k]);
-    }
-  }
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
 
   /* based on the fact that the transitions between states inside the same
      group will be too low to get included in the data tree, we can sort

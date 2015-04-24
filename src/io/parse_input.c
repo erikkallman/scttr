@@ -27,10 +27,13 @@ screen_states (char * fn_infile,
                double * state_er
                ){
   printf( "  -screening states\n\n" );
+
+             int n_args,
+             ...){
   info_node inode = get_inode(fn_infile);
 
   int j,k; /* looping variables */
-  int n_states = inode -> n_states;;
+  int n_states = inode -> n_states;
   int gs_idx; /* ground state index */
   int is_idx; /* intermediate state index */
 
@@ -396,7 +399,7 @@ for pointers in \"input_data\"\n");
     exit(1);
   }
 
-  num_idxs1[0] = 1;
+  num_idxs1[0] = 2;
   int n_idxs1 = 1;
 
   num_idxs2[0] = 0;

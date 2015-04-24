@@ -30,8 +30,8 @@ calc_smap_m (char * method,
   }
 
   int j,k,l,m; /* control loop indices */
-  int maxgridj = 100;
-  int maxgridk = 100;
+  int maxgridj = 10;
+  int maxgridk = 10;
   int jgrid,kgrid;
 
   int gs_idx,is_idx,fs_idx;
@@ -255,11 +255,24 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   }
 
   /* add a spectrum to the node */
-  /* iroot -> n_spec++; */
-  /* init_spec(iroot, rixsmap, iroot -> n_spec, 0,250,250); */
+  init_spec(iroot, rixsmap, iroot -> n_spec, 1,maxgridj,maxgridk);
+  specs2s(iroot);
+  free_spec_stack(iroot, iroot -> root_spec, 1);
+  specs2s(iroot);
+  printf( "\n\nadding layers\n\n" );
+  /* test the layering */
+  printf( "\n\nadding layer 1\n\n" );
+  init_spec(iroot, rixsmap, iroot -> n_spec, 1,maxgridj,maxgridk);
+  specs2s(iroot);
+  printf( "\n\nadding layer 2\n\n" );
+  init_spec(iroot, rixsmap, 1, 2,maxgridj,maxgridk);
+  specs2s(iroot);
+  /* init_spec(iroot, rixsmap, 1, 3,maxgridj,maxgridk); */
   /* specs2s(iroot); */
-  /* free_spec_stack(iroot -> n_spec); */
-  /* specs2s(iroot); */
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
+  free_spec_stack(iroot, iroot -> root_spec, 1);
+  specs2s(iroot);
 
   free(omega_x);
   free(omega_y);

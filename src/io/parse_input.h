@@ -41,7 +41,7 @@ mdda_s *
 screen_states (char * fn_infile,
                double * state_t,
                double * state_er
-               )
+               );
 
 int
 init_data_branch(double * state_er, /* state energy ranges */
@@ -49,7 +49,7 @@ init_data_branch(double * state_er, /* state energy ranges */
                  int ns, /* n states */
                  int nt, /* n transitions */
                  char * fs /* input file name string */
-                 )
+                 );
 
 /* function parse_input_molcas:
 

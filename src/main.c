@@ -15,6 +15,7 @@ main (int argc, char * argv[]) {
   int n_t; /* number of numbers read from input flag */
   int n_er; /* number of numbers eigenstate energy values provided */
   int len_fn = 0;
+  int len_mn = 0;
   int dbg_flag;
   /* arrays for storing input file name data */
   char * input_sbuff = malloc(BUF_SIZE);
@@ -27,10 +28,12 @@ main (int argc, char * argv[]) {
 
   /* use first element to specify number of values stored in matrix */
   /* threshold values for the three or six different state types */
-  double * state_t = malloc(7);
+  double * state_t = malloc(7*sizeof(double));
   /* initial/final and intermediate state energy ranges */
-  double * state_er = malloc(9);
-  state_t[0] = state_er[0] = 0;
+  double * state_er = malloc(9*sizeof(double));
+  state_t[0] = 0;
+  state_er[0] = 0;
+
   /* char fn_infile[BUF_SIZE] = {0}; */
 
   /* process the input arguments */
@@ -66,8 +69,9 @@ main (int argc, char * argv[]) {
 
       for (j=0; j<len_fn; j++) {
         fn_infile[j] = input_sbuff[j];
+        printf( "%c", fn_infile[j]);
       }
-
+      printf( "\n" );
       fn_infile[len_fn] = '\0';
 
       break;
@@ -78,13 +82,13 @@ main (int argc, char * argv[]) {
         input_sbuff[j-3] = argv[1][j];
       }
       argv[1] + j;
+      len_mn = j-3;
+      method = malloc(len_mn+1);
 
-      method = malloc(len_fn+1);
-
-      for (j=0; j<len_fn; j++) {
+      for (j=0; j<len_mn; j++) {
         method[j] = input_sbuff[j];
       }
-      method[len_fn] = '\0';
+      method[len_mn] = '\0';
       printf( "got the method: %s\n", method);
 
       break;
@@ -208,11 +212,9 @@ contained in %s.\n",fn_infile);
 
   printf( "\n\n" );
   printf( "execution progress:\n\n");
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
 
   calc_smap_m(method, fn_infile, \
-              screen_states(fn_infile, state_t, state_er);
+              screen_states(fn_infile, state_t, state_er));
 
   if (dbg_flag == 1) {
     calc_smap_dbg(method, fn_infile,\
