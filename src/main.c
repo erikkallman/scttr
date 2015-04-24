@@ -12,7 +12,9 @@
 int
 main (int argc, char * argv[]) {
   int j,k,l; /* iteration variables */
-  int len_fn;
+  int n_t; /* number of numbers read from input flag */
+  int n_er; /* number of numbers eigenstate energy values provided */
+  int len_fn = 0;
   int dbg_flag;
   /* arrays for storing input file name data */
   char * input_sbuff = malloc(BUF_SIZE);
@@ -20,12 +22,15 @@ main (int argc, char * argv[]) {
   char * method;
   char * num_buf;
 
-  /* threshold values for the three different state types */
-  double state_t[3] = {0.005, 0.00001, 0.000001};
 
-  /* number of threshold values processed from command line */
-  int n_t = 0;
+  /* double state_t[3] = {0.005, 0.001, 0.001}; */
 
+  /* use first element to specify number of values stored in matrix */
+  /* threshold values for the three or six different state types */
+  double * state_t = malloc(7);
+  /* initial/final and intermediate state energy ranges */
+  double * state_er = malloc(9);
+  state_t[0] = state_er[0] = 0;
   /* char fn_infile[BUF_SIZE] = {0}; */
 
   /* process the input arguments */
@@ -65,14 +70,6 @@ main (int argc, char * argv[]) {
 
       fn_infile[len_fn] = '\0';
 
-      /* extract the needed data from the input */
-      if (parse_input(fn_infile, len_fn+1)) {
-        fprintf(stderr, "smap.c, main: unable to parse the input data \
-contained in %s.\n",fn_infile);
-        printf( "program terminating due to the previous error.\n");
-        exit(EXIT_FAILURE);
-      }
-
       break;
 
     case 'm' :
@@ -92,7 +89,47 @@ contained in %s.\n",fn_infile);
 
       break;
 
+    case 'r' :
+
+      n_er = 1;
+      /* the user specified a method to be used for calculating the scattering map */
+      for (j=3,k=0; argv[1][j] != '\0'; j++) {
+
+        input_sbuff[k++] = argv[1][j];
+        /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
+
+        if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
+          /* k--; /\* we dont want the comma or null sent to atof *\/ */
+          num_buf = malloc(k+1);
+
+          for (l=0; l<k; l++) {
+            num_buf[l] = input_sbuff[l];
+            /* printf( "%c", num_buf[l]); */
+          }
+          num_buf[k] = '\0';
+
+          /* printf( "\n" ); */
+
+          state_er[n_er] = atof(num_buf);
+          free(num_buf);
+          num_buf = NULL;
+          n_er++;
+          if ((n_er > 4)) {
+            /* switch on the dipole+quadrupole flag  */
+            break;
+          }
+          if ((n_er > 8)) {
+            break;
+          }
+
+          k = 0;
+        }
+      }
+      state_er[0] = n_er;
+      break;
+
     case 't' :
+      n_t = 1;
       /* the user specified a method to be used for calculating the scattering map */
       for (j=3,k=0; argv[1][j] != '\0'; j++) {
 
@@ -114,15 +151,19 @@ contained in %s.\n",fn_infile);
           state_t[n_t] = atof(num_buf);
           free(num_buf);
           num_buf = NULL;
-          n_t++;
+
+          if ((n_t++) > 3) {
+            break;
+          }
+
           k = 0;
         }
       }
-
+      state_t[0] = n_t;
       break;
 
     default :
-      printf("Cannot process the flag \"-%c\". To read the help documentation, \
+      printf("Can not process the flag \"-%c\". To read the help documentation, \
  call tau with the flag \"-h\". Program terminating.\n",(char)argv [1][1]);
       exit(1);
     }
@@ -132,31 +173,57 @@ contained in %s.\n",fn_infile);
     argc--;
   }
 
+  if (len_fn == 0) {
+    fprintf(stderr, "\n\Error: smap.c, main: you didnt provide the path to an\
+ input file.");
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  } else {
+    /* extract the needed data from the input */
+    if (parse_input(state_er, fn_infile, len_fn+1)) {
+      fprintf(stderr, "smap.c, main: unable to parse the input data \
+contained in %s.\n",fn_infile);
+      printf( "program terminating due to the previous error.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+
   printf( "\nexecuting smap with the following..\n\n" );
   printf( "  - data contained in the input file:\n    %s\n\n", fn_infile);
   printf( "  - threshold values:\n    " );
 
-  for (j=0; j<3; j++) {
+  for (j=1; j<n_t; j++) {
     printf( "%le, ", state_t[j]);
   }
+  printf( "\n\n" );
+
+  printf( "  - state energy intervals values:\n    " );
+
+  for (j=1; j<n_er; j++) {
+    printf( "%le, ", state_er[j]);
+  }
+
   printf( "\n\n" );
   printf( "  - method:\n    %s\n", method);
 
   printf( "\n\n" );
   printf( "execution progress:\n\n");
-
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
 
   calc_smap_m(method, fn_infile, \
-  screen_states(fn_infile, 3, state_t[0], state_t[1], state_t[2]));
+              screen_states(fn_infile, state_t, state_er);
 
-  if (dbg_flag) {
+  if (dbg_flag == 1) {
     calc_smap_dbg(method, fn_infile,\
-    screen_states(fn_infile, 3, state_t[0], state_t[1], state_t[2]));
+                  screen_states(fn_infile, state_t, state_er));
   }
 
   free(method);
   free(fn_infile);
   free(input_sbuff);
+  free(state_er);
+  free(state_t);
   printf( "\nsmap successfully executed.\n" );
   printf( "program terminating.\n\n" );
 

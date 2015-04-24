@@ -119,16 +119,16 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
   /* fwhm = (double)0.9/AUTOEV; */
   fwhm = (double)1.06/AUTOEV;
-  /* for Fe2p 2p->3d transitions */
-  /* eminj = (double)(716/AUTOEV); */
-  /* emaxj = (double)(744/AUTOEV); */
+  /* /\* for Fe2p 2p->3d transitions *\/ */
+  /* eminj = (double)(722/AUTOEV); */
+  /* emaxj = (double)(739/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for Fe2p 1s->3d transitions */
-  xshift = -40/AUTOEV;
-  eminj = (double)(7148/AUTOEV);
-  emaxj = (double)(7160/AUTOEV);
-  dej = (emaxj-eminj)/(double)maxgridj;
+  /* xshift = -40/AUTOEV; */
+  /* eminj = (double)(7148/AUTOEV); */
+  /* emaxj = (double)(7160/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for Fe3p 2p->3d transitions */
   /* eminj = (double)(726/AUTOEV); */
@@ -145,6 +145,11 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   /* eminj = (double)(7125/AUTOEV); */
   /* emaxj = (double)(7140/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
+
+  /* for Fe2pCN 2p->3d transitions */
+  eminj = (double)(722/AUTOEV);
+  emaxj = (double)(739/AUTOEV);
+  dej = (emaxj-eminj)/(double)maxgridj;
 
   emink = -(double)(2/AUTOEV);
   emaxk = emink + (double)(14/AUTOEV);
@@ -216,11 +221,8 @@ to allocate memory for \"omega_y[%d]\"\n",j);
             ediffk = omega_y[jgrid][kgrid] - (tmp_e + get_ediff(iroot, is_idx, fs_idx));
 
             tmp = tmom_jk*tmom_km*bw*exp(-(powerl(ediffj,2))/c1)/c2*dej;
-
-            /* add lorentzian broadening w.r.t the excitation energy and
-             gaussian broadening w.r.t the energy transfer */
-            /* tmp *= lorz(ediffj,1.25)*dej; */
             tmp *= exp(-(powerl(ediffk,2))/c1)/c2*dek;
+
             rixsmap[jgrid][kgrid] += tmp;
           }
         }
@@ -236,6 +238,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       }
     }
   }
+
   printf( "  -writing RIXS map to file:\n    %s\n\n","/home/kimchi/dev/smap/output/map.dat");
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     for (kgrid=0; kgrid<maxgridk; kgrid++) {

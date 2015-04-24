@@ -2,6 +2,25 @@
 #define E_STATE_LL_H
 #include "structs.h"
 
+/* function sort_states
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+void
+sort_states (double * state_er,
+             double * a,
+             int ** groups,
+             int n_vals);
+
 /* function set_estate
 
    * synopsis:
@@ -18,14 +37,21 @@
    */
 int
 set_estate (estate st,
-                int s_idx,
-                int * idxs_buf,
-                double * evals_buf,
-                double * moms_buf,
-                int n_trs_from,
-                double e_rel,
-                double e
-                );
+            int s_idx,
+            int * idxs_buf,
+            double * evals_buf,
+            double * moms_buf,
+            int n_trs_from,
+            double e_rel,
+            double e
+            );
+
+int
+set_estate_list (double * state_er,
+                 double ** parsed_input,
+                 int n_states,
+                 int n_trans,
+                 char * id);
 
 /* function init_estate_list
 
@@ -42,9 +68,9 @@ set_estate (estate st,
    */
 estate
 init_estate_list (char * str_id,
-               int n_states,
-               int n_trans
-               );
+                  int n_states,
+                  int n_trans
+                  );
 
 /* function is_state_inlist
 

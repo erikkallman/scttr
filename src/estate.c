@@ -8,11 +8,32 @@
 #include "sci_const.h"
 #include "std_num_ops.h"
 
+void
+sort_states (double * state_er,
+             double * e_vals,
+             int ** groups,
+             int n_states){
+  int j,k,l; /* looping variables */
+
+  k = l = 1;
+  for (j=0; j<n_states; j++) {
+    if ((state_er[1] < e_vals[j]) && (state_er[2] > e_vals[j])) {
+      groups[0][k] = j;
+      groups[0][0] = k++;
+    }
+    else if ((state_er[3] < e_vals[j]) && (state_er[4] > e_vals[j])){
+      groups[1][l] = j;
+      groups[1][0] = l++;
+    }
+  }
+}
+
 int
-set_estate_list (double ** parsed_input,
-              int n_states,
-              int n_trans,
-              char * id) {
+set_estate_list (double * state_er,
+                 double ** parsed_input,
+                 int n_states,
+                 int n_trans,
+                 char * id) {
 
   int j,k,l,m; /* looping variables */
   int from_last = parsed_input[0][0];
@@ -216,17 +237,28 @@ states left to process.\n", l, n_states);
   /* for (j=0; j<n_states; j++) { */
   /*   printf( "%le\n", e_vals[j]); */
   /* } */
+  if (state_er[0] = 0) {
+    /* use the k-means algorithm to do a preliminary sorting of the states */
+    k_meansl(e_vals, groups, n_states);
+  } else {
+    sort_states(state_er, e_vals, groups, n_states);
+  }
 
-  /* use the k-means algorithm to do a preliminary sorting of the states */
-  k_meansl(e_vals, groups, n_states);
-
-  /* for (j=0; j<2; j++) { */
-  /*   for (k=1; k<=groups[j][0]; k++) { */
-  /*     printf( "groups[%d][%d] = %d\n", j, k, groups[j][k]); */
-  /*   } */
-  /* } */
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
+  /* check so that all states were classified */
+  if ((groups[0][0] + groups[1][0]) != n_states) {
+    fprintf(stderr, "\n\nError: parse_input.c:set_estate_list, some states\
+ from the list of eigenvalues could not be classified as either initial, \
+final, or intermediate.\n", l, n_states);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+  for (j=0; j<2; j++) {
+    for (k=1; k<=groups[j][0]; k++) {
+      printf( "groups[%d][%d] = %d\n", j, k, groups[j][k]);
+    }
+  }
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
 
   /* based on the fact that the transitions between states inside the same
      group will be too low to get included in the data tree, we can sort
@@ -293,27 +325,6 @@ states left to process.\n", l, n_states);
 
   return EXIT_SUCCESS;
 }
-
-/* function set_estate_list
-
-   * synopsis:
-   uses the parsed_input defined in parse_input to declare the variables
-   in the linked list of states.
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-set_estate_list (double ** parsed_input,
-              int n_states,
-              int n_trans,
-              char * id /* info node id string */
-              );
 
 int
 set_estate (estate st,

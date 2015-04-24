@@ -39,14 +39,17 @@
    */
 mdda_s *
 screen_states (char * fn_infile,
-               int n_args,
-               ...);
+               double * state_t,
+               double * state_er
+               )
 
 int
-init_data_branch(double ** pi, /* parsed input */
+init_data_branch(double * state_er, /* state energy ranges */
+                 double ** pi, /* parsed input */
                  int ns, /* n states */
                  int nt, /* n transitions */
-                 char * fs);
+                 char * fs /* input file name string */
+                 )
 
 /* function parse_input_molcas:
 
@@ -61,7 +64,8 @@ init_data_branch(double ** pi, /* parsed input */
    */
 
 int
-parse_input_molcas (char * fn_infile
+parse_input_molcas (double * state_er,
+                    char * fn_infile
                     );
 
 
@@ -101,7 +105,8 @@ parse_input_molcas (char * fn_infile
  */
 
 int
-parse_input (char * fn_infile,
-                   int fn_len);
+parse_input (double * state_er,
+             char * fn_infile, /* name of input file */
+             int len_fn);
 
 #endif /* PARSE_INPUT_H */

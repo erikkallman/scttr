@@ -5,7 +5,6 @@
 #include <math.h>
 #include <signal.h>
 #include <string.h>
-#include <stdarg.h> /* for var args */
 #include "std_char_ops.h"
 #include "std_num_ops.h"
 #include "appc.h"
@@ -24,13 +23,14 @@ info_node root_inode;
 
 mdda_s *
 screen_states (char * fn_infile,
-             int n_args,
-             ...){
+               double * state_t,
+               double * state_er
+               ){
   printf( "  -screening states\n\n" );
   info_node inode = get_inode(fn_infile);
 
   int j,k; /* looping variables */
-  int n_states;
+  int n_states = inode -> n_states;;
   int gs_idx; /* ground state index */
   int is_idx; /* intermediate state index */
 
@@ -54,12 +54,7 @@ screen_states (char * fn_infile,
    values */
   double bw_sum = inode -> bw_sum;
 
-  double thrsh_vals[3] = {0.5, 0.2, 0.2};
-  double tmp_thrsh;
-
   double * tmp_trans;
-
-  n_states = inode -> n_states;
 
   estate root_state = inode -> root_e_state;
   estate curr_state = root_state;
@@ -67,21 +62,12 @@ screen_states (char * fn_infile,
   estate gs_bm; /* ground state bookmark */
   estate is_bm; /* intermediate state bookmark */
 
-  va_list argv;
-  va_start(argv, n_args);
-
 /* initialize the data structures used to store the screened states */
   igs = mdda_init();
   iis = mdda_init();
 
-  for (j=0; j<n_args; j++) {
-    tmp_thrsh = (double)va_arg(argv, double); /* grab the next vararg */
-    thrsh_vals[j] = tmp_thrsh;
-  }
   /* for a description of the screening algorithm below, look up this function
      in the parse_input.h file */
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
 
   n_sgs = 0;
   while((next_state = curr_state -> next) != NULL){
@@ -90,8 +76,8 @@ screen_states (char * fn_infile,
     if ((curr_state -> type) == 1) { /* if we found a ground state */
       /* printf( "GS: %d %le\n", gs_idx,((curr_state ->  bw)/bw_sum)); */
       /* perform stage 1 of the screening process */
-      /* if (((curr_state ->  bw)/(inode -> bw_sum)) >= thrsh_vals[0]) { */
-      if ((((curr_state ->  bw)/bw_sum) >= thrsh_vals[0]) || (curr_state -> state_idx == 1)) {
+      /* if (((curr_state ->  bw)/(inode -> bw_sum)) >= state_t[0]) { */
+      if ((((curr_state ->  bw)/bw_sum) >= state_t[1]) || (curr_state -> state_idx == 1)) {
         /* we found a ground state with high enough boltzmann weight */
         gs_idx = curr_state -> state_idx;
         n_sgs++;
@@ -110,9 +96,9 @@ screen_states (char * fn_infile,
         tmp_trans = curr_state -> t_moms;
         tmp_idxs = curr_state -> idxs_to;
         for (j=0; j<(curr_state -> n_tfrom); j++) {
-          /* printf( "  IS:j = %d/%d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", j, (curr_state -> n_tfrom), tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> mt_is)), thrsh_vals[1]); */
+          /* printf( "  IS:j = %d/%d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", j, (curr_state -> n_tfrom), tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/(inode -> mt_is)), state_t[1]); */
           /* if IS transition has a transition moment above threshold */
-          if ((tmp_trans[j]/(inode -> mt_is)) >= thrsh_vals[1]) {
+          if ((tmp_trans[j]/(inode -> mt_is)) >= state_t[2]) {
             is_bm = curr_state;
             is_idx = tmp_idxs[j];
             /* printf( "  found one IS at %d!\n\n", is_idx ); */
@@ -145,8 +131,8 @@ screen_states (char * fn_infile,
                 /* perform stage 3 of the screening process */
                 /* find final state transitions that pass stage 3 screening */
                 for (k=0; k < (curr_state -> n_tfrom); k++) {
-                  /* printf( "    FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), thrsh_vals[2]); */
-                  if ((((curr_state -> t_moms)[k])/(inode -> mt_fs)) >= thrsh_vals[2]) {
+                  /* printf( "    FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), state_t[2]); */
+                  if ((((curr_state -> t_moms)[k])/(inode -> mt_fs)) >= state_t[3]) {
                     /* from the intermediate state found above, we also found a
                        final state transition with high enough relative
                        transition moment */
@@ -194,7 +180,8 @@ screen_states (char * fn_infile,
 }
 
 int
-init_data_branch(double ** pi, /* parsed input */
+init_data_branch(double * state_er, /* state energy ranges */
+                 double ** pi, /* parsed input */
                  int ns, /* n states */
                  int nt, /* n transitions */
                  char * fs /* input file name string */
@@ -205,7 +192,7 @@ init_data_branch(double ** pi, /* parsed input */
   init_estate_list(fs, ns, nt);
 
   /* use the extracted input data to set the state of the linked list */
-  set_estate_list(pi, ns, nt, fs);
+  set_estate_list(state_er, pi, ns, nt, fs);
 
   /* free up parsed_input, since it now lives in the tree */
   for (j=0; j<5; j++) {
@@ -218,7 +205,9 @@ init_data_branch(double ** pi, /* parsed input */
 }
 
 int
-parse_input_molcas (char * fn_infile) {
+parse_input_molcas (double * state_er,
+                    char * fn_infile
+                    ) {
 
   int j,k,l,m,i,n,k_its; /* control loop variables */
   int mode; /* string matching mode flag */
@@ -486,12 +475,13 @@ for pointers in \"input_data\"\n");
   free(t_mom);
   free(trans_idxs);
 
-  return init_data_branch(parsed_input,n_states,n_trans,fn_infile);
+  return init_data_branch(state_er, parsed_input,n_states,n_trans,fn_infile);
 
 }
 
 int
-parse_input (char * fn_infile, /* name of input file */
+parse_input (double * state_er,
+             char * fn_infile, /* name of input file */
              int len_fn){
 
   int j, k, l; /* looping variables */
@@ -517,7 +507,7 @@ parse_input (char * fn_infile, /* name of input file */
     if (format[j] = '.') {
 
       if (strcmp(format,MOLCAS_FORMAT)){
-        parse_input_molcas(fn_infile);
+        parse_input_molcas(state_er, fn_infile);
         break; /* for */
       }
 
