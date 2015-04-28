@@ -30,8 +30,8 @@ calc_smap_m (char * method,
   }
 
   int j,k,l,m; /* control loop indices */
-  int maxgridj = 10;
-  int maxgridk = 10;
+  int maxgridj = 100;
+  int maxgridk = 100;
   int jgrid,kgrid;
 
   int gs_idx,is_idx,fs_idx;
@@ -48,10 +48,18 @@ calc_smap_m (char * method,
   double bw;
   double bw_sum = iroot -> bw_sum;
   double ediffj,ediff_jk,tmom_jk,ediffk,ediff_km,tmom_km;
-  double eminj,emaxj,emink,emaxk,dej,dek,fwhm,fwhm_trs;
+  double eminj,emaxj,emink,emaxk,dej,dek,fwhm_in,fwhm_tr;
   double tmp_e;
   /* variables used in the Kramers-Heisenberg formula */
   double c1,c2,tmp;
+
+  /* excitation energy broadening parameters */
+  double grms_in; /* gaussian RMS value */
+  double gvar_in; /* square root of the variance of the gaussian */
+  /* transfer energy broadening parameters */
+  double grms_tr;
+  double gvar_tr;
+
   mdda_s * root_mdda = (mdda -> root);
   mdda_s * curr_mdda = mdda;
   mdda_s * next_mdda = (mdda -> next);
@@ -117,18 +125,18 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   /* mdda2s(root_mdda); */
   /* e_statelist2s(iroot,1); */
 
-  /* fwhm = (double)0.9/AUTOEV; */
-  fwhm = (double)1.06/AUTOEV;
+  fwhm_tr = (double)0.3/AUTOEV;
+  fwhm_in = (double)1.25/AUTOEV;
   /* /\* for Fe2p 2p->3d transitions *\/ */
   /* eminj = (double)(722/AUTOEV); */
   /* emaxj = (double)(739/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for Fe2p 1s->3d transitions */
-  /* xshift = -40/AUTOEV; */
-  /* eminj = (double)(7148/AUTOEV); */
-  /* emaxj = (double)(7160/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
+  xshift = -40/AUTOEV;
+  eminj = (double)(7148/AUTOEV);
+  emaxj = (double)(7160/AUTOEV);
+  dej = (emaxj-eminj)/(double)maxgridj;
 
   /* for Fe3p 2p->3d transitions */
   /* eminj = (double)(726/AUTOEV); */
@@ -147,9 +155,9 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for Fe2pCN 2p->3d transitions */
-  eminj = (double)(722/AUTOEV);
-  emaxj = (double)(739/AUTOEV);
-  dej = (emaxj-eminj)/(double)maxgridj;
+  /* eminj = (double)(722/AUTOEV); */
+  /* emaxj = (double)(739/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   emink = -(double)(2/AUTOEV);
   emaxk = emink + (double)(14/AUTOEV);
@@ -159,8 +167,11 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   /* emaxk = emink + (double)(25/AUTOEV); */
   /* dek = (emaxk-emink)/(double)maxgridk; */
 
-  c1 = 2.0*powerl((fwhm/(2*sqrt(2*log(2)))),2);
-  c2 = fwhm/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
+  grms_in = 2.0*powerl((fwhm_in/(2*sqrt(2*log(2)))),2);
+  gvar_in = fwhm_in/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
+
+  grms_tr = 2.0*powerl((fwhm_tr/(2*sqrt(2*log(2)))),2);
+  gvar_tr = fwhm_tr/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
 
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     omegain = eminj+(jgrid*dej);
@@ -215,13 +226,14 @@ to allocate memory for \"omega_y[%d]\"\n",j);
             tmp_e = get_ediff(iroot, gs_idx, is_idx);
 
             /* differences for.. */
+            /* .. excitation energy */
             ediffj = omega_x[jgrid][kgrid] - tmp_e; /* .. excitation energy */
 
             /* .. energy transfer */
-            ediffk = omega_y[jgrid][kgrid] - (tmp_e + get_ediff(iroot, is_idx, fs_idx));
+            ediffk = omega_y[jgrid][kgrid] - (tmp_e + (get_ediff(iroot, is_idx, fs_idx)));
 
-            tmp = tmom_jk*tmom_km*bw*exp(-(powerl(ediffj,2))/c1)/c2*dej;
-            tmp *= exp(-(powerl(ediffk,2))/c1)/c2*dek;
+            tmp = tmom_jk*tmom_km*bw*exp(-(powerl(ediffj,2))/grms_in)/gvar_tr*dej;
+            tmp *= exp(-(powerl(ediffk,2))/grms_tr)/gvar_tr*dek;
 
             rixsmap[jgrid][kgrid] += tmp;
           }
@@ -255,24 +267,24 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   }
 
   /* add a spectrum to the node */
-  init_spec(iroot, rixsmap, iroot -> n_spec, 1,maxgridj,maxgridk);
-  specs2s(iroot);
-  free_spec_stack(iroot, iroot -> root_spec, 1);
-  specs2s(iroot);
-  printf( "\n\nadding layers\n\n" );
-  /* test the layering */
-  printf( "\n\nadding layer 1\n\n" );
-  init_spec(iroot, rixsmap, iroot -> n_spec, 1,maxgridj,maxgridk);
-  specs2s(iroot);
-  printf( "\n\nadding layer 2\n\n" );
-  init_spec(iroot, rixsmap, 1, 2,maxgridj,maxgridk);
-  specs2s(iroot);
-  /* init_spec(iroot, rixsmap, 1, 3,maxgridj,maxgridk); */
+  /* init_spec(iroot, rixsmap, iroot -> n_spec, 1,maxgridj,maxgridk); */
   /* specs2s(iroot); */
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
-  free_spec_stack(iroot, iroot -> root_spec, 1);
-  specs2s(iroot);
+  /* free_spec_stack(iroot, iroot -> root_spec, 1); */
+  /* specs2s(iroot); */
+  /* printf( "\n\nadding layers\n\n" ); */
+  /* /\* test the layering *\/ */
+  /* printf( "\n\nadding layer 1\n\n" ); */
+  /* init_spec(iroot, rixsmap, iroot -> n_spec, 1,maxgridj,maxgridk); */
+  /* specs2s(iroot); */
+  /* printf( "\n\nadding layer 2\n\n" ); */
+  /* init_spec(iroot, rixsmap, 1, 2,maxgridj,maxgridk); */
+  /* specs2s(iroot); */
+  /* /\* init_spec(iroot, rixsmap, 1, 3,maxgridj,maxgridk); *\/ */
+  /* /\* specs2s(iroot); *\/ */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
+  /* free_spec_stack(iroot, iroot -> root_spec, 1); */
+  /* specs2s(iroot); */
 
   free(omega_x);
   free(omega_y);

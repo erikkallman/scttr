@@ -37,6 +37,9 @@ struct e_state_s{
    /* transition moments values for each transition found in idxs_to */
   double * t_moms;
 
+   /* transition moments types for each transition found in idxs_to */
+  double * ttypes;
+
   /* energy eigenvalues for the "to" state */
   double * e_vals;
 

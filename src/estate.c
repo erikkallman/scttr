@@ -7,23 +7,101 @@
 #include "appc.h"
 #include "sci_const.h"
 #include "std_num_ops.h"
+#include "std_char_ops.h"
+#define AR_FLAG 1
 
 void
 sort_states (double * state_er,
              double * e_vals,
              int ** groups,
              int n_states){
-  int j,k,l; /* looping variables */
 
-  k = l = 1;
-  for (j=0; j<n_states; j++) {
-    if ((state_er[1] <= e_vals[j]) && (state_er[2]>=e_vals[j])) {
+  int j,k,l; /* looping variables */
+  int lr,hr;
+  int r_val; /* index to the range value that needs replacing */
+  int group_idx;
+
+  int * m;
+
+  /* for (j=0; j<2; j++) { */
+  /*   printf( "total in group %d = %d\n", j+1, groups[j][0]); */
+  /*   for (k=1; k<groups[j][0]; k++) { */
+  /*     printf( "groups[%d][%d] = %d\n", j, k, groups[j][k]); */
+  /*   } */
+  /* } */
+  double e_val;
+  /* message sent to user if values outside of the ranges specified are fund */
+  /* printf( "current ranges:\n" ); */
+  /* for (j=1; j<state_er[0]; j++) { */
+  /*   printf( "%le,", state_er[j]); */
+  /* } */
+  /* printf( "\n" ); */
+
+  k = 2; /* the lowest energy ground state is already added to group 1 */
+  l = 1;
+
+  groups[0][1] = 1;
+
+  groups[0][0] = 1;
+  groups[1][0] = 0;
+
+  for (j=1; j<n_states; j++) {
+    e_val = (e_vals[j] - e_vals[0])*AUTOEV;
+    if ((state_er[1] <= e_val) && (state_er[2] >= e_val)) {
       groups[0][k] = j+1;
       groups[0][0] = k++;
     }
-    else if ((state_er[3] <= e_vals[j]) && (state_er[4] >= e_vals[j])){
+    else if (((state_er[3] <= e_val) && (state_er[4] >= e_val)) &&
+             !(e_val >= (state_er[4]+1000))){
       groups[1][l] = j+1;
       groups[1][0] = l++;
+    }
+    else {
+      /* the energy value is either between the two ranges, above the highest
+         or below the lowest */
+
+      /* manually edit the ranges from user input */
+      if (AR_FLAG) {
+        r_val = send_range_qmsg(state_er,e_val);
+      }
+      else { /* make an edjucated guess on where the value belongs. note that
+                this is an unreliable approach that should be avoided by always
+                allowing manual editing as above. */
+        if (e_val < state_er[1]){
+          /* printf( "\nlower than low\n" ); */
+          r_val = 1;
+        }
+        else if (e_val > state_er[4]){
+          /* printf( "\nhigher than high\n" ); */
+          r_val = 4;
+        }
+        /* the value is between the two ranges. if the distance to the lowest high
+           range is shorter than the distance to the highest low range */
+        else if (pyth_distl(e_val,state_er[2]) < pyth_distl(e_val,state_er[3])){
+          /* printf( "\nbetween, closer to low\n" ); */
+          r_val = 2;
+        }
+        else {
+          /* printf( "\nbetween, closer to high\n" ); */
+          r_val = 3;
+        }
+      }
+      state_er[r_val] = e_val;
+
+      if ((r_val == 1) || (r_val == 2)) {
+        group_idx = 0;
+        m = &k;
+      } else {
+        group_idx = 1;
+        m = &l;
+      }
+
+      /* add the value to its corresponding group */
+      groups[group_idx][*m] = j;
+      groups[group_idx][0] = *m;
+      *m = *m+1;
+
+      sort_states(state_er, e_vals, groups, n_states);
     }
   }
 }
@@ -234,19 +312,19 @@ states left to process.\n", l, n_states);
   /* for (j=0; j<n_states; j++) { */
   /*   printf( "%le\n", e_vals[j]); */
   /* } */
-  if (state_er[0] = 0) {
+
+  if (state_er[0] == 0) {
     /* use the k-means algorithm to do a preliminary sorting of the states */
     k_meansl(e_vals, groups, n_states);
   } else {
     sort_states(state_er, e_vals, groups, n_states);
   }
   /* for (j=0; j<2; j++) { */
+  /*   printf( "total in group %d = %d\n", j+1, groups[j][0]); */
   /*   for (k=1; k<=groups[j][0]; k++) { */
   /*     printf( "groups[%d][%d] = %d\n", j, k, groups[j][k]); */
   /*   } */
   /* } */
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
   /* check so that all states were classified */
   if ((groups[0][0] + groups[1][0]) != n_states) {
     fprintf(stderr, "\n\nError: parse_input.c:set_estate_list, some states\
@@ -255,6 +333,7 @@ final, or intermediate.\n", l, n_states);
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
+
 
   /* based on the fact that the transitions between states inside the same
      group will be too low to get included in the data tree, we can sort

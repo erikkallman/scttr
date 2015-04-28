@@ -2,6 +2,7 @@
 #define E_STATE_LL_H
 #include "structs.h"
 
+
 /* function sort_states
 
    * synopsis:

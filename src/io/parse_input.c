@@ -28,8 +28,6 @@ screen_states (char * fn_infile,
                ){
   printf( "  -screening states\n\n" );
 
-             int n_args,
-             ...){
   info_node inode = get_inode(fn_infile);
 
   int j,k; /* looping variables */
@@ -269,7 +267,7 @@ parse_input_molcas (double * state_er,
   m = 0; /* index for string matches */
   mode = 0; /* start of in string search mode */
 
-  /* read char by char */
+  /* read the Molcas input file */
   for (j=0; ((c = fgetc(fp_infile)) != EOF); j++, k++) {
     str_buf[k] = (char) c;
 
@@ -317,6 +315,8 @@ parse_input_molcas (double * state_er,
               l++;
               mode = bin_flip(mode); /* switch back to mode 0 */
               match_vals[n_matchfound];
+
+              /* write the extracted input data to a temporary file */
               fprintf(fp_tmpdata,DAT_DELIM, n_matchfound );
               n_matchfound++; /* one data block was found */
             }
@@ -399,7 +399,7 @@ for pointers in \"input_data\"\n");
     exit(1);
   }
 
-  num_idxs1[0] = 2;
+  num_idxs1[0] = 1;
   int n_idxs1 = 1;
 
   num_idxs2[0] = 0;
@@ -408,6 +408,8 @@ for pointers in \"input_data\"\n");
   int n_idxs2 = 3;
   j = l = m = 0;
 
+  /* now that data structures of the rights size has memory allocated for
+     them, start reading data from the temporary file */
   rewind(fp_tmpdata);
   while ((c = fgetc(fp_tmpdata)) != EOF) {
 
@@ -511,6 +513,7 @@ parse_input (double * state_er,
 
       if (strcmp(format,MOLCAS_FORMAT)){
         parse_input_molcas(state_er, fn_infile);
+
         break; /* for */
       }
 

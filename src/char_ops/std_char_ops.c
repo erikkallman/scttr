@@ -9,6 +9,35 @@
 #define isddash(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
 
 int
+send_range_qmsg (double * state_er,
+                 double eval
+                ){
+  int j; /* counter for number of values printed */
+  int k; /* counter for number of lines of values printed */
+  int r; /* response from the query */
+
+
+  printf("\n\nWhich of the following energy ranges do you want to extend with %le\
+?\n",  eval);
+
+  for (j=2,k=1,r=1; r<state_er[0]+1; r++,j++) {
+    if (j == 2) {
+      if (r > 1) {
+        printf( "\n" );
+      }
+      printf( "%d: ",k);
+      k++;
+      j = 0;
+    }
+    printf( "%le ", state_er[r]);
+  }
+
+  printf( "\nPick one of the above indices : ");
+  scanf("%d",&r);
+  return r;
+}
+
+int
 charinstr (char * str,
            char c){
   int j;

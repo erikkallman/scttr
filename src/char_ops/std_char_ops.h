@@ -1,6 +1,24 @@
 #ifndef CHAR_OPS_H
 #define CHAR_OPS_H
 
+/* function send_range_qmsg
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+send_range_qmsg (double * state_er,
+                 double eval
+                );
+
 /* function charinstr
 
    * synopsis:

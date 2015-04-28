@@ -129,7 +129,8 @@ main (int argc, char * argv[]) {
           k = 0;
         }
       }
-      state_er[0] = n_er;
+      state_er[0] = n_er-1;
+
       break;
 
     case 't' :
