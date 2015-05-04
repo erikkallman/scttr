@@ -483,6 +483,199 @@ for pointers in \"input_data\"\n");
   return init_data_branch(state_er, parsed_input,n_states,n_trans,fn_infile);
 
 }
+int
+parse_input_tmp (double * state_er,
+                 char * fn_tmpdata
+                 ) {
+
+  int j,k,l,m,i,n,k_its; /* control loop variables */
+  int mode; /* string matching mode flag */
+  int match_start;
+  int match_end;
+  int idx_from;
+  int idx_to;
+
+  int n_states = 0;
+  int n_trans = 0;
+
+  int * num_idxs1;
+  int * num_idxs2;
+
+  double ** parsed_input;
+  double * e_eigval;
+  double ** trans_idxs;
+  double * t_mom;
+
+  FILE * fp_tmpdata;
+
+  int n_matchfound = 0;
+  int match_vals[2] = {0,0}; /* place to store the indexes of the lines containing the
+                              matches */
+
+  int c; /* temporary char for storing input file characters */
+  /* we are looking for four strings in the output file: one at the beginning
+     of each data block, and one at the end. */
+  char * str_buf = malloc(BUF_SIZE*2);
+  const char DAT_DELIM[32] =  "============ data block finish\n";
+
+
+  /* open the input file */
+  if((fp_tmpdata = fopen(fn_tmpdata, "r")) == NULL) {
+    fprintf(stderr,"parse_input: unable to open the input file %s.\n",fn_tmpdata);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  k = 0; /* index for tmp_string */
+  l = 0; /* index for lookup string */
+
+  /* storage for the energy eigenvalues */
+  if((e_eigval = malloc(10000*sizeof(double))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  /* storage for the transition moments */
+  if((t_mom = malloc(10000*sizeof(double))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+    /* storage for the transition indexes, column 1 is from a state
+     column 2 is to state index */
+  if((trans_idxs = malloc(2*sizeof(double*))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<2; j++) {
+    if((trans_idxs[j] = malloc(10000*sizeof(double))) == NULL ){
+      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  if((num_idxs1 = malloc(sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((num_idxs2 = malloc(3*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"e_eigval\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  num_idxs1[0] = 1;
+  int n_idxs1 = 1;
+
+  num_idxs2[0] = 0;
+  num_idxs2[1] = 1;
+  num_idxs2[2] = 6;
+  int n_idxs2 = 3;
+
+  j = l = m = 0;
+
+  /* now that data structures of the rights size has memory allocated for
+     them, start reading data from the temporary file */
+  /* rewind(fp_tmpdata); */
+  while ((c = fgetc(fp_tmpdata)) != EOF) {
+
+    str_buf[l] = (char)c;
+
+    if ((str_buf[l] == '\n') && (l > 0)) { /* dont send blank lines */
+      /* printf( "%s",str_buf ); */
+      if (strcmp(DAT_DELIM, str_buf) <= 0) {
+        l = 0; /* index for string matches */
+        j=2;
+        /* printf( "Found the delimiter\n" ); */
+        /* sleep(1); */
+      }
+      else{
+        if ((j == 0) && (isempty(str_buf,l) != 1)) {
+
+          /* extract energy eigenvalues and state indexes */
+          get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[n_states]);
+          /* printf( "e_eigval[%d] = %le\n", n_states+1, e_eigval[n_states]); */
+          n_states++;
+        }
+        else if ((j == 2) && (isempty(str_buf,l) != 1)) {
+          /* extract transition moments and transition indexes */
+
+          get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][n_trans],\
+                    &trans_idxs[1][n_trans],&t_mom[n_trans]);
+          /* if (trans_idxs[1][m] >= 1000) { */
+            /* printf( "to %le from %le, %le \n", trans_idxs[0][n_trans], \ */
+            /*         trans_idxs[1][n_trans], t_mom[n_trans]); */
+          /* } */
+
+          n_trans++;
+        }
+        l=0; /* reset the buffer write head to start reading a the next line */
+      }
+    }
+    else{
+      l++;
+    }
+  }
+
+  /* allocate space for the "parsed input matrix" that will be filled with data
+     in the remaining sections of this function */
+
+  if((parsed_input = malloc(5*sizeof(double*))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"input_data\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<5; j++) {
+    if((parsed_input[j] = malloc(n_trans*sizeof(double))) == NULL ){
+      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
+for pointers in \"input_data\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+  /* finally, store the data in the parsed_input matrix for the parse_input function  */
+  for (j=0; j<n_trans; j++) {
+    idx_from = trans_idxs[0][j];
+    idx_to = trans_idxs[1][j];
+    parsed_input[0][j] = idx_from;
+    parsed_input[1][j] = idx_to;
+    parsed_input[2][j] = e_eigval[idx_from-1];
+    parsed_input[3][j] = e_eigval[idx_to-1];
+    parsed_input[4][j] = t_mom[j];
+  }
+
+  /* for (k=0; k<n_trans; k++) { */
+  /*   printf( "%le   %le   %le   %le   %le\n", parsed_input[0][k], parsed_input[1][k], parsed_input[2][k], parsed_input[3][k], parsed_input[4][k]); */
+  /* } */
+
+  fclose(fp_tmpdata);
+
+  free(str_buf);
+  free(num_idxs1);
+  free(num_idxs2);
+
+  free(e_eigval);
+
+  free(t_mom);
+  free(trans_idxs);
+
+  return init_data_branch(state_er, parsed_input,n_states,n_trans,fn_tmpdata);
+
+}
 
 int
 parse_input (double * state_er,
@@ -505,25 +698,29 @@ parse_input (double * state_er,
      e_t = energy corresponding to idx_t
      mom = the transition moment for the transition
   */
+  j = len_fn;
+  while(fn_infile[--j] != '.'){};
 
   /* loop over the input file name and extract the ending */
-  for (j=len_fn; j>0; j--) {
-    format[j] = fn_infile[j-3];
-    if (format[j] = '.') {
+  for (k=0; j<len_fn; j++) {
+    format[k] = fn_infile[j];
+    k++;
+  }
+  format[k] = '\0';
 
-      if (strcmp(format,MOLCAS_FORMAT)){
-        parse_input_molcas(state_er, fn_infile);
-
-        break; /* for */
-      }
-
-      else {
-        fprintf(stderr, "format not found in input_formats.h. are you sure the\
- file extension %s is correct?\n",format);
-        printf( "program terminating due to the previous error.\n");
-        exit(1);
-      }
-    }
+  if (strcmp(format,MOLCAS_FORMAT) == 0){
+    /* printf( "PARSING 2 %d\n",strcmp(format,MOLCAS_FORMAT) ); */
+    parse_input_molcas(state_er, fn_infile);
+  }
+  else if (strcmp(format,TMP_FORMAT) == 0){
+    parse_input_tmp(state_er, fn_infile);
+  }
+  else {
+    fprintf(stderr, "format not found in input_formats.h. are you sure the\
+ file extension \"%s\" is correct?\n",format);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+    parse_input_tmp(state_er, fn_infile);
   }
 
   return EXIT_SUCCESS;

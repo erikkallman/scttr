@@ -11,6 +11,12 @@
 #define AR_FLAG 1
 
 void
+set_ttypes (double * state_er,
+            info_node inode) {
+
+}
+
+void
 sort_states (double * state_er,
              double * e_vals,
              int ** groups,
@@ -334,7 +340,6 @@ final, or intermediate.\n", l, n_states);
     exit(1);
   }
 
-
   /* based on the fact that the transitions between states inside the same
      group will be too low to get included in the data tree, we can sort
      out any state indices that ended up in the wrong category in the k_means
@@ -375,6 +380,8 @@ final, or intermediate.\n", l, n_states);
     }
   }
 
+  /* if we want to take symmetric transitions into account, add the right ground
+   states to the corresponding final states */
   if (SYM == 1) {
     set_symtrans(curr_inode);
   }
@@ -382,8 +389,11 @@ final, or intermediate.\n", l, n_states);
   curr_inode -> bw_sum = bw_s;
   reset_info_maxvals(curr_inode);
 
-  /* finally, if we want to take symmetric transitions into account, add the right ground
-   states to the corresponding final states */
+  /* if more than one range was provided in the CLI, this means the user
+   wants to read more than one range of intermediate states (dipole transitions for example) */
+  if (state_er[0] > 4) {
+    set_ttypes(state_er,curr_inode);
+  }
 
   /* e_statelist2s(curr_inode,1); */
 

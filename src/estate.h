@@ -2,6 +2,22 @@
 #define E_STATE_LL_H
 #include "structs.h"
 
+/* function set_ttypes
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+void
+set_ttypes (double * state_er,
+            info_node inode);
 
 /* function sort_states
 
