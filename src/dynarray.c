@@ -3,6 +3,50 @@
 #include "std_num_ops.h"
 #include "dynarray.h"
 
+int
+isiniis (mdda_s * igs,
+         mdda_s * iis){
+
+  int j,k,l;
+  int n_fs,n_is;
+  int n_gfs;
+  int gfs_idx;
+  int gs_idx,is_idx;
+  int found;
+
+  mdda_s * curr_mdda;
+  mdda_s * next_mdda;
+
+  if ((n_gfs = mdda_get(igs,0,0)) != 0) {
+    for (j=1; j<n_gfs+1; j++) { /* loop over ground states */
+      gs_idx = mdda_get(igs, 0, j);
+      if ((n_is = mdda_get(igs, j, 0)) != 0) {
+        for (k=1; k<n_is+1; k++) {
+          is_idx = mdda_get(igs, j, k);
+          /* check so that every IS for every GS is in the igs */
+          /* printf( "gs_idx = %d, is_idx\n",gs_idx, is_idx); */
+          curr_mdda = iis;
+          next_mdda = curr_mdda;
+
+          for (found = 0, l=1; l<=mdda_get(iis,0,0); l++) {
+            if (is_idx == mdda_get(iis,0,l) ) {
+              /* printf( "found !\n" ); */
+              /* printf( "is_idx = %d\n",mdda_get(iis,0,l)); */
+              found = 1;
+              break;
+            }
+          }
+          if (!found) {
+            return EXIT_FAILURE;
+          }
+        }
+      }
+    }
+  }
+
+  return EXIT_SUCCESS;
+}
+
 void da_init(da_s *da) {
   // initialize size and capacity
   da->size = 1;
@@ -87,7 +131,7 @@ void mdda_append(mdda_s *mdda, int val) {
 int da_get(da_s *da, int index) {
   if (index >= (da->size+1) || index < 0) {
     printf("da_get: Index %d out of bounds for da of size %d\n", index, da->size);
-    exit(1);
+    return 0;
   }
   return da->data[index];
 }
@@ -160,69 +204,76 @@ void da_double_capacity_if_full(da_s *da) {
   }
 }
 
-void mdda2s(mdda_s * mdda){
-  int j,k,l,m; /* looping variables */
-  int jgrid,kgrid; /* looping variables */
+/* void mdda2s(mdda_s * mdda){ */
+/*   int j,k,l,m; /\* looping variables *\/ */
+/*   int jgrid,kgrid; /\* looping variables *\/ */
 
-  int n_fs,n_is;
-  int n_gfs = mdda_get(mdda, 0, 0);
-  int gs_idx,is_idx,fs_idx;
-
-
-  mdda_s * root_mdda = (mdda -> root);
-  mdda_s * curr_mdda = mdda;
-  mdda_s * next_mdda = (mdda -> next);
-
-  /* get a pointer to the 0th column of iis */
-
-  mdda_s * iis = root_mdda -> branch;
-
-  curr_mdda = next_mdda;
-  printf( "\n  -printing the content of the screened state matrix:");
-  for (j=1; j<n_gfs+1; j++) {
-    next_mdda = (curr_mdda -> next);
-    gs_idx = mdda_get(mdda, 0, j);
-    printf( "\n   gs[%d/%d] = %d\n", j, n_gfs, gs_idx);
-    n_is = mdda_get(mdda, j, 0);
-    for (k=1; k<n_is+1; k++) {
-      is_idx = mdda_get(curr_mdda, j, k);
-      printf( "     is[%d/%d] = %d\n", k, n_is, is_idx);
+/*   int n_fs,n_is; */
+/*   int n_gfs = mdda_get(mdda, 0, 0); */
+/*   int gs_idx,is_idx,fs_idx; */
 
 
-      if (mdda_intinint(iis, is_idx)) {
+/*   mdda_s * root_mdda = (mdda -> root); */
+/*   mdda_s * curr_mdda = mdda; */
+/*   mdda_s * next_mdda = (mdda -> next); */
 
-        /* the IS index is in iis, meaning we can read and print final state
-         indices associated with that state*/
-        for (l=1; l<n_is+1; l++) {
-          if (mdda_get(iis, 0, l) == is_idx) {
-            break;
-          }
-        }
+/*   /\* get a pointer to the 0th column of iis *\/ */
 
-        n_fs = mdda_get(iis, l, 0);
-        /* l is the index of the column containing the final state indices
-         we're interested in */
-        for (m=1; m<n_fs+1; m++) {
-          fs_idx = mdda_get(iis, l, m);
-          printf( "       fs[%d/%d] = %d\n", m, n_fs, fs_idx);
-        }
-      }
-      /* check if the IS idx is in the iis index array on root*/
-      /* print error message if it isnt */
-      /* else, repeat the printing process above */
-    }
-    curr_mdda = next_mdda;
-  }
+/*   mdda_s * iis = root_mdda -> branch; */
 
-  /* while((next_mdda = (curr_mdda -> next)) != NULL ){ */
-  /*   if ((curr_mdda -> idxs) == ) { */
-  /*     /\* we found the right intermediate state data *\/ */
+/*   curr_mdda = next_mdda; */
+/*   printf( "\n  -printing the content of the screened state matrix:"); */
+/*   for (j=1; j<n_gfs+1; j++) { */
+/*     next_mdda = (curr_mdda -> next); */
+/*     gs_idx = mdda_get(mdda, 0, j); */
+/*     printf( "\n   gs[%d/%d] = %d\n", j, n_gfs, gs_idx); */
+/*     n_is = mdda_get(mdda, j, 0); */
 
-  /*   } */
+/*     for (k=1; k<n_is+1; k++) { */
+/*       if (is_idx = mdda_get(curr_mdda, j, k)) { */
+/*         printf( "     is[%d/%d] = %d\n", k, n_is, is_idx); */
+
+/*         if (mdda_intinint(iis, is_idx)) { */
+
+/*           /\* the IS index is in iis, meaning we can read and print final state */
+/*              indices associated with that state*\/ */
+/*           for (l=1; l<n_is+1; l++) { */
+/*             if (mdda_get(iis, 0, l) == is_idx) { */
+/*               break; */
+/*             } */
+/*           } */
+
+/*           n_fs = mdda_get(iis, l, 0); */
+/*           /\* l is the index of the column containing the final state indices */
+/*              we're interested in *\/ */
+
+/*           for (m=1; m<n_fs+1; m++) { */
+/*             if (fs_idx = mdda_get(iis, l, m) != 0) { */
+/*               printf( "       fs[%d/%d] = %d\n", m, n_fs, fs_idx); */
+/*             } */
+/*           } */
+/*         } */
+
+/*         /\* check if the IS idx is in the iis index array on root*\/ */
+/*         /\* print error message if it isnt *\/ */
+/*         /\* else, repeat the printing process above *\/ */
+/*       } */
+/*       fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+/*       exit(1); */
+/*     } */
+
+/*     curr_mdda = next_mdda; */
+/*   } */
+
+/*   /\* while((next_mdda = (curr_mdda -> next)) != NULL ){ *\/ */
+/*   /\*   if ((curr_mdda -> idxs) == ) { *\/ */
+/*   /\*     /\\* we found the right intermediate state data *\\/ *\/ */
+
+/*   /\*   } *\/ */
 
 
-  printf( "\n\n" );
-}
+/*   printf( "\n\n" ); */
+/* } */
 
 
 int
@@ -237,11 +288,35 @@ void da_free(da_s *da) {
   free(da->data);
 }
 
+void mdda2s(mdda_s * mdda){
+  int j,k;
+  int n_cs;
+  int n_s;
+  int s_idx;
+
+  if ((n_s = mdda_get(mdda,0,0)) != 0) {
+    printf( "\ntranspose of mdda:\n" );
+    for (j=0; j<n_s+1; j++) { /* loop over ground states */
+      if ((n_cs = mdda_get(mdda, j, 0)) != 0) {
+        for (k=0; k<n_cs+1; k++) {
+          if ((s_idx = mdda_get(mdda, j, k)) != 0) {
+            printf( "%d, ", s_idx);
+          }
+        }
+        printf( "\n" );
+      }
+    }
+  }
+}
+
 void
 mdda_show (mdda_s * mdda){
 
   int j,k;
   int n_fs,n_is;
+  int n_gfs;
+  int gfs_idx;
+  int is_idx;
 
   mdda_s * root_mdda = (mdda -> root);
   mdda_s * curr_mdda = mdda;
@@ -250,29 +325,35 @@ mdda_show (mdda_s * mdda){
   mdda_s * igs = root_mdda;
   mdda_s * iis = root_mdda -> branch;
 
-  int n_gfs  = mdda_get(igs,0,0);
-
-  printf( "\ntranspose of igs:\n" );
-  for (j=0; j<n_gfs+1; j++) { /* loop over ground states */
-
-    n_is = mdda_get(igs, j, 0);
-    for (k=0; k<n_is+1; k++) {
-      printf( "%d, ", mdda_get(igs, j, k));
+  if ((n_gfs = mdda_get(igs,0,0)) != 0) {
+    printf( "\ntranspose of igs:\n" );
+    for (j=0; j<n_gfs+1; j++) { /* loop over ground states */
+      if ((n_is = mdda_get(igs, j, 0)) != 0) {
+        for (k=0; k<n_is+1; k++) {
+          if ((gfs_idx = mdda_get(igs, j, k)) != 0) {
+            printf( "%d, ", gfs_idx);
+          }
+        }
+        printf( "\n" );
+      }
     }
-    printf( "\n" );
   }
-
-  printf( "\ntranspose of iis:\n" );
-  n_is = mdda_get(iis, 0, 0);
-  for (j=0; j<n_is+1; j++) { /* loop over ground states */
-
-    n_fs = mdda_get(iis, j, 0);
-    for (k=0; k<n_fs+1; k++) {
-      printf( "%d, ", mdda_get(iis, j, k));
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
+  if ((n_is = mdda_get(iis, 0, 0)) != 0) {
+    printf( "\ntranspose of iis:\n" );
+    for (j=0; j<n_is+1; j++) { /* loop over ground states */
+      if ((n_fs = mdda_get(iis, j, 0)) != 0) {
+        for (k=0; k<n_fs+1; k++) {
+          if ((gfs_idx = mdda_get(iis, j, k)) != 0) {
+            printf( "%d, ", gfs_idx);
+          }
+        }
+        printf( "\n" );
+      }
     }
-    printf( "\n" );
+    printf( "\n\n" );
   }
-  printf( "\n\n" );
 }
 
 

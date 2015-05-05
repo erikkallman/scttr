@@ -43,7 +43,6 @@ screen_states (char * fn_infile,
   int n_sis = 0;
   int n_tmpsis = 0; /* number of IS for a specific GS */
   int n_sfs = 0;
-  int n_tmpsfs; /* number of FS for a specific IS */
 
   int * tmp_idxs;
 
@@ -132,7 +131,8 @@ screen_states (char * fn_infile,
                 /* perform stage 3 of the screening process */
                 /* find final state transitions that pass stage 3 screening */
                 for (k=0; k < (curr_state -> n_tfrom); k++) {
-                  /* printf( "    FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n", k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), state_t[2]); */
+                  /* printf( "    is %d -> FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n",is_idx, k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/(inode -> mt_fs)), state_t[3]); */
+                  /* screen the final state */
                   if ((((curr_state -> t_moms)[k])/(inode -> mt_fs)) >= state_t[3]) {
                     /* from the intermediate state found above, we also found a
                        final state transition with high enough relative
@@ -142,20 +142,41 @@ screen_states (char * fn_infile,
                     mdda_set(iis, n_sis, 0, n_sfs);
                     mdda_set(iis, n_sis, n_sfs, (curr_state -> idxs_to)[k]);
 
-                    /* printf("    fs[%d][%d] = %d %le\n", n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> mt_fs))); */
+                    /* printf("    is %d -> fs[%d][%d] = %d %le\n",is_idx, n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/(inode -> mt_fs))); */
                   }/*  else { */
-                  /* printf( "    FS not accepted.\n" ); */
+                  /*   printf( "    is %d -> FS not accepted.\n",is_idx ); */
                   /* } */
                 }
-              }
-
               /* if we looped over all final state transitions for this specific
                  intermediate state and didnt find any FS transitions of high
                  enough intensity, remove that intermediate state from the list */
-              /* if (n_sfs == 0) { */
-              /*   n_sis--; */
-              /*   mdda_set(igs, n_sgs, 0, n_sis); */
-              /* } */
+                if (n_sfs == 0) {
+                  /* printf( "\nis %d: %d %d %d\n",is_idx, n_sgs, n_tmpsis, n_sis); */
+                  /* mdda2s(igs); */
+                  /* mdda2s(iis); */
+                  mdda_set(iis, 0, 0, n_sis-1);
+                  mdda_set(iis, 0, n_sis, 0);
+                  mdda_set(iis, n_sis, 0, 0);
+                  mdda_set(iis, n_sis, n_sfs, 0);
+
+                  mdda_set(igs, n_sgs, 0, n_tmpsis-1);
+                  mdda_set(igs, n_sgs, n_tmpsis, 0);
+                  /* mdda_set(igs, n_sgs, n_tmpsis, n_tmpsis); */
+                  /* mdda_show(igs); */
+
+                  n_sis--;
+                  n_tmpsis--;
+                  /* mdda2s(igs); */
+                  /* mdda2s(iis); */
+                  /* printf( "\nstate treshold: %le\n", (inode -> mt_is)*state_t[2]); */
+                  /* e_state2s(get_state_si(inode, gs_idx),2); */
+
+                  /* printf( "\nstate treshold: %le\n", (inode -> mt_fs)*state_t[3]); */
+                  /* e_state2s(get_state_si(inode, is_idx),1); */
+                  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+                  /* exit(1); */
+                }
+              }
             }
 
             curr_state = is_bm; /* reset the state to the last initial state */
@@ -172,11 +193,23 @@ screen_states (char * fn_infile,
 
     curr_state = next_state;
   }
+
+  /* check so that every IS index in the igs is also in the iis array */
+  if (isiniis(igs,iis)) {
+    fprintf(stderr, "Error: parse_input.c, function screen_states, while \
+screening the transitions, the arrays storing the state indices got corrupted \
+ and some intermediate states will be excluded from the RIXS map. this is not \
+ acceptable. \n");
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
   /* mdda_show(igs); */
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
   mdda_set_branch(igs, iis, 0, 0 );
-
+  mdda_show(igs);
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   return (igs->root);
 }
 
@@ -530,7 +563,7 @@ parse_input_tmp (double * state_er,
   l = 0; /* index for lookup string */
 
   /* storage for the energy eigenvalues */
-  if((e_eigval = malloc(10000*sizeof(double))) == NULL ){
+  if((e_eigval = malloc(100000*sizeof(double))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
     printf( "program terminating due to the previous error.\n");
@@ -538,7 +571,7 @@ parse_input_tmp (double * state_er,
   }
 
   /* storage for the transition moments */
-  if((t_mom = malloc(10000*sizeof(double))) == NULL ){
+  if((t_mom = malloc(100000*sizeof(double))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
     printf( "program terminating due to the previous error.\n");
@@ -554,7 +587,7 @@ parse_input_tmp (double * state_er,
   }
 
   for (j=0; j<2; j++) {
-    if((trans_idxs[j] = malloc(10000*sizeof(double))) == NULL ){
+    if((trans_idxs[j] = malloc(100000*sizeof(double))) == NULL ){
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
       printf( "program terminating due to the previous error.\n");
@@ -618,7 +651,6 @@ parse_input_tmp (double * state_er,
             /* printf( "to %le from %le, %le \n", trans_idxs[0][n_trans], \ */
             /*         trans_idxs[1][n_trans], t_mom[n_trans]); */
           /* } */
-
           n_trans++;
         }
         l=0; /* reset the buffer write head to start reading a the next line */

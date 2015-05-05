@@ -128,15 +128,15 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   fwhm_tr = (double)0.3/AUTOEV;
   fwhm_in = (double)1.25/AUTOEV;
   /* /\* for Fe2p 2p->3d transitions *\/ */
-  /* eminj = (double)(722/AUTOEV); */
-  /* emaxj = (double)(739/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
+  eminj = (double)(722/AUTOEV);
+  emaxj = (double)(739/AUTOEV);
+  dej = (emaxj-eminj)/(double)maxgridj;
 
   /* for Fe2p 1s->3d transitions */
-  xshift = -40/AUTOEV;
-  eminj = (double)(7148/AUTOEV);
-  emaxj = (double)(7160/AUTOEV);
-  dej = (emaxj-eminj)/(double)maxgridj;
+  /* xshift = -40/AUTOEV; */
+  /* eminj = (double)(7148/AUTOEV); */
+  /* emaxj = (double)(7160/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for Fe3p 2p->3d transitions */
   /* eminj = (double)(726/AUTOEV); */

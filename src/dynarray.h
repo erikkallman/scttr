@@ -28,6 +28,24 @@ struct mdda_s{
   mdda_s * next; /* pointer to the next mdda in the array */
 }; /* multi-dimensional dynamic array */
 
+/* function isiniis
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+isiniis (mdda_s * igs,
+         mdda_s * iis
+         );
+
 void da_init(da_s *da);
 
 /* any node will always have a size of minimum 1 since the 0th element is
@@ -46,6 +64,32 @@ mdda_s * mdda_get_node(mdda_s *mdda, int c);
 
 void da_set(da_s *da, int index, int value);
 
+
+/* function mdda_set
+
+   * synopsis:
+   this function sets the element in column @c and row @r to the value @value.
+
+   * algorithm:
+   obtain a local reference to the @mdda node, use da_set to add the value to
+   the element in the data array of the node, identified by the row number @r.
+   use the da_append function to both zero-pad the array (if needed) and set
+   the right element to the right number.
+
+   * input:
+   mdda : the multi-dimensional dynamic array column
+   c : the column index of the mdda
+   r : the row index of the column c
+   value : the value the [c,r] element will be set to
+
+   * output:    none
+
+   * side-effects:
+   the size of the data array of column node c will be increased as new values
+   are added to it. also, the data array will be padded with zeros up until the
+   [c,r] element if this is not yet allocated.
+
+   */
 void mdda_set(mdda_s *mdda, int c, int r, int value);
 
 void
