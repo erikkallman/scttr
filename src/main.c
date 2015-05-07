@@ -14,13 +14,15 @@ main (int argc, char * argv[]) {
   int j,k,l; /* iteration variables */
   int n_t; /* number of numbers read from input flag */
   int n_er; /* number of numbers eigenstate energy values provided */
+  int n_mom;
   int len_fn = 0;
   int len_mn = 0;
   int dbg_flag;
+  int * mom = malloc(4*sizeof(int));
   /* arrays for storing input file name data */
   char * input_sbuff = malloc(BUF_SIZE);
   char * fn_infile;
-  char * method;
+  char method[5] = "test";
   char * num_buf;
 
 
@@ -31,6 +33,7 @@ main (int argc, char * argv[]) {
   double * state_t = malloc(7*sizeof(double));
   /* initial/final and intermediate state energy ranges */
   double * state_er = malloc(9*sizeof(double));
+
   state_t[0] = 0;
   state_er[0] = 0;
 
@@ -56,40 +59,79 @@ main (int argc, char * argv[]) {
       break;
 
     case 'i' :
-      printf( "processing input file: " );
+      /* printf( "processing input file: " ); */
 
       for (j=3; argv[1][j] != '\0'; j++) {
         input_sbuff[j-3] = argv[1][j];
-        printf( "%c", input_sbuff[j-3]);
+        /* printf( "%c", input_sbuff[j-3]); */
       }
 
-      printf( "\n" );
+      /* printf( "\n" ); */
       len_fn = j-3;
       fn_infile = malloc(len_fn+1);
 
       for (j=0; j<len_fn; j++) {
         fn_infile[j] = input_sbuff[j];
-        printf( "%c", fn_infile[j]);
+        /* printf( "%c", fn_infile[j]); */
       }
-      printf( "\n" );
+      /* printf( "\n" ); */
       fn_infile[len_fn] = '\0';
 
       break;
 
-    case 'm' :
-      /* the user specified a method to be used for calculating the scattering map */
-      for (j=3; argv[1][j] != '\0'; j++) {
-        input_sbuff[j-3] = argv[1][j];
-      }
-      argv[1] + j;
-      len_mn = j-3;
-      method = malloc(len_mn+1);
+    /* case 'm' : */
+    /*   /\* the user specified a method to be used for calculating the scattering map *\/ */
+    /*   for (j=3; argv[1][j] != '\0'; j++) { */
+    /*     input_sbuff[j-3] = argv[1][j]; */
+    /*   } */
+    /*   argv[1] + j; */
+    /*   len_mn = j-3; */
+    /*   method = malloc(len_mn+1); */
 
-      for (j=0; j<len_mn; j++) {
-        method[j] = input_sbuff[j];
+    /*   for (j=0; j<len_mn; j++) { */
+    /*     method[j] = input_sbuff[j]; */
+    /*   } */
+    /*   method[len_mn] = '\0'; */
+    /*   printf( "got the method: %s\n", method); */
+
+    /*   break; */
+
+    case 'm' :
+      n_mom = 1;
+      /* the user specified a method to be used for calculating the scattering map */
+      for (j=3,k=0; argv[1][j] != '\0'; j++) {
+
+        input_sbuff[k++] = argv[1][j];
+        /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
+
+        if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
+          /* k--; /\* we dont want the comma or null sent to atof *\/ */
+          num_buf = malloc(k+1);
+
+          for (l=0; l<k; l++) {
+            num_buf[l] = input_sbuff[l];
+            /* printf( "%c", num_buf[l]); */
+          }
+          num_buf[k] = '\0';
+
+          /* printf( "\n" ); */
+
+          mom[n_mom] = atoi(num_buf);
+          free(num_buf);
+          num_buf = NULL;
+          n_mom++;
+          if ((n_mom > 2)) {
+            /* switch on the dipole+quadrupole flag  */
+            break;
+          }
+          if ((n_mom > 8)) {
+            break;
+          }
+
+          k = 0;
+        }
       }
-      method[len_mn] = '\0';
-      printf( "got the method: %s\n", method);
+      mom[0] = n_mom-1;
 
       break;
 
@@ -185,7 +227,7 @@ main (int argc, char * argv[]) {
     exit(EXIT_FAILURE);
   } else {
     /* extract the needed data from the input */
-    if (parse_input(state_er, fn_infile, len_fn+1)) {
+    if (parse_input(state_er, mom, fn_infile, len_fn+1)) {
       fprintf(stderr, "smap.c, main: unable to parse the input data \
 contained in %s.\n",fn_infile);
       printf( "program terminating due to the previous error.\n");
@@ -207,26 +249,36 @@ contained in %s.\n",fn_infile);
   for (j=1; j<n_er; j++) {
     printf( "%le, ", state_er[j]);
   }
-
   printf( "\n\n" );
+
+  printf( "  - transition moments:\n    " );
+
+  for (j=1; j<n_mom; j++) {
+    printf( "%d, ", mom[j]);
+  }
+  printf( "\n\n" );
+
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   printf( "  - method:\n    %s\n", method);
 
   printf( "\n\n" );
   printf( "execution progress:\n\n");
-
-  calc_smap_m(method, fn_infile, \
-              screen_states(fn_infile, state_t, state_er));
 
   if (dbg_flag == 1) {
     calc_smap_dbg(method, fn_infile,\
                   screen_states(fn_infile, state_t, state_er));
   }
 
-  free(method);
+  calc_smap_m(method, fn_infile, \
+              screen_states(fn_infile, state_t, state_er));
+
+
   free(fn_infile);
   free(input_sbuff);
   free(state_er);
   free(state_t);
+  free(mom);
   printf( "\nsmap successfully executed.\n" );
   printf( "program terminating.\n\n" );
 

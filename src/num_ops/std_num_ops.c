@@ -109,8 +109,8 @@ allocate memory for \"state_indices\"\n");
 
 double
 get_bdist (double e_val){
-  /* return exp((-e_val/(double)AUTOEV)/((1.380648813e-23)*(double)(TEXP*TTOEV))); */
-  return exp((-e_val*(double)AUTOEV)/((8.6173324e-05)*(double)(300)));
+  /* return exp(((e_val+1000)/(double)AUTOEV)/((1.380648813e-23)*(double)(TEXP*TTOEV))); */
+  return exp(((e_val+1000)*(double)AUTOEV)/((8.6173324e-05)*(double)TEXP));
 }
 
 double

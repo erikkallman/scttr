@@ -21,8 +21,6 @@ calc_smap_m (char * method,
              char * inode_id,
              mdda_s * mdda /* screened indices */
              ) {
-  printf( "  -calculating RIXS map.\n\n" );
-  /* printf( "calc_smap got this method: %s \n", method); */
   FILE * fp;
   /* open the placeholder file */
   if((fp=fopen("/home/kimchi/dev/smap/output/map.dat", "w"))==NULL) {
@@ -125,18 +123,20 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   /* mdda2s(root_mdda); */
   /* e_statelist2s(iroot,1); */
 
-  fwhm_tr = (double)0.3/AUTOEV;
-  fwhm_in = (double)1.25/AUTOEV;
+  /* ============= atomic systems ============= */
+
+  fwhm_tr = (double)0.8/AUTOEV;
+  fwhm_in = (double)1.2/AUTOEV;
   /* /\* for Fe2p 2p->3d transitions *\/ */
-  eminj = (double)(722/AUTOEV);
-  emaxj = (double)(739/AUTOEV);
-  dej = (emaxj-eminj)/(double)maxgridj;
+  /* eminj = (double)(722/AUTOEV); */
+  /* emaxj = (double)(739/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for Fe2p 1s->3d transitions */
+  eminj = (double)(7148/AUTOEV);
+  emaxj = (double)(7160/AUTOEV);
+  dej = (emaxj-eminj)/(double)maxgridj;
   /* xshift = -40/AUTOEV; */
-  /* eminj = (double)(7148/AUTOEV); */
-  /* emaxj = (double)(7160/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for Fe3p 2p->3d transitions */
   /* eminj = (double)(726/AUTOEV); */
@@ -149,14 +149,31 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   /* emaxj = (double)(7168/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
+  /* ============= cyanide complex systems ============= */
+
   /* Fe2pCN 1s -> 3d */
-  /* eminj = (double)(7125/AUTOEV); */
-  /* emaxj = (double)(7140/AUTOEV); */
+  /* fwhm_tr = (double)0.8/AUTOEV; */
+  /* fwhm_in = (double)1.2/AUTOEV; */
+  /* eminj = (double)(7130/AUTOEV); */
+  /* emaxj = (double)(7137/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   /* for Fe2pCN 2p->3d transitions */
-  /* eminj = (double)(722/AUTOEV); */
-  /* emaxj = (double)(739/AUTOEV); */
+  /* fwhm_tr = (double)0.8/AUTOEV; */
+  /* fwhm_in = (double)1.2/AUTOEV; */
+  /* eminj = (double)(710/AUTOEV); */
+  /* emaxj = (double)(730/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
+
+  /* for Fe3p 2p->3d transitions */
+  /* eminj = (double)(726/AUTOEV); */
+  /* emaxj = (double)(750/AUTOEV); */
+  /* dej = (emaxj-eminj)/(double)maxgridj; */
+
+  /* for Fe3p 1s->p3d transitions */
+  /* xshift = -49.5/AUTOEV; */
+  /* eminj = (double)(7158/AUTOEV); */
+  /* emaxj = (double)(7168/AUTOEV); */
   /* dej = (emaxj-eminj)/(double)maxgridj; */
 
   emink = -(double)(2/AUTOEV);
@@ -172,6 +189,8 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
   grms_tr = 2.0*powerl((fwhm_tr/(2*sqrt(2*log(2)))),2);
   gvar_tr = fwhm_tr/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
+
+  printf( "  -calculating the RIXS map\n");
 
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     omegain = eminj+(jgrid*dej);
@@ -201,8 +220,6 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
           tmom_jk = get_trans(tmp_gs, is_idx);
 
-          /* ediff_jk = get_ediff(iroot, gs_idx, is_idx); */
-
           /* the FS idices are not necessarily in order, so we have to look up
              the right offset for the right FS index first */
           for (l=1; l<n_is_proc+1; l++) {
@@ -223,14 +240,16 @@ to allocate memory for \"omega_y[%d]\"\n",j);
             tmp_fs = get_state_si(iroot,fs_idx);
             tmom_km = get_trans(tmp_is, fs_idx);
 
-            tmp_e = get_ediff(iroot, gs_idx, is_idx);
+            /* tmp_e = get_ediff(iroot, gs_idx, is_idx); */
+            tmp_e = get_ediff(tmp_gs,tmp_is);
 
             /* differences for.. */
             /* .. excitation energy */
             ediffj = omega_x[jgrid][kgrid] - tmp_e; /* .. excitation energy */
 
             /* .. energy transfer */
-            ediffk = omega_y[jgrid][kgrid] - (tmp_e + (get_ediff(iroot, is_idx, fs_idx)));
+            /* ediffk = omega_y[jgrid][kgrid] - (tmp_e + (get_ediff(iroot, is_idx, fs_idx))); */
+            ediffk = omega_y[jgrid][kgrid] - (tmp_e + (get_ediff(tmp_is,tmp_fs)));
 
             tmp = tmom_jk*tmom_km*bw*exp(-(powerl(ediffj,2))/grms_in)/gvar_tr*dej;
             tmp *= exp(-(powerl(ediffk,2))/grms_tr)/gvar_tr*dek;
@@ -242,6 +261,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
     }
   }
 
+  printf( "  -normalizing the calculated RIXS map\n");
   /* normalize the map */
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
@@ -381,7 +401,8 @@ calc_smap_dbg (char * method,
 
         tmom_km = get_trans(tmp_is, fs_idx);
 
-        fprintf(fp,"%d %d %d %le %le %le\n", gs_idx, is_idx, fs_idx, (get_ediff(iroot, gs_idx, is_idx)+xshift)*AUTOEV, (get_ediff(iroot, gs_idx, is_idx) + get_ediff(iroot, is_idx, fs_idx))*AUTOEV, tmom_jk*tmom_km);
+        /* fprintf(fp,"%d %d %d %le %le %le\n", gs_idx, is_idx, fs_idx, (get_ediff(iroot, gs_idx, is_idx)+xshift)*AUTOEV, (get_ediff(iroot, gs_idx, is_idx) + get_ediff(iroot, is_idx, fs_idx))*AUTOEV, tmom_jk*tmom_km); */
+        fprintf(fp,"%d %d %d %le %le %le\n", gs_idx, is_idx, fs_idx, (get_ediff(tmp_gs, tmp_is)+xshift)*AUTOEV, (get_ediff(tmp_gs, tmp_is) + get_ediff(tmp_is, tmp_fs))*AUTOEV, tmom_jk*tmom_km);
 
       }
     }

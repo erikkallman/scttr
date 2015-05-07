@@ -12,6 +12,7 @@
 
 void
 set_ttypes (double * state_er,
+            int * mom,
             info_node inode) {
 
 }
@@ -115,6 +116,7 @@ sort_states (double * state_er,
 int
 set_estate_list (double * state_er,
                  double ** parsed_input,
+                 int * mom,
                  int n_states,
                  int n_trans,
                  char * id) {
@@ -267,6 +269,7 @@ states left to process.\n", l, n_states);
   /* printf( "%d\n", end_state -> state_idx); */
   /* printf( "%d\n", curr_inode -> root_e_state -> state_idx); */
 
+  k = 0;
   if (SYM == 1) {
     /* loop over the state list and check so that every "from" index is in the
        the list. if not, add it to the end of the list */
@@ -280,7 +283,7 @@ states left to process.\n", l, n_states);
 
         tmp_idx = (curr_state -> idxs_to)[j];
         /* printf( "idx %d\n", tmp_idx); */
-        if (get_state_si(curr_inode,tmp_idx) == NULL) {
+        if (get_state_sil(curr_inode,tmp_idx) == NULL) {
 
           /* printf( "found state %d not in list\n", tmp_idx); */
           /* sleep(1); */
@@ -290,7 +293,9 @@ states left to process.\n", l, n_states);
           end_state = end_state -> next;
         }
       }
+
       next_state = curr_state -> next;
+
       /* printf( "next state %d\n", next_state -> list_idx); */
     }
 
@@ -312,6 +317,12 @@ states left to process.\n", l, n_states);
   end_state -> next = NULL;
   n_states = l;
   curr_inode -> n_states = l;
+
+  /* now that all states are in the elist, set the ev_idxs array */
+  for (j=0; j<n_states; j++) {
+    /* printf( "j=%d si=%d\n", j, (curr_inode -> e_states)[j] -> state_idx); */
+    (curr_inode -> ev_idxs)[(curr_inode -> e_states)[j] -> state_idx] = j;
+  }
 
   /* the last node in the llist is the highest energy intermediate state */
 
@@ -359,9 +370,10 @@ final, or intermediate.\n", l, n_states);
         if (j == 0) {
 
           curr_state -> bw = get_rbdist(parsed_input[2][0],curr_state -> e_val);
-          if (curr_state -> state_idx != 1) {
+          /* curr_state -> bw = get_bdist(curr_state -> e_val); */
+          /* if (curr_state -> state_idx != 1) { */
             bw_s += curr_state -> bw;
-          }
+          /* } */
 
           (curr_inode -> n_gfs) += 1;
 
@@ -392,10 +404,9 @@ final, or intermediate.\n", l, n_states);
   /* if more than one range was provided in the CLI, this means the user
    wants to read more than one range of intermediate states (dipole transitions for example) */
   if (state_er[0] > 4) {
-    set_ttypes(state_er,curr_inode);
+    set_ttypes(state_er,mom,curr_inode);
   }
 
-  /* e_statelist2s(curr_inode,1); */
 
   for (j=0; j<2; j++) {
     free(groups[j]);
@@ -503,9 +514,13 @@ init_estate_list (char * str_id,
    lowest energy ground state. set the root state node type accordingly. */
   curr_inode -> root_e_state = root_state;
   curr_state = root_state;
-
+  for (j=0; j<n_states; j++) {
+    (curr_inode -> ev_idxs)[j] = 0;
+  }
   /* construct the list structure */
   for (j=1; j<(n_states+1); j++) {
+    (curr_inode -> e_states)[j-1] = curr_state;
+
     /* note that the idxs_to and t_moms arrays dont get allocated here. this
      is done in the set_estate_list function */
     next_state = malloc(sizeof(struct e_state_s));
@@ -576,7 +591,7 @@ get_trans (estate es, /* root of the electronic state llist */
 
   int * ti = es -> idxs_to;
   /* printf( "looping\n" ); */
-  for (j=0; j<trs_max; j++) {
+  for (j=0; j<=trs_max; j++) {
     /* printf( "in state %d: to = %d, from = %d, %d\n", es -> state_idx,idx_to, ti[j], trs_max); */
     if (ti[j] == idx_to) {
       return (es -> t_moms)[j];
@@ -616,11 +631,68 @@ index %d in the list of transitions for state %d.\n", idx_to, es -> state_idx);
 
 estate
 get_state_si (info_node inode, /* the info node at root of the state ll */
-           int s_idx /* index of the state to get */
-           ){
+              int s_idx /* index of the state to get */
+              ){
+  /* int j; */
+  /* int n_s = inode -> n_states; */
+  /* estate * sl = inode -> e_states; */
 
-  int n_s = inode -> n_states;
-  int n_t = inode -> n_trans;
+  /* for (j=0; j<n_s; j++) { */
+  /*   if ((sl[j] -> state_idx) == s_idx) { */
+  /*     return sl[j]; */
+  /*   } */
+  /* } */
+
+  /* int n_s = inode -> n_states; */
+  /* estate * sl = inode -> e_states; */
+
+  /* while(--n_s != -1){ */
+  /*   if ((sl[n_s] -> state_idx) == s_idx) { */
+  /*     return sl[n_s]; */
+  /*   } */
+  /* } */
+  /* printf( "si1:%d evi:%d si2:%d\n", s_idx, inode -> ev_idxs[s_idx], (inode->e_states)[inode -> ev_idxs[s_idx]] -> state_idx); */
+  return (inode->e_states)[inode -> ev_idxs[s_idx]];
+
+  /* estate curr_st = (inode -> root_e_state); */
+  /* estate next_st = curr_st; */
+
+  /* while((curr_st = next_st) != NULL){ */
+
+  /*   if ((curr_st -> state_idx) == s_idx) { */
+  /*     return curr_st; */
+  /*   } */
+  /*   next_st = curr_st -> next; */
+  /* } */
+
+  /* /\* unable to locate state of in the list of electronic states *\/ */
+  /* return NULL; */
+}
+
+estate
+get_state_sil (info_node inode, /* the info node at root of the state ll */
+              int s_idx /* index of the state to get */
+              ){
+  /* int j; */
+  /* int n_s = inode -> n_states; */
+  /* estate * sl = inode -> e_states; */
+
+  /* for (j=0; j<n_s; j++) { */
+  /*   if ((sl[j] -> state_idx) == s_idx) { */
+  /*     return sl[j]; */
+  /*   } */
+  /* } */
+
+  /* int n_s = inode -> n_states; */
+  /* estate * sl = inode -> e_states; */
+
+  /* while(--n_s != -1){ */
+  /*   if ((sl[n_s] -> state_idx) == s_idx) { */
+  /*     return sl[n_s]; */
+  /*   } */
+  /* } */
+  /* printf( "si1:%d evi:%d si2:%d\n", s_idx, inode -> ev_idxs[s_idx], (inode->e_states)[inode -> ev_idxs[s_idx]] -> state_idx); */
+  /* return (inode->e_states)[inode -> ev_idxs[s_idx]]; */
 
   estate curr_st = (inode -> root_e_state);
   estate next_st = curr_st;
@@ -633,9 +705,10 @@ get_state_si (info_node inode, /* the info node at root of the state ll */
     next_st = curr_st -> next;
   }
 
-  /* unable to locate state of in the list of electronic states */
+  /* /\* unable to locate state of in the list of electronic states *\/ */
   return NULL;
 }
+
 
 estate
 get_state_li (info_node inode, /* the info node at root of the state ll */
@@ -660,28 +733,36 @@ get_state_li (info_node inode, /* the info node at root of the state ll */
   return NULL;
 }
 
+/* double */
+/* get_ediff (info_node inode, /\* root of the electronic state llist *\/ */
+/*            int idx_es1, */
+/*            int idx_es2 */
+/*            ) { */
+/*   int j; */
+/*   estate es = get_state_si(inode, idx_es1); */
+/*   int trs_max = es -> n_tfrom; */
+/*   /\* printf( "\neval = %le\n", (es -> e_val)); *\/ */
+/*   int * ti = es -> idxs_to; */
+/*   /\* printf( "looping\n" ); *\/ */
+/*   for (j=0; j<=trs_max; j++) { */
+/*     /\* printf( "%le\n", (es -> e_vals)[j]); *\/ */
+/*     if (ti[j] == idx_es2) { */
+/*       return ((es -> e_vals)[j] - (es -> e_val)); */
+/*     } */
+/*   } */
+/*   fprintf(stderr, "estate.c, get_ediff: unable to locate state of \ */
+/* index %d in the list of transitions from state %d.\n", idx_es2, idx_es1); */
+/*   printf( "program terminating due to the previous error.\n"); */
+/*   exit(1); */
+/* } */
+
 double
-get_ediff (info_node inode, /* root of the electronic state llist */
-           int idx_es1,
-           int idx_es2
-           ) {
-  int j;
-  estate es = get_state_si(inode, idx_es1);
-  int trs_max = es -> n_tfrom;
-  /* printf( "\neval = %le\n", (es -> e_val)); */
-  int * ti = es -> idxs_to;
-  /* printf( "looping\n" ); */
-  for (j=0; j<=trs_max; j++) {
-    /* printf( "%le\n", (es -> e_vals)[j]); */
-    if (ti[j] == idx_es2) {
-      return ((es -> e_vals)[j] - (es -> e_val));
-    }
-  }
-  fprintf(stderr, "estate.c, get_ediff: unable to locate state of \
-index %d in the list of transitions from state %d.\n", idx_es2, idx_es1);
-  printf( "program terminating due to the previous error.\n");
-  exit(1);
+get_ediff (estate es1,
+           estate es2
+           ){
+  return (es2->e_val)-(es1->e_val);
 }
+
 
 void
 e_statelist2s(info_node inode,

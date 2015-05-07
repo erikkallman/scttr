@@ -17,6 +17,7 @@
    */
 void
 set_ttypes (double * state_er,
+            int * mom,
             info_node inode);
 
 /* function sort_states
@@ -66,6 +67,7 @@ set_estate (estate st,
 int
 set_estate_list (double * state_er,
                  double ** parsed_input,
+                 int * mom,
                  int n_states,
                  int n_trans,
                  char * id);
@@ -168,8 +170,27 @@ get_state_si (info_node inode,
               int s_idx /* state index of the state to get */
               );
 
+/* function get_state_sil
 
-/* function get_state_si
+   * synopsis:
+   Get a state from the list based on its state index, using the llist of
+   estates, obtained from the input to the program.
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+estate
+get_state_sil (info_node inode,
+              int s_idx /* state index of the state to get */
+              );
+
+
+/* function get_state_li
 
    * synopsis:
    Get a state from the list based on its list index.
@@ -187,10 +208,15 @@ get_state_li (info_node inode,
               int l_idx /* list index of the state to get */
               );
 
+/* double */
+/* get_ediff (info_node inode, /\* root of the electronic state llist *\/ */
+/*            int idx_es1, */
+/*            int idx_es2 */
+/*            ); */
+
 double
-get_ediff (info_node inode, /* root of the electronic state llist */
-           int idx_es1,
-           int idx_es2
+get_ediff (estate es1,
+           estate es2
            );
 
 void

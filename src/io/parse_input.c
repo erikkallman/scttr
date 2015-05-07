@@ -216,6 +216,7 @@ screening the transitions, the arrays storing the state indices got corrupted \
 int
 init_data_branch(double * state_er, /* state energy ranges */
                  double ** pi, /* parsed input */
+                 int * mom,
                  int ns, /* n states */
                  int nt, /* n transitions */
                  char * fs /* input file name string */
@@ -226,7 +227,7 @@ init_data_branch(double * state_er, /* state energy ranges */
   init_estate_list(fs, ns, nt);
 
   /* use the extracted input data to set the state of the linked list */
-  set_estate_list(state_er, pi, ns, nt, fs);
+  set_estate_list(state_er, pi, mom, ns, nt, fs);
 
   /* free up parsed_input, since it now lives in the tree */
   for (j=0; j<5; j++) {
@@ -240,6 +241,7 @@ init_data_branch(double * state_er, /* state energy ranges */
 
 int
 parse_input_molcas (double * state_er,
+                    int * mom,
                     char * fn_infile
                     ) {
 
@@ -441,6 +443,9 @@ for pointers in \"input_data\"\n");
   int n_idxs2 = 3;
   j = l = m = 0;
 
+  n_states = 0;
+  n_trans = 0;
+
   /* now that data structures of the rights size has memory allocated for
      them, start reading data from the temporary file */
   rewind(fp_tmpdata);
@@ -452,7 +457,6 @@ for pointers in \"input_data\"\n");
       /* printf( "%s",str_buf ); */
       if (strcmp(DAT_DELIM, str_buf) <= 0) {
         l = 0; /* index for string matches */
-        m = 0;
         j=2;
         /* printf( "Found the delimiter\n" ); */
         /* sleep(1); */
@@ -461,23 +465,29 @@ for pointers in \"input_data\"\n");
         if ((j == 0) && (isempty(str_buf,l) != 1)) {
 
           /* extract energy eigenvalues and state indexes */
-          get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[m]);
-          /* printf( "e_eigval[%d] = %le\n", m+1, e_eigval[m]); */
-
-          m++;
+          get_numsl(str_buf,num_idxs1,l,n_idxs1,&e_eigval[n_states]);
+          /* printf( "e_eigval[%d] = %le\n", n_states+1, e_eigval[n_states]); */
+          n_states++;
         }
         else if ((j == 2) && (isempty(str_buf,l) != 1)) {
           /* extract transition moments and transition indexes */
 
-          get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][m],\
-                    &trans_idxs[1][m],&t_mom[m]);
-          if (trans_idxs[1][m] >= 1000) {
-            /* printf( "to %le from %le, %le \n", trans_idxs[0][m], trans_idxs[1][m], t_mom[m]); */
-            /* sleep(1); */
-            /* exit(1); */
-          }
+          get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][n_trans],\
+                    &trans_idxs[1][n_trans],&t_mom[n_trans]);
+          /* if (trans_idxs[1][m] >= 1000) { */
+            /* printf( "to %le from %le, %le \n", trans_idxs[0][n_trans], \ */
+            /*         trans_idxs[1][n_trans], t_mom[n_trans]); */
+          /* } */
 
-          m++;
+          if (((e_eigval[(int)(trans_idxs[1][n_trans]) - 1]-e_eigval[0])*AUTOEV) \
+              < (state_er[3] + 1000 )) {
+
+            n_trans++;
+          } /* else { */
+          /*   printf( "found doublet at %le", (e_eigval[(int)(trans_idxs[1][n_trans]) - 1]-e_eigval[0])*AUTOEV); */
+          /*   fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+          /*   exit(1); */
+          /* } */
         }
         l=0; /* reset the buffer write head to start reading a the next line */
       }
@@ -486,6 +496,7 @@ for pointers in \"input_data\"\n");
       l++;
     }
   }
+
   /* finally, store the data in the parsed_input matrix for the parse_input function  */
   for (j=0; j<n_trans; j++) {
     idx_from = trans_idxs[0][j];
@@ -513,11 +524,13 @@ for pointers in \"input_data\"\n");
   free(t_mom);
   free(trans_idxs);
 
-  return init_data_branch(state_er, parsed_input,n_states,n_trans,fn_infile);
+  return init_data_branch(state_er, parsed_input, mom, n_states,n_trans,fn_infile);
 
 }
+
 int
 parse_input_tmp (double * state_er,
+                 int * mom,
                  char * fn_tmpdata
                  ) {
 
@@ -651,7 +664,12 @@ parse_input_tmp (double * state_er,
             /* printf( "to %le from %le, %le \n", trans_idxs[0][n_trans], \ */
             /*         trans_idxs[1][n_trans], t_mom[n_trans]); */
           /* } */
-          n_trans++;
+
+          if (((e_eigval[(int)(trans_idxs[1][n_trans]) - 1]-e_eigval[0])*AUTOEV) \
+              < (state_er[3] + 1000 )) {
+
+            n_trans++;
+          }
         }
         l=0; /* reset the buffer write head to start reading a the next line */
       }
@@ -705,12 +723,13 @@ for pointers in \"input_data\"\n");
   free(t_mom);
   free(trans_idxs);
 
-  return init_data_branch(state_er, parsed_input,n_states,n_trans,fn_tmpdata);
+  return init_data_branch(state_er, parsed_input, mom, n_states,n_trans,fn_tmpdata);
 
 }
 
 int
 parse_input (double * state_er,
+             int * mom,
              char * fn_infile, /* name of input file */
              int len_fn){
 
@@ -742,17 +761,17 @@ parse_input (double * state_er,
 
   if (strcmp(format,MOLCAS_FORMAT) == 0){
     /* printf( "PARSING 2 %d\n",strcmp(format,MOLCAS_FORMAT) ); */
-    parse_input_molcas(state_er, fn_infile);
+    parse_input_molcas(state_er, mom, fn_infile);
   }
   else if (strcmp(format,TMP_FORMAT) == 0){
-    parse_input_tmp(state_er, fn_infile);
+    parse_input_tmp(state_er, mom, fn_infile);
   }
   else {
     fprintf(stderr, "format not found in input_formats.h. are you sure the\
  file extension \"%s\" is correct?\n",format);
     printf( "program terminating due to the previous error.\n");
     exit(1);
-    parse_input_tmp(state_er, fn_infile);
+
   }
 
   return EXIT_SUCCESS;

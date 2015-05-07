@@ -62,6 +62,8 @@ struct info_node_s{
   int n_gfs;
   int n_is;
 
+  int * ev_idxs; /* indices of what states reside in what element of e_vals */
+
   /* sum of the boltzmann weights of all states in the system*/
   double mt_is; /* maximum transition moment for the intermediate states */
   double mt_fs; /* maximum transition moment for all final states */
@@ -70,6 +72,7 @@ struct info_node_s{
   char * str_id; /* the input file name identifying this info node */
 
   estate root_e_state;
+  estate * e_states;
 
   spec root_spec;
 

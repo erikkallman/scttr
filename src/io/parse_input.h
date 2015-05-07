@@ -46,6 +46,7 @@ screen_states (char * fn_infile,
 int
 init_data_branch(double * state_er, /* state energy ranges */
                  double ** pi, /* parsed input */
+                 int * mom, /* moment types included in the calculation */
                  int ns, /* n states */
                  int nt, /* n transitions */
                  char * fs /* input file name string */
@@ -65,6 +66,7 @@ init_data_branch(double * state_er, /* state energy ranges */
 
 int
 parse_input_molcas (double * state_er,
+                    int * mom,
                     char * fn_infile
                     );
 
@@ -105,7 +107,14 @@ parse_input_molcas (double * state_er,
  */
 
 int
+parse_input_tmp (double * state_er,
+                 int * mom,
+                 char * fn_tmpdata
+                 );
+
+int
 parse_input (double * state_er,
+             int * mom,
              char * fn_infile, /* name of input file */
              int len_fn);
 

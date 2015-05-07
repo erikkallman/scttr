@@ -32,20 +32,37 @@ get_inode (char * id
 
 info_node
 init_inode (char * s,
-                int ns,
-                int nt
-                ){
+            int ns,
+            int nt
+            ){
 
   int j;
 
   static info_node last_inode;
   int str_sz = strlen(s);
+  int * el_idxs;
   char * si = malloc(strlen(s)+1); /* info node id string */
   info_node new_inode;
 
+  estate * estate_list;
+
   if((new_inode = malloc(sizeof(struct info_node_s))) == NULL ){
-    fprintf(stderr, "parse_input.c:function init_inode, malloc: failed \
+    fprintf(stderr, "info_node.c:function init_inode, malloc: failed \
 to allocate memory for \"new_inode\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((estate_list = malloc(ns*sizeof(struct e_state_s))) == NULL ){
+    fprintf(stderr, "info_node.c:function init_inode, malloc: failed \
+to allocate memory for \"estate_list\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((el_idxs = malloc(ns*sizeof(int))) == NULL ){
+    fprintf(stderr, "info_node.c:function init_inode, malloc: failed \
+to allocate memory for \"el_idxs\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
@@ -60,6 +77,8 @@ to allocate memory for \"new_inode\"\n");
   new_inode -> n_gfs = 0;
   new_inode -> n_is = 0;
   new_inode -> n_spec = 0;
+  new_inode -> e_states = estate_list;
+  new_inode -> ev_idxs = el_idxs;
 
   if (n_inodes == 0) { /* there is no root info node defined  */
     n_inodes = 1;
