@@ -53,14 +53,14 @@ to allocate memory for \"new_inode\"\n");
     exit(1);
   }
 
-  if((estate_list = malloc(ns*sizeof(struct e_state_s))) == NULL ){
+  if((estate_list = malloc((ns+1)*sizeof(struct e_state_s))) == NULL ){
     fprintf(stderr, "info_node.c:function init_inode, malloc: failed \
 to allocate memory for \"estate_list\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
-  if((el_idxs = malloc(ns*sizeof(int))) == NULL ){
+  if((el_idxs = malloc((ns+1)*sizeof(int))) == NULL ){
     fprintf(stderr, "info_node.c:function init_inode, malloc: failed \
 to allocate memory for \"el_idxs\"\n");
     printf( "program terminating due to the previous error.\n");
@@ -103,7 +103,7 @@ set_symtrans (info_node inode
   int j,k; /* looping variables */
 
   int from,to, n_add, n_proc;
-  int tmp_n_tfrom;
+  int tmp_n_tfrom, from_type;
   int n_states = inode -> n_states;
 
   /* a register of all intermediate states whos symmetric transitions
@@ -127,7 +127,7 @@ to allocate memory for \"ixds_proc\"\n");
     exit(1);
   }
 
-  if((sym_dat = malloc(3*sizeof(double*))) == NULL ){
+  if((sym_dat = malloc(4*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input:function set_symtrans, malloc: failed \
 to allocate memory for \"tmp_dat\"\n");
     printf( "program terminating due to the previous error.\n");
@@ -159,9 +159,10 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
       for (j=0; j<(curr_state -> n_tfrom); j++) {
 
         from = (curr_state -> idxs_to)[j];
+        from_type = (inode -> e_states)[(inode -> ev_idxs)[from]] -> type;
         /* printf( "====new from = %d\n", from); */
         /* first off, check if the state is even in the list.*/
-        if (is_state_inlist(inode, from)) {
+        if ((from_type != (bookmark -> type)) && is_state_inlist(inode, from)) {
 
           /* printf( "from %d to %d\n", from, curr_state -> state_idx); */
           /* check if the state has already been processed */
@@ -170,13 +171,17 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
             sym_dat[0][0] = 0;
             sym_dat[1][0] = from;
 
+
             /* locate all non-intermediate states that have transitions to the
                "from" state defined above */
             curr_state = inode -> root_e_state;
 
             while((next_state = curr_state -> next) != NULL){
 
+              /* skip transitions between states of the same type
+                 (fs/gs -> fs/gs, etc.) */
               if (intinint(curr_state -> idxs_to, from, curr_state -> n_tfrom)) {
+              /* if (intinint(curr_state -> idxs_to, from, curr_state -> n_tfrom)) { */
                 /* printf( "  from %d to %d\n", from, curr_state -> state_idx); */
                 sym_dat[0][n_add] = (double)curr_state -> state_idx;
                 sym_dat[1][n_add] = get_trans(curr_state, from);
@@ -186,11 +191,10 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
                 /* printf( "  sym_dat = %d %le %le\n", (int)sym_dat[0][n_add], sym_dat[1][n_add], sym_dat[2][n_add]); */
                 /* add the index of this inner state to the matrix */
               }
-
               curr_state = next_state;
             }
             /* printf( "  assigning new data1\n" ); */
-            curr_state = get_state_si(inode, from);
+            curr_state = get_state_sil(inode, from);
             idxs_proc[n_proc++] = from;
             /* printf( "  assigning new data\n" ); */
             /* the data we need for all symmetric transitions to the "from" state
@@ -207,6 +211,11 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
                                         , (curr_state -> n_tfrom), (int)sym_dat[0][0]);
 
             curr_state -> n_tfrom += sym_dat[0][0];
+
+            free(curr_state -> ttypes);
+
+            curr_state -> ttypes = malloc((curr_state -> n_tfrom)*sizeof(int));
+
             /* printf( "sym_dat[0][0] = %d\n", sym_dat[0][0]); */
             /* curr_state -> max_tmom = get_maxl(curr_state ->  t_moms, curr_state -> n_tfrom); */
             curr_state = bookmark;
@@ -220,6 +229,9 @@ to allocate memory for \"sym_dat[%d]\"\n",j);
       curr_state = bookmark;
     }
     next_state = curr_state -> next;
+    /* if (curr_state -> state_idx == 6) { */
+    /*   0cv */
+    /* } */
   }
 
   /* printf( "proc_idx=" ); */

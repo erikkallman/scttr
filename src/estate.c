@@ -15,6 +15,73 @@ set_ttypes (double * state_er,
             int * mom,
             info_node inode) {
 
+  int n_t;
+  double e_val;
+  double e_ref;
+
+  /* indices of states stored in.. */
+  int ie_idx; /* the info node */
+  int ee_idx; /* the estates */
+
+  /* indices stored in the information node */
+
+  estate curr_st = (inode -> root_e_state);
+  estate next_st = curr_st;
+  estate trs_st;
+
+  while((curr_st = next_st) != NULL){
+
+    /* e_val = ((curr_st -> e_val) - ((inode -> e_states)[(inode->ev_idxs)[1]] -> e_val))*AUTOEV; */
+
+    /* if ((state_er[1] <= e_val) && (state_er[2] >= e_val)) { */
+    /*   curr_st -> ttype = 0; */
+    /* } */
+    /* else if (((state_er[3] <= e_val) && (state_er[4] >= e_val)) && */
+    /*          !(e_val >= (state_er[4]+1000))){ */
+    /*   curr_st -> ttype = mom[2]; */
+    /* } */
+    if (curr_st -> type == 1) {
+      curr_st -> ttype = 0;
+    }
+    else {
+      curr_st -> ttype = mom[curr_st -> type];
+    }
+
+    next_st = curr_st -> next;
+  }
+
+  curr_st = (inode -> root_e_state);
+  next_st = curr_st;
+  e_ref = ((inode -> e_states)[(inode->ev_idxs)[0]] -> e_val);
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
+  while((curr_st = next_st) != NULL){
+
+    /* e_state2s(curr_st,1);  */
+    /* sleep(2); */
+    n_t = curr_st -> n_tfrom;
+    /* printf( "%d\n", n_t); */
+    while(--n_t != -1){
+      /* printf( "n_t=%d n_from=%d , idx_to=%d\n", n_t,curr_st -> n_tfrom,(curr_st -> idxs_to)[n_t]); */
+      trs_st = get_state_si(inode,(curr_st -> idxs_to)[n_t]);
+      /* printf( "got state state_idx=%d ttype=%d n_tfrom=%d!\n", trs_st -> state_idx,trs_st -> ttype, trs_st -> n_tfrom ); */
+      e_val = ((curr_st -> e_val) - e_ref)*AUTOEV;
+      /* printf( "got eval\n" ); */
+      if (curr_st -> ttype == 0) {
+        /* transition from ground to intermediate state */
+        /* printf( "setting type1\n"); */
+        (curr_st -> ttypes[n_t]) = trs_st -> ttype;
+        /* printf( "set type1\n" ); */
+      }
+      else {
+        /* transition from intermediate to ground state */
+        /* printf( "setting type2\n" ); */
+        (curr_st -> ttypes)[n_t] = curr_st -> ttype;
+        /* printf( "set type2\n" ); */
+      }
+    }
+    next_st = curr_st -> next;
+  }
 }
 
 void
@@ -391,22 +458,28 @@ final, or intermediate.\n", l, n_states);
       }
     }
   }
-
+    /* e_state2s(get_state_si(curr_inode,5),1); */
   /* if we want to take symmetric transitions into account, add the right ground
    states to the corresponding final states */
   if (SYM == 1) {
     set_symtrans(curr_inode);
   }
 
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   curr_inode -> bw_sum = bw_s;
   reset_info_maxvals(curr_inode);
 
   /* if more than one range was provided in the CLI, this means the user
    wants to read more than one range of intermediate states (dipole transitions for example) */
-  if (state_er[0] > 4) {
-    set_ttypes(state_er,mom,curr_inode);
-  }
+  /* e_statelist2s(curr_inode,1); */
+  /* e_state2s(get_state_si(curr_inode,4),1); */
+  /* e_state2s(get_state_si(curr_inode,5),1); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
 
+  set_ttypes(state_er,mom,curr_inode);
+  /* e_statelist2s(curr_inode,1); */
 
   for (j=0; j<2; j++) {
     free(groups[j]);
@@ -423,7 +496,7 @@ final, or intermediate.\n", l, n_states);
 }
 
 int
-set_estate (estate st,
+set_estate(estate st,
                 int s_idx,
                 int * idxs_buf,
                 double * evals_buf,
@@ -435,10 +508,18 @@ set_estate (estate st,
 
   int j; /* looping variables */
   int * idxs;
+  int * tt;
   double * tm;
   double * ev;
 
   if((idxs = malloc(n_trs_from*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input:function set_estate, malloc: failed \
+to allocate memory for \"idxs_to\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((tt = malloc(n_trs_from*sizeof(int))) == NULL ){
     fprintf(stderr, "parse_input:function set_estate, malloc: failed \
 to allocate memory for \"idxs_to\"\n");
     printf( "program terminating due to the previous error.\n");
@@ -462,6 +543,7 @@ to allocate memory for \"tmoms\"\n");
   st -> state_idx = s_idx;
   st -> e_val = e;
   st -> n_tfrom = n_trs_from;
+  st -> ttypes = tt;
 
   if (idxs_buf != NULL) {
     for (j=0; j<n_trs_from; j++) {
@@ -807,11 +889,12 @@ void
   e_state2s(estate es,
             int flag){
   int j;
+  info_node inode = es->info;
 
   printf( "\n   state_idx = %d\n", es->state_idx);
   printf( "     list_idx = %d\n", es->list_idx);
   printf( "     state type %d\n", es->type);
-
+  printf( "     state ttype %d\n", es->ttype);
   if ((es->type) != 2) {
     printf( "     boltzmann weight = %le\n", es->bw);
   }
@@ -821,7 +904,7 @@ void
   printf( "     max_tmom = %le\n", es->max_tmom);
   if (flag == 1) {
     for (j=0; j<es->n_tfrom; j++) {
-      printf( "     -> %d [%d/%d] e = %le, tmom = %le\n", es->idxs_to[j], j+1, j<es->n_tfrom, es->e_vals[j], es->t_moms[j]);
+      printf( "     -> %d [%d/%d] e = %le, tmom = %le, type=%d, ttype=%d\n", es->idxs_to[j], j+1, j<es->n_tfrom, es->e_vals[j], es->t_moms[j], get_state_sil(inode,es->idxs_to[j])->type, es->type,es->ttypes[j]);
     }
   }
 }

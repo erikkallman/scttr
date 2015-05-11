@@ -258,8 +258,6 @@ contained in %s.\n",fn_infile);
   }
   printf( "\n\n" );
 
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
   printf( "  - method:\n    %s\n", method);
 
   printf( "\n\n" );

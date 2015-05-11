@@ -23,6 +23,7 @@ struct e_state_s{
   /* 0=not yet assigned, 1=ground state, 2=intermediate state, 3=final state,
    23= either 2 or 3 */
   int type;
+  int ttype;
 
   double bw; /* boltzmann weight */
   double max_tmom;
@@ -34,11 +35,11 @@ struct e_state_s{
   /* indices of states in transitions occuring from this state*/
   int * idxs_to;
 
+   /* transition moments types for each transition found in idxs_to */
+  int * ttypes;
+
    /* transition moments values for each transition found in idxs_to */
   double * t_moms;
-
-   /* transition moments types for each transition found in idxs_to */
-  double * ttypes;
 
   /* energy eigenvalues for the "to" state */
   double * e_vals;
