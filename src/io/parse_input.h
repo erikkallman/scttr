@@ -3,6 +3,78 @@
 #include "dynarray.h"
 #include "structs.h"
 
+int ISINSIDE(double v,
+             double r1,
+             double r2);
+
+double
+get_efrom (int from);
+
+double
+get_eto (int to);
+
+/* function check_pi
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+check_pi ();
+
+void
+set_tmax();
+
+void
+state2s(int idx);
+/* function pi2s
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+void
+pi2s ();
+
+
+/* function get_t
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+double
+get_t (int from,
+       int to);
+int
+get_i (int from
+       );
+
+int
+get_inext (int from
+       );
+
 /* function screen_states
    The screen_states function is used to reduce the number of states used
    for generating the RIXS map. Through analyzing the boltzmann distribution
@@ -37,22 +109,15 @@
    * side-effects:
 
    */
-mdda_s *
-screen_states (char * fn_infile,
-               double * state_t,
-               double * state_er
-               );
+/* mdda_s * */
+/* screen_states (char * fn_relpath, */
+/*                double * state_t, */
+/*                double * state_er */
+/*                ); */
 
-int
-init_data_branch(double * state_er, /* state energy ranges */
-                 double ** pi, /* parsed input */
-                 int * mom, /* moment types included in the calculation */
-                 int ns, /* n states */
-                 int nt, /* n transitions */
-                 char * fs /* input file name string */
-                 );
+/* function get_es
 
-/* function parse_input_molcas:
+   * synopsis:
 
    * algorithm:
 
@@ -63,12 +128,8 @@ init_data_branch(double * state_er, /* state energy ranges */
    * side-effects:
 
    */
-
-int
-parse_input_molcas (double * state_er,
-                    int * mom,
-                    char * fn_infile
-                    );
+double*
+get_es (int idx);
 
 
 /* function parse_input:
@@ -108,14 +169,12 @@ parse_input_molcas (double * state_er,
 
 int
 parse_input_tmp (double * state_er,
-                 int * mom,
                  char * fn_tmpdata
                  );
 
 int
 parse_input (double * state_er,
-             int * mom,
-             char * fn_infile, /* name of input file */
+             char * fn_relpath, /* name of input file */
              int len_fn);
 
 #endif /* PARSE_INPUT_H */

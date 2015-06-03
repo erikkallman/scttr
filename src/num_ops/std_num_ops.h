@@ -1,6 +1,17 @@
 #ifndef STD_NUM_OPS_H
 #define STD_NUM_OPS_H
 
+/* splice the values from the array @from, into the array @into by shifting the latter forwards, n_vals elements. assumes that from is of the same dimensionality as into */
+
+int
+fwdsplice (double ** from,
+           double ** into,
+           int start,
+           int end,
+           int s,
+           int n_dims
+           );
+
 /* function cupto
 
    * synopsis:
@@ -36,6 +47,9 @@ double
 get_maxl (double * v,
           int n);
 
+double
+get_min (double * v,
+          int n);
 /* function arit_meanl
 
    * synopsis:

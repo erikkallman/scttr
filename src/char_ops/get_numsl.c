@@ -5,7 +5,6 @@
 #include "std_char_ops.h"
 #include "get_numsl.h"
 
-
 int
 get_numinstr (char * s,
               char * buf,
@@ -28,8 +27,8 @@ get_numinstr (char * s,
    of the last digit so that we wont have to loop over the entire string again */
   l = 0;
   k = 0;
-  for (j=0; j<str_len; c = s[j], j++) {
 
+  for (j=0; j<=str_len; c = s[j], j++) {
     /* check if we're still reading a number and avoid dashed lines */
     /* if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0)) \ */
     if (((charinstr(num_key,c) != 0) || (isdigit(c) != 0)) \
@@ -66,8 +65,8 @@ get_numinstr (char * s,
     */
     last_c = c;
   }
-
-  return l+1;
+  buf[l] = '\0';
+  return l;
 }
 
 int
@@ -86,7 +85,9 @@ get_numsl (char * str,
      assign them locally */
   va_start(argv, n_idxs);
 
-  num_buf = malloc(BUF_SIZE*2);
+  /* a number in the string can maximally be as long as the string */
+  num_buf = malloc(str_len);
+  numstr = malloc(str_len);
 
   for (j=0; j<n_idxs; j++) { /* loop over indexes */
 
@@ -95,25 +96,24 @@ get_numsl (char * str,
     /* find the correctly indexed number in the string and store it. */
     l = get_numinstr(str, num_buf, idxs_out[j],str_len);
 
-    numstr = malloc(l);
     /* printf( "\n\nget_numsl got this in return:\n" ); */
-    for (k=0; k<l-1; k++) {
+    for (k=0; k<l; k++) {
       /* store the number and return a pointer to it.
          this gets freed up by the caller. */
       numstr[k] = num_buf[k];
       /* printf( "%c", numstr[k]); */
     }
     /* printf( "\n" ); */
+    /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+    /* exit(1); */
     /* sleep(1); */
     /* *tmp_num = sci_atof(numstr); /\* extract the next memory location *\/ */
-    *tmp_num = satof(numstr, k); /* extract the next memory location */
-
-    free(numstr);
-    numstr = NULL;
+    *tmp_num = satof(num_buf, k+1); /* extract the next memory location */
   }
 
+  free(numstr);
   free(num_buf);
-  num_buf = NULL;
+
   va_end(argv);
   return 0;
 }

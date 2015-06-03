@@ -9,8 +9,9 @@ get_inode (char * idx);
 
 info_node
 init_inode (char * s,
-                int ns,
-                int nt
+            int * mom,
+            int ns,
+            int nt
                 );
 
 /* function set_symtrans

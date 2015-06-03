@@ -1,8 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "std_num_ops.h"
 #include "sci_const.h"
+
+int
+fwdsplice (double ** from,
+           double ** into,
+           int start,
+           int end, /* current last allocated element in into*/
+           int s,
+           int n_dims
+           ) {
+
+  int j,k; /* looping variables */
+
+  if (s>(end-start)) {
+    end = s;
+  }
+  /* make space for the new values by shifting all values forward */
+  /*  we know how many values are already in the into array */
+  for (j=end; j>=start; j--) {
+    for (k=0; k<n_dims; k++) {
+      if (memcpy(&into[k][j+s],&into[k][j],sizeof(into[0][0])) != &into[k][j+s]) {
+        fprintf(stderr, "parse_input.c, function sharr_fwd: the double %le stored at memory location %p cannot be copied to location %p.\n",into[j][k],&into[j][k+s],&into[j][k]);
+        printf( "program terminating due to the previous error.\n");
+        exit(1);
+      }
+      into[k][j] = from[k][j-start];
+      /* into[k][j] = 0; */
+    }
+  }
+
+  return 1;
+}
 
 int
 cupto (double * a1,
@@ -29,6 +61,19 @@ get_maxl (double * v,
 
   for (j=0; j<n; j++)
     if (v[j] > m)
+      m = v[j];
+
+  return m;
+}
+
+double
+get_min (double * v,
+          int n){
+  int j;
+  double m = v[0];
+
+  for (j=0; j<n; j++)
+    if (v[j] < m)
       m = v[j];
 
   return m;
@@ -110,7 +155,7 @@ allocate memory for \"state_indices\"\n");
 double
 get_bdist (double e_val){
   /* return exp(((e_val+1000)/(double)AUTOEV)/((1.380648813e-23)*(double)(TEXP*TTOEV))); */
-  return exp(((e_val+1000)*(double)AUTOEV)/((8.6173324e-05)*(double)TEXP));
+  return exp(((e_val)*(double)AUTOEV)/((8.6173324e-05)*(double)TEXP));
 }
 
 double

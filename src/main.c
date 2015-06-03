@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include "std_char_ops.h"
+#include "get_numsl.h"
 #include "smap.h"
 #include "input_formats.h"
 #include "parse_input.h" /* for input_data array, as well as other
@@ -10,21 +12,138 @@
 #define BUF_SIZE 256
 
 int
+parse_molout (char * fn_relpath,
+              char * fn_infile,
+              int len_infile
+              ) {
+
+  int j,k,l,m; /* control loop variables */
+  int mode; /* string matching mode flag */
+
+  FILE * fp_tmpdata;
+  FILE * fp_relpath;
+
+  const int n_lookup_str = 6; /* number of strings used for searching the input file */
+
+  int c; /* temporary char for storing input file characters */
+  /* we are looking for four strings in the output file: one at the beginning
+     of each data block, and one at the end. */
+  char * str_buf = malloc(BUF_SIZE*5);
+  const char DAT_DELIM[32] =  "============ data block finish\n";
+
+  const char s1[26] = "        Relative EVac(au)";
+  const char s2[51] = "Weights of the five most important spin-orbit-free";
+  const char s3[40] = "Dipole transition strengths (SO states)";
+  const char s4[44] = "Quadrupole transition strengths (SO states)";
+
+  const char s5[36] = "         To  From     Osc. strength";
+  const char s6[8] = "the end";
+
+  const char * lookup_str[6] = {s1,s2,s3,s4,s5,s6};
+
+  char outpath[10] = "../output";
+  char tmpformat[5] = ".tmp";
+  int len_op = 9;
+  int len_tf = 4;
+
+  char * tmp_fpstr = malloc(len_op+len_tf+len_infile+1);
+
+
+  for (j=0; j<len_op; j++) {
+    tmp_fpstr[j] = outpath[j];
+  }
+
+  tmp_fpstr[j++] = '/';
+
+  /* for (k=0; j<len_op+len_infile; j++) { */
+  for (k=0; fn_infile[k] != '\0'; j++) {
+    tmp_fpstr[j] = fn_infile[k++];
+  }
+
+  for (k=0; tmpformat[k] != '\0'; j++) {
+    tmp_fpstr[j] = tmpformat[k++];
+  }
+  tmp_fpstr[j] = '\0';
+
+  /* open the input file */
+  if((fp_relpath = fopen(fn_relpath, "r")) == NULL) {
+    fprintf(stderr,"parse_input: unable to open the input file %s.\n",fn_relpath);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+  if((fp_tmpdata = fopen(tmp_fpstr, "w+")) == NULL) {
+    fprintf(stderr,"parse_input: unable to open the output file %s.\n",fp_tmpdata);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  k = 0; /* index for tmp_string */
+  l = 0; /* index for lookup string */
+  mode = 0; /* start of in string search mode */
+
+  /* read the Molcas input file */
+  for (j=0; ((c = fgetc(fp_relpath)) != EOF); j++, k++) {
+    str_buf[k] = (char)c;
+
+    /* keep extracting characters from the input data until an entire line
+       has been stored in the temporary str_buf buffer */
+    if (str_buf[k] == '\n') {
+      if (mode == 1) {
+        if ((isanyalpha(str_buf,k) == 0) &&
+            (isdashes(str_buf,k) == 0) &&
+            (isempty(str_buf,k) == 0)){
+          for (m=0; m<=k; m++) {
+            fputc(str_buf[m],fp_tmpdata);
+          }
+          /* printf( "%s\n",str_buf ); */
+        } /* else { */
+        /*   printf( "%s\n",str_buf ); */
+        /*   sleep(1); */
+        /* } */
+      }
+      /* check every line for a matching substring */
+      /* mode = 1 and a line match means that we reached
+         the end of this data block */
+      if (strstr(str_buf,lookup_str[l])) {
+
+        /* we found the first substring, the data we're looking for is
+           inside the coming block of text. switch to mode 1.*/
+        if (mode == 0) {
+          l++;
+          mode = bin_flip(mode);
+        } else {
+          l++;
+          mode = bin_flip(mode);
+          fprintf(fp_tmpdata,DAT_DELIM );
+        }
+      }
+      k = 0;
+    }
+  }
+  fclose(fp_tmpdata);
+  fclose(fp_relpath);
+}
+
+
+int
 main (int argc, char * argv[]) {
+  printf( "\n\n smap calculation initiated.\n\n" );
   int j,k,l; /* iteration variables */
   int n_t; /* number of numbers read from input flag */
   int n_er; /* number of numbers eigenstate energy values provided */
-  int n_mom;
+  int n_res;
   int len_fn = 0;
   int len_mn = 0;
-  int dbg_flag;
-  int * mom = malloc(4*sizeof(int));
+  int dbg_flag = 0;
+  double * res = malloc(2*sizeof(double));
   /* arrays for storing input file name data */
   char * input_sbuff = malloc(BUF_SIZE);
   char * fn_infile;
+  char * fn_relpath;
   char method[5] = "test";
   char * num_buf;
 
+  char format[BUF_SIZE] = {0};
 
   /* double state_t[3] = {0.005, 0.001, 0.001}; */
 
@@ -37,7 +156,7 @@ main (int argc, char * argv[]) {
   state_t[0] = 0;
   state_er[0] = 0;
 
-  /* char fn_infile[BUF_SIZE] = {0}; */
+  /* char fn_relpath[BUF_SIZE] = {0}; */
 
   /* process the input arguments */
   if (argc == 1) {
@@ -61,6 +180,27 @@ main (int argc, char * argv[]) {
     case 'i' :
       /* printf( "processing input file: " ); */
 
+      k = 0;
+      /* extract the file name */
+      for (j=3;argv[1][j] != '\0'; j++) {
+        if (argv[1][j] == '/') {
+          k = j+1;
+        }
+      }
+
+      fn_infile = malloc(j-k+1);
+
+      for (l=0,j=k; argv[1][j] != '\0'; j++){
+
+        if (argv[1][j] == '.') {
+          j--;
+          break;
+        }
+
+        fn_infile[l] = argv[1][j];
+        l++;
+      }
+
       for (j=3; argv[1][j] != '\0'; j++) {
         input_sbuff[j-3] = argv[1][j];
         /* printf( "%c", input_sbuff[j-3]); */
@@ -68,14 +208,14 @@ main (int argc, char * argv[]) {
 
       /* printf( "\n" ); */
       len_fn = j-3;
-      fn_infile = malloc(len_fn+1);
+      fn_relpath = malloc(len_fn+1);
 
       for (j=0; j<len_fn; j++) {
-        fn_infile[j] = input_sbuff[j];
-        /* printf( "%c", fn_infile[j]); */
+        fn_relpath[j] = input_sbuff[j];
+        /* printf( "%c", fn_relpath[j]); */
       }
       /* printf( "\n" ); */
-      fn_infile[len_fn] = '\0';
+      fn_relpath[len_fn] = '\0';
 
       break;
 
@@ -96,8 +236,8 @@ main (int argc, char * argv[]) {
 
     /*   break; */
 
-    case 'm' :
-      n_mom = 1;
+    case 'r' :
+      n_res = 0;
       /* the user specified a method to be used for calculating the scattering map */
       for (j=3,k=0; argv[1][j] != '\0'; j++) {
 
@@ -116,26 +256,25 @@ main (int argc, char * argv[]) {
 
           /* printf( "\n" ); */
 
-          mom[n_mom] = atoi(num_buf);
+          res[n_res] = atof(num_buf);
           free(num_buf);
           num_buf = NULL;
-          n_mom++;
-          if ((n_mom > 2)) {
-            /* switch on the dipole+quadrupole flag  */
-            break;
-          }
-          if ((n_mom > 8)) {
-            break;
-          }
+          n_res++;
+          /* if ((n_res > 2)) { */
+          /*   /\* switch on the dipole+quadrupole flag  *\/ */
+          /*   break; */
+          /* } */
+          /* if ((n_res > 8)) { */
+          /*   break; */
+          /* } */
 
           k = 0;
         }
       }
-      mom[0] = n_mom-1;
 
       break;
 
-    case 'r' :
+    case 'e' :
 
       n_er = 1;
       /* the user specified a method to be used for calculating the scattering map */
@@ -160,13 +299,13 @@ main (int argc, char * argv[]) {
           free(num_buf);
           num_buf = NULL;
           n_er++;
-          if ((n_er > 4)) {
-            /* switch on the dipole+quadrupole flag  */
-            break;
-          }
-          if ((n_er > 8)) {
-            break;
-          }
+          /* if ((n_er > 4)) { */
+          /*   /\* switch on the dipole+quadrupole flag  *\/ */
+          /*   break; */
+          /* } */
+          /* if ((n_er > 8)) { */
+          /*   break; */
+          /* } */
 
           k = 0;
         }
@@ -220,6 +359,24 @@ main (int argc, char * argv[]) {
     argc--;
   }
 
+  j = len_fn;
+  while(fn_relpath[--j] != '.'){};
+
+  for (k=0; j<=len_fn; j++) {
+    format[k] = fn_relpath[j];
+    k++;
+  }
+  format[k] = '\0';
+
+  if (strcmp(format,MOLCAS_FORMAT) <= 0) {
+    /* reduce the molcas output to a temp file */
+    printf( "  - reducing the molcas logfile to a suitable input format ..");
+    parse_molout(fn_relpath, fn_infile, len_fn-1);
+    printf( " done.\n" );
+
+    goto dealloc;
+  }
+
   if (len_fn == 0) {
     fprintf(stderr, "\n\Error: smap.c, main: you didnt provide the path to an\
  input file.");
@@ -227,16 +384,20 @@ main (int argc, char * argv[]) {
     exit(EXIT_FAILURE);
   } else {
     /* extract the needed data from the input */
-    if (parse_input(state_er, mom, fn_infile, len_fn+1)) {
+    printf( "  - extracting data from the input file ..");
+    fflush(stdout);
+    if (parse_input(state_er, fn_relpath, len_fn+1)) {
       fprintf(stderr, "smap.c, main: unable to parse the input data \
-contained in %s.\n",fn_infile);
+contained in %s.\n",fn_relpath);
       printf( "program terminating due to the previous error.\n");
       exit(EXIT_FAILURE);
+    } else {
+      printf( " done.\n" );
     }
   }
 
-  printf( "\nexecuting smap with the following..\n\n" );
-  printf( "  - data contained in the input file:\n    %s\n\n", fn_infile);
+  printf( "\n executing smap with the following..\n\n" );
+  printf( "  - data contained in the input file:\n    %s\n\n", fn_relpath);
   printf( "  - threshold values:\n    " );
 
   for (j=1; j<n_t; j++) {
@@ -249,36 +410,22 @@ contained in %s.\n",fn_infile);
   for (j=1; j<n_er; j++) {
     printf( "%le, ", state_er[j]);
   }
-  printf( "\n\n" );
-
-  printf( "  - transition moments:\n    " );
-
-  for (j=1; j<n_mom; j++) {
-    printf( "%d, ", mom[j]);
-  }
-  printf( "\n\n" );
-
-  printf( "  - method:\n    %s\n", method);
 
   printf( "\n\n" );
-  printf( "execution progress:\n\n");
+  printf( " execution progress:\n\n");
 
-  if (dbg_flag == 1) {
-    calc_smap_dbg(method, fn_infile,\
-                  screen_states(fn_infile, state_t, state_er));
-  }
+  calc_smap_m(fn_relpath,fn_infile,len_fn-1,state_er, state_t, res);
+  write_log(state_er, state_t, res, fn_relpath, fn_infile,len_fn-1, 5);
 
-  calc_smap_m(method, fn_infile, \
-              screen_states(fn_infile, state_t, state_er));
+ dealloc:
 
-
+  free(fn_relpath);
   free(fn_infile);
   free(input_sbuff);
   free(state_er);
   free(state_t);
-  free(mom);
-  printf( "\nsmap successfully executed.\n" );
-  printf( "program terminating.\n\n" );
+  printf( "\n smap successfully executed.\n" );
+  printf( " program terminating.\n\n" );
 
   return 0;
 }

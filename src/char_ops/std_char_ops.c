@@ -9,6 +9,25 @@
 #define isddash(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
 
 int
+isanyalpha (char * s,
+           int len) {
+  int j;
+
+  char num_key[6] = {'-','.','E','+','\0'};
+
+  for (j=0; j<len; j++) {
+    if ((isalpha(s[j]) &&
+        (charinstr(num_key,s[j]) == 0)) ||
+        (s[j] == '#')
+        ){
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+int
 send_range_qmsg (double * state_er,
                  double eval
                 ){
@@ -55,7 +74,7 @@ satopow(char * s,
         ){
 
   int p=-1;
-  int j = len;
+  int j = len-1;
   int psign;
   double pval = 0;
 
@@ -127,7 +146,7 @@ satof(char * s,
   /* printf( "==pval pre = %le\n", pval); */
   if (s[j++] == '.') {
     /* account for all powers below the decimal */
-    while(isdigit(s[j]) || (s[j] != '\0')){
+    while(isdigit(s[j]) && (s[j] != '\0')){
       /* printf( "char = %d\n", (s[j] - '0')); */
       v = v*10 + (double)(s[j] - '0');
       /* printf( "val = %le\n", v); */

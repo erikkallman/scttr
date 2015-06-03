@@ -23,7 +23,7 @@ set_ttypes (double * state_er,
 /* function sort_states
 
    * synopsis:
-
+   The zeroeth column of the groups array contains counters of how many states are sorted into each respective group. Does not assume the array a to contain sorted values.
    * algorithm:
 
    * input:
@@ -72,6 +72,12 @@ set_estate_list (double * state_er,
                  int n_trans,
                  char * id);
 
+/* initialize estate through appending it to the list */
+estate
+inita_estate (estate curr_state,
+              char * id
+              );
+
 /* function init_estate_list
 
    * synopsis:
@@ -87,6 +93,7 @@ set_estate_list (double * state_er,
    */
 estate
 init_estate_list (char * str_id,
+                  int * mom,
                   int n_states,
                   int n_trans
                   );

@@ -2,6 +2,12 @@
 #define STD_F_H
 
 int *
+appc_dd (int * a1,
+         int * a2,
+         int sz1,
+         int sz2);
+
+int *
 appc_d (int * a1,
         double * a2,
         int sz1,

@@ -1,6 +1,23 @@
 #ifndef CHAR_OPS_H
 #define CHAR_OPS_H
 
+/* function isanychar
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+isanyalpha (char * s,
+            int len);
+
 /* function send_range_qmsg
 
    * synopsis:

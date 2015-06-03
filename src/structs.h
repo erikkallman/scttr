@@ -64,10 +64,10 @@ struct info_node_s{
   int n_is;
 
   int * ev_idxs; /* indices of what states reside in what element of e_vals */
-
+  int * mom_types; /* types of momenta in the plot 1/2/3 di/quad/octo-pole */
   /* sum of the boltzmann weights of all states in the system*/
-  double mt_is; /* maximum transition moment for the intermediate states */
-  double mt_fs; /* maximum transition moment for all final states */
+  double ** mt; /* pointers to the maximum transition moment for the
+                     intermediate and final/ground states */
   double bw_sum; /* sum of all boltz  */
 
   char * str_id; /* the input file name identifying this info node */

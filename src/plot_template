@@ -1,0 +1,39 @@
+res=4#resolution
+set term png enhanced size 1280,1024
+set termopt enhanced #turn on enhanced text mode
+set palette rgbformulae 33,13,10
+
+set pm3d at b
+set style line 100 lt 5 lw 0.5
+set view map
+
+#set for equidistant points on x and y axis
+set size ratio -1
+
+unset hidden3d
+unset surf
+
+#set z-axis range
+set cbrange [0:1]
+set cbtics 0.2
+
+set xtic 2 out nomirror
+set ytic 2 out nomirror
+set xtics rotate
+
+#interpolation properties
+set pm3d map
+set pm3d interpolate 20,20
+
+#labels
+set xlabel "Incident energy (eV)"  font "Helvetica,20"
+set ylabel "Energy transfer (eV)"  font "Helvetica,20"
+set zlabel "Int."  font "Helvetica,20"
+set xlabel offset 0,-1
+set ylabel offset -1,0
+set nokey
+
+#scaling factors
+sc=1
+xshift = 0
+yshift = 0
