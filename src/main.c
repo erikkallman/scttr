@@ -72,7 +72,7 @@ parse_molout (char * fn_relpath,
     exit(1);
   }
   if((fp_tmpdata = fopen(tmp_fpstr, "w+")) == NULL) {
-    fprintf(stderr,"parse_input: unable to open the output file %s.\n",fp_tmpdata);
+    fprintf(stderr,"parse_input: unable to open the output file %s.\n",tmp_fpstr);
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
