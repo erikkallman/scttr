@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 f140dcf36b04e2f652a6ee388d83f3059a69f52d vurma <erik.kallman@gmail.com> 1422956001 +0100	commit (initial): initial command line interface completed. moving on to improve the input parsing function.
+f140dcf36b04e2f652a6ee388d83f3059a69f52d fa8e7a10a424f78cdd8d567114173981e342d6dc vurma <erik.kallman@gmail.com> 1423825399 +0100	merge exp1: Fast-forward
+fa8e7a10a424f78cdd8d567114173981e342d6dc 029503889c04dc249cf57254f74c659dfc7519e8 vurma <erik.kallman@gmail.com> 1425387239 +0100	merge ll_data: Fast-forward
+029503889c04dc249cf57254f74c659dfc7519e8 1bb87fa40e394fb1d244efeef24e409382688cbe vurma <erik.kallman@gmail.com> 1427469202 +0100	merge 1bb87: Fast-forward
+1bb87fa40e394fb1d244efeef24e409382688cbe 5c2f45a8cda141b04014457edd23ba4c13f69a83 vurma <erik.kallman@gmail.com> 1427786547 +0200	merge 5c2f: Fast-forward
+5c2f45a8cda141b04014457edd23ba4c13f69a83 c813a05a6950c1c462241dbe5b14991072956901 vurma <erik.kallman@gmail.com> 1427957813 +0200	commit: vurma: simplifying the writing and reading from the temporary data file. this is causing trouble with input files containing around a houndred states.
+c813a05a6950c1c462241dbe5b14991072956901 3c27a71ee1bdc0302f10a177c99b35606e556b98 vurma <erik.kallman@gmail.com> 1429188066 +0200	merge 3c27: Fast-forward
+3c27a71ee1bdc0302f10a177c99b35606e556b98 90a8464940dfdd8deac341812fdda6d9007ba262 vurma <erik.kallman@gmail.com> 1429608820 +0200	commit: vurma: the program currently plots systems like Fe2+ and Fe3+ at the expected energies, but with the incorrect broadening.
+90a8464940dfdd8deac341812fdda6d9007ba262 92cf5b8a266d7965ef0bfe33ea65087a7499b28d vurma <erik.kallman@gmail.com> 1429906691 +0200	merge broadening: Fast-forward
+92cf5b8a266d7965ef0bfe33ea65087a7499b28d 6d819882a496ad4d5e7d499c04029a55d1505a64 vurma <erik.kallman@gmail.com> 1431083927 +0200	merge 6d81988: Fast-forward
+6d819882a496ad4d5e7d499c04029a55d1505a64 2eab3c2168b3639e9b3e3e635da037cff69d0a02 vurma <erik.kallman@gmail.com> 1431360468 +0200	merge 2eab3: Fast-forward
+2eab3c2168b3639e9b3e3e635da037cff69d0a02 7e699e4d7de28e9067d9d70bb44f6ac28e2f6d0b vurma <erik.kallman@gmail.com> 1431681637 +0200	merge sort_states_rework: Fast-forward

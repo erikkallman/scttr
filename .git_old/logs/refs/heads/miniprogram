@@ -1,0 +1,12 @@
+0000000000000000000000000000000000000000 1650c3d61efbd16d7bf41432532be58b45efe077 vurma <erik.kallman@gmail.com> 1432305967 +0200	branch: Created from HEAD
+1650c3d61efbd16d7bf41432532be58b45efe077 eeff4b856fb2867a8335b7e805de3b67d444ba50 vurma <erik.kallman@gmail.com> 1432306004 +0200	commit: reducing the current implementation in order to simplify the debugging process
+eeff4b856fb2867a8335b7e805de3b67d444ba50 11b2ed6ca986f13aee0ec3d35ee8834fa4b9cc4b vurma <erik.kallman@gmail.com> 1432306956 +0200	commit: ni,l
+11b2ed6ca986f13aee0ec3d35ee8834fa4b9cc4b 9feb6cb399ea3fd9a8b3da15644c9a1eeed6c4aa vurma <erik.kallman@gmail.com> 1432568972 +0200	commit: vurma: now ready to debug the new parsed_input modifications
+9feb6cb399ea3fd9a8b3da15644c9a1eeed6c4aa 3ef5291d4023f1533e9a38be6b5958a1600beb28 vurma <erik.kallman@gmail.com> 1432626517 +0200	commit: vurma:buffer transfer of data to PI debugged. moving on to fwdsplice debugging.
+3ef5291d4023f1533e9a38be6b5958a1600beb28 c2328a2f3b0582241549910f1bdfa5e8b4bd6faf vurma <erik.kallman@gmail.com> 1432636847 +0200	commit: current implementation only working for state = 1. reverting in panic
+c2328a2f3b0582241549910f1bdfa5e8b4bd6faf 3b4ee6d0b942533765cc12c9cfc279baff729443 vurma <erik.kallman@gmail.com> 1432732544 +0200	commit: soon ready for debugging
+3b4ee6d0b942533765cc12c9cfc279baff729443 114a425e4b7faccb452f1b5c23504f40f73834a2 vurma <erik.kallman@gmail.com> 1432735912 +0200	commit: vurma:almost done
+114a425e4b7faccb452f1b5c23504f40f73834a2 f441a217ac98d571a780b9592236453a15153d20 vurma <erik.kallman@gmail.com> 1432806137 +0200	commit: vurma: flipping the dipole transitions.
+f441a217ac98d571a780b9592236453a15153d20 35256d95b1b28130abd70f91c2e6cbaf958353e8 vurma <erik.kallman@gmail.com> 1432816170 +0200	commit: vurma: debugging the current implementation
+35256d95b1b28130abd70f91c2e6cbaf958353e8 07020558c08b9e1621c843588c1722737d77ba98 vurma <erik.kallman@gmail.com> 1433244732 +0200	commit: vurma: making some changes to the log format to clarify the screening
+07020558c08b9e1621c843588c1722737d77ba98 ee0fb1273150fc3d3b9a05ef6ced6c7015e2d2fd vurma <erik.kallman@gmail.com> 1433258722 +0200	commit: vurma: added some more information to the log file and automatic determination of the plotting ranges

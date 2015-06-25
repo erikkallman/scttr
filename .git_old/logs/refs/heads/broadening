@@ -1,0 +1,8 @@
+0000000000000000000000000000000000000000 90a8464940dfdd8deac341812fdda6d9007ba262 vurma <erik.kallman@gmail.com> 1429608846 +0200	branch: Created from HEAD
+90a8464940dfdd8deac341812fdda6d9007ba262 3dfde7da5da8eb442da79407f9593b994e6624ac vurma <erik.kallman@gmail.com> 1429608989 +0200	commit: vurma:initial commit of this experimental branch.
+3dfde7da5da8eb442da79407f9593b994e6624ac dfc52b5b947180bce605c02142e6486d3178dd95 vurma <erik.kallman@gmail.com> 1429624154 +0200	merge refractoring: Merge made by the 'recursive' strategy.
+dfc52b5b947180bce605c02142e6486d3178dd95 623e24f18664119ba3e7567ae2f6656c068facd8 vurma <erik.kallman@gmail.com> 1429701453 +0200	commit: vurma: the code providing the spectrum functionality is now ready for debugging and testing.
+623e24f18664119ba3e7567ae2f6656c068facd8 623e24f18664119ba3e7567ae2f6656c068facd8 vurma <erik.kallman@gmail.com> 1429703301 +0200	Branch: renamed refs/heads/exp_broadedning to refs/heads/broadening
+623e24f18664119ba3e7567ae2f6656c068facd8 83e9a5c4421799c924eb4b79fe84399ce5c6909f vurma <erik.kallman@gmail.com> 1429876003 +0200	commit: vurma: added functionality to provide the expected ranges for the different states to be used for grouping, from user input instead. the default grouping algorithm is still k_means.
+83e9a5c4421799c924eb4b79fe84399ce5c6909f 25c5d476ef19f7b03c4bf01b280bbf23cb6d8e3c vurma <erik.kallman@gmail.com> 1429886614 +0200	commit: vurma:the input range for the eigenstate energies is now debugged and functional.
+25c5d476ef19f7b03c4bf01b280bbf23cb6d8e3c 92cf5b8a266d7965ef0bfe33ea65087a7499b28d vurma <erik.kallman@gmail.com> 1429906148 +0200	commit: merge with spectrum code

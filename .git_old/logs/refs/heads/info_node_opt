@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 5bb776f9f23e3f06f4bc851f82e629f4471296ec vurma <erik.kallman@gmail.com> 1430986165 +0200	branch: Created from HEAD
+5bb776f9f23e3f06f4bc851f82e629f4471296ec 4aeaea6a2cf54b86880dbba3599d163585521bdc vurma <erik.kallman@gmail.com> 1431003275 +0200	commit: vurma:implementing a list for the estates in each info node almost decreased the number of executed instructions by half.
+4aeaea6a2cf54b86880dbba3599d163585521bdc d2f1ceb97c3df4421639d70db980a066fadbd6dc vurma <erik.kallman@gmail.com> 1431065947 +0200	commit: vurma: added half of the planned optimizations to estate.c
+d2f1ceb97c3df4421639d70db980a066fadbd6dc 2fc8a6b8251600323bad48631e59b91df7abe93d vurma <erik.kallman@gmail.com> 1431360316 +0200	commit: vurma: it isnt possible to optimize the get_trans function using the set_idxsmap function, this branch can be kept for future reference, but should be considered dead

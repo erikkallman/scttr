@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 7e699e4d7de28e9067d9d70bb44f6ac28e2f6d0b vurma <erik.kallman@gmail.com> 1431807176 +0200	branch: Created from HEAD
+7e699e4d7de28e9067d9d70bb44f6ac28e2f6d0b a49801b8c01eabc9a3fbf193edbdcf58317e3051 vurma <erik.kallman@gmail.com> 1431807198 +0200	commit: vurma:trying to get rid of the bug contained in get_numsl
+a49801b8c01eabc9a3fbf193edbdcf58317e3051 3af5dfa35e4e55959b9602b30b7e6fca4975ba77 vurma <erik.kallman@gmail.com> 1431888576 +0200	commit: vurma: get_numsl now correctly reads all transitions in the 1s3d_2p1s data file. cleaning up the code
+3af5dfa35e4e55959b9602b30b7e6fca4975ba77 12345d3848480e5f72f161bb8249ecc4ae203119 vurma <erik.kallman@gmail.com> 1432107850 +0200	commit: vurma: nope
+12345d3848480e5f72f161bb8249ecc4ae203119 329020ecabcbc1309611590db26accdc29252f4e vurma <erik.kallman@gmail.com> 1432124527 +0200	commit: vurma: Although the program now correctly, altough GS->GS transitions are still in the list, handles both 1s->3d+2p->1s and 1s->3d data, the current symtrans function needs to be debugged and tested more thouroughly.
+329020ecabcbc1309611590db26accdc29252f4e 9c218c90ab19856517c9479a4ee5159cecb294e9 vurma <erik.kallman@gmail.com> 1432200064 +0200	commit: vurma: adding index reading to the eigenvalues so that the sorting of the energies are correct.
+9c218c90ab19856517c9479a4ee5159cecb294e9 68dfd6dec3011c238d456eae4665a9efe1378c40 vurma <erik.kallman@gmail.com> 1432213346 +0200	commit: vurma: riddled with bugs. avoid.
+68dfd6dec3011c238d456eae4665a9efe1378c40 049b8f7bd19349b945391111c4974e733a5f3fa8 vurma <erik.kallman@gmail.com> 1432287062 +0200	commit: checking out some old smap implementations.
+049b8f7bd19349b945391111c4974e733a5f3fa8 1650c3d61efbd16d7bf41432532be58b45efe077 vurma <erik.kallman@gmail.com> 1432293145 +0200	commit: temp

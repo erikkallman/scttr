@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 2eab3c2168b3639e9b3e3e635da037cff69d0a02 vurma <erik.kallman@gmail.com> 1431361119 +0200	branch: Created from HEAD
+2eab3c2168b3639e9b3e3e635da037cff69d0a02 5d6bc858a21e02f647126221236063baa4533133 vurma <erik.kallman@gmail.com> 1431445255 +0200	commit: vurma:encoutered a bug in the sort_states function that is documented in ~/org/log.org
+5d6bc858a21e02f647126221236063baa4533133 088164b41afc0c2c411057cd650eec6c608fe8ea vurma <erik.kallman@gmail.com> 1431460095 +0200	commit: vurma:moving on to letting the sort_states allocate memory and define groups instead.
+088164b41afc0c2c411057cd650eec6c608fe8ea 2bb896d98e2ea64a2d6ed0c1d782259202e86c28 vurma <erik.kallman@gmail.com> 1431501440 +0200	commit: vurma: temporarily removed the recursive functionality of the sort_states function, which was causing an error that couldnt be debugged using valgrind.
+2bb896d98e2ea64a2d6ed0c1d782259202e86c28 7e699e4d7de28e9067d9d70bb44f6ac28e2f6d0b vurma <erik.kallman@gmail.com> 1431681032 +0200	commit: vurma:sort_states now functioning as expected for both dipole and quadrupole transitions

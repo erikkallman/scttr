@@ -1,3 +1,9 @@
+
+cmake/*
+!cmake/CMakeLists.txt
+output/
+test/
+
 # Compiled source #
 ###################
 *.com
@@ -26,15 +32,9 @@
 *.sql
 *.sqlite
 
-# cmake files #
-######################
-cmake/
-!CMakeLists.txt
-!*.h.in
-
 # binaries #
 ######################
-bin/
+bin/*
 
 # OS generated files #
 ######################
