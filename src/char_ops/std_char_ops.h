@@ -1,6 +1,18 @@
 #ifndef CHAR_OPS_H
 #define CHAR_OPS_H
 
+size_t
+fpread(void *buffer,
+       size_t size,
+       size_t mitems,
+       size_t offset,
+       FILE *fp);
+
+int
+strscmp (const char * str1,
+         const char ** str2,
+         int n_str);
+
 /* function isanychar
 
    * synopsis:

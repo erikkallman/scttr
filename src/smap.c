@@ -23,13 +23,14 @@ int n_is, n_fs;
 /* const double xshift = -19/AUTOEV; /\* Fe2pCN 1s -> 3d *\/ */
 
 void
-calc_smap_m (char * fn_relpath,
-             char * fn_infile,
-             int len_infile,
+calc_smap_m (char * fn_infile,
+             char * dat_fpstr,
+             char * plot_fpstr,
              double * state_er,
              double * state_t,
              double * res
              ) {
+
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");curr */
   /* exit(1); */
   FILE * fp;
@@ -41,24 +42,14 @@ calc_smap_m (char * fn_relpath,
 
   char * line;
 
-  char outpath[10] = "../output";
-  char datformat[5] = ".dat";
-  char plotformat[4] = ".gp";
-
-  int len_op = 9;
-  int len_of = 4;
-  int len_pf = 3;
-
-  char * dat_fpstr = malloc(len_op+len_of+len_infile+1);
-  char * plot_fpstr = malloc(len_op+len_pf+len_infile+1);
-
-  int j,k,l,m; /* control loop indices */
+  int progress;
+  int j,k,l,m,n; /* control loop indices */
   int maxgridj;
   int maxgridk;
   int jgrid,kgrid;
 
   int gs_idx,is_idx,fs_idx;
-  int n_is, n_fs;
+  int n_gs,n_is, n_fs;
 
   double rmax = -0.1;
 
@@ -88,45 +79,24 @@ calc_smap_m (char * fn_relpath,
   double ** rixsmap;
   double ** tmp_evals = malloc(2*sizeof(double*));
 
-  for (j=0; j<len_op; j++) {
-    dat_fpstr[j] = outpath[j];
-    plot_fpstr[j] = outpath[j];
-  }
-
-  plot_fpstr[j] = '/';
-  dat_fpstr[j++] = '/';
-
-  /* for (k=0; j<len_op+len_infile; j++) { */
-  for (k=0; fn_infile[k] != '\0'; j++) {
-    dat_fpstr[j] = fn_infile[k];
-    plot_fpstr[j] = fn_infile[k++];
-  }
-
-  l = j;
-  for (j=l,k=0; plotformat[k] != '\0'; j++) {
-    /* printf( "%c\n", datformat[k]); */
-    plot_fpstr[j] = plotformat[k++];
-  }
-  plot_fpstr[j] = '\0';
-
-  for (j=l,k=0; datformat[k] != '\0'; j++) {
-    /* printf( "%c\n", datformat[k]); */
-    dat_fpstr[j] = datformat[k++];
-  }
-  dat_fpstr[j] = '\0';
-
   /* open the placeholder file */
   if((fp=fopen(dat_fpstr, "w"))==NULL) {
-    printf("Cannot open file %s.\n",dat_fpstr);
+        fprintf(stderr,"smap.c, function calc_smap_m: unable to open the output file %s.\n",dat_fpstr);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
   }
 
   /* open the placeholder file */
   if((fp_plot_in=fopen("../src/plot_template", "r"))==NULL) {
-    printf("Cannot open file %s.\n","../src/plot_template");
+    fprintf(stderr,"smap.c, function calc_smap_m: unable to open the output file %s.\n","../src/plot_template");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
   }
 
   if((fp_plot_out=fopen(plot_fpstr, "w"))==NULL) {
-    printf("Cannot open file %s.\n",plot_fpstr);
+    fprintf(stderr,"smap.c, function calc_smap_m: unable to open the output file %s.\n",plot_fpstr);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
   }
 
   for (j=0; j<2; j++) {
@@ -144,7 +114,7 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
   /* emaxk = state_er[5]; */
 
   /* figure out the energy ranges by analyzing the energy ranges in the input */
-  n_is = n_fs = 0;
+  n_gs = n_is = n_fs = 0;
   gs_idx = 0;
   while(gs_idx < nt){
 
@@ -154,7 +124,7 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
 
       bw = get_rbdist(e0,e_gs);
       if(bw >= state_t[1]) {
-
+        n_gs++;
         k = gs_idx;
         /* loop over all intermediate transitions from this state */
         while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
@@ -395,6 +365,8 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   /* emaxk = emink + (double)(25/AUTOEV); */
   /* dek = (emaxk-emink)/(double)maxgridk; */
 
+  progress = n_gs*n_is*n_fs*maxgridj*maxgridk;
+
   /* x */
   grms_in = 2.0*powerl((fwhm_in/(2*sqrt(2*log(2)))),2);
   gvar_in = fwhm_in/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
@@ -403,13 +375,16 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   grms_tr = 2.0*powerl((fwhm_tr/(2*sqrt(2*log(2)))),2);
   gvar_tr = fwhm_tr/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
 
-  printf( "  - calculating the RIXS map ..");
+  printf( "  - calculating the RIXS map .. \n");
+
+  int kjtot = maxgridj*maxgridk;
+  int ksum = 0;
 
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     omegain = eminj+(jgrid*dej);
 
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
-
+      ksum++;
       rixsmap[jgrid][kgrid] = 0;
       omegaut = emink+(kgrid*dek);
       omega_x[jgrid][kgrid] = omegain;
@@ -427,6 +402,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
         if (ISINSIDE((e_gs-e0)*AUTOEV,state_er[1],state_er[2]) &&\
             (bw >= state_t[1])) {
           k = gs_idx;
+
           /* printf( "gs[%d] = %d\n",k, (int)parsed_input[0][k]); */
           /* loop over all intermediate transitions from this state */
           while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
@@ -505,9 +481,13 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       }
       /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
       /* exit(1); */
+       printf( "      progress: %.2f%%\r", (((float)(ksum*n_gs*n_is*n_fs)/(float)progress)*100));
+      fflush(stdout);
     }
   }
-  printf( " done.\n");
+  printf( "      progress: 100%%\r");
+  fflush(stdout);
+  printf( "\n      .. done.\n");
 
   printf( "  - normalizing the calculated RIXS map ..");
   /* normalize the map */
@@ -520,7 +500,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   }
   printf( " done.\n");
 
-  printf( "  - writing RIXS map to file: %s ..","/home/kimchi/dev/smap/output/map.dat");
+  printf( "  - writing RIXS map to file: %s ..",dat_fpstr);
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
       rixsmap[jgrid][kgrid] = rixsmap[jgrid][kgrid]/rmax;
@@ -539,13 +519,27 @@ to allocate memory for \"omega_y[%d]\"\n",j);
     fprintf(fp_plot_out, "%s",line);
   }
 
-  fprintf(fp_plot_out, "set output \"%s%s.png\"\n",outpath,fn_infile);
-  fprintf(fp_plot_out, "set title \"%s\" font \"Helvetica,40\" offset 0,1\n",fn_relpath);
-  fprintf(fp_plot_out, "splot [%le:%le][%le:%le] \"./map.dat\" u (($1+xshift)/1):2:($3*sc) with pm3d title \"\"",omega_x[0][0]*AUTOEV,omega_x[maxgridj-1][0]*AUTOEV,omega_y[0][0]*AUTOEV,omega_y[0][maxgridk-1]*AUTOEV);
+  fprintf(fp_plot_out, "set output \"./%s.png\"\n",fn_infile);
+  fprintf(fp_plot_out, "set title \"%s\" font \"Helvetica,40\" offset 0,1\n",fn_infile);
+  fprintf(fp_plot_out, "splot [%le:%le][%le:%le] \"./%s.dat\" u (($1+xshift)/1):2:($3*sc) with pm3d title \"\"",omega_x[0][0]*AUTOEV,omega_x[maxgridj-1][0]*AUTOEV,omega_y[0][0]*AUTOEV,omega_y[0][maxgridk-1]*AUTOEV,fn_infile);
 
+  if (fclose(fp_plot_in) != 0) {
+    fprintf(stderr, "smap.c, function calc_smap_m: unable to close some of the files:\n%s\n", "../src/plot_template");
+    printf("program terminating due to the previous error.\n");
+    exit(1);
+  }
 
-  fclose(fp_plot_in);
-  fclose(fp_plot_out);
+  if (fclose(fp_plot_out) != 0) {
+    fprintf(stderr, "smap.c, function calc_smap_m: unable to close some of the files:\n%s\n", plot_fpstr);
+    printf("program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if (fclose(fp) != 0) {
+    fprintf(stderr, "smap.c, function calc_smap_m: unable to close some of the files:\n%s\n", dat_fpstr);
+    printf("program terminating due to the previous error.\n");
+    exit(1);
+  }
 
   free(line);
 
@@ -555,7 +549,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   }
   free(omega_x);
   free(omega_y);
-  fclose(fp);
+
 }
 
 void
@@ -563,42 +557,16 @@ write_log (double * state_er,
            double * state_t,
            double * res,
            char * fn_relpath,
-           char * fn_infile,
-           int len_infile,
+           char * log_fpstr,
            int n_max
            ) {
-  printf( "  - writing parameter log ..");
+  printf( "  - writing parameter log to file: %s ..",log_fpstr);
+
   fflush(stdout);
 
   int j,k,l; /* looping variables */
 
   FILE * fp;
-
-  char outpath[10] = "../output";
-  char logformat[5] = ".log";
-
-  int len_lf = 4;
-  int len_op = 9;
-
-  char * log_fpstr = malloc(len_op+4+len_infile+1);
-
-  for (j=0; j<len_op; j++) {
-    log_fpstr[j] = outpath[j];
-  }
-
-  log_fpstr[j++] = '/';
-
-  /* for (k=0; j<len_op+len_infile; j++) { */
-  for (k=0; fn_infile[k] != '\0'; j++) {
-    log_fpstr[j] = fn_infile[k++];
-  }
-
-  for (k=0; logformat[k] != '\0'; j++) {
-    /* printf( "%c\n", logformat[k]); */
-    log_fpstr[j] = logformat[k++];
-  }
-
-  log_fpstr[j] = '\0';
 
   /* open the placeholder file */
   if((fp=fopen(log_fpstr, "w"))==NULL) {
@@ -670,13 +638,12 @@ in the calculation: \n\n" );
   fprintf(fp, "[%f,%f] = %f , Gaussian\n", state_er[3], state_er[4],1.25);
   fprintf(fp, "[%f,%f] = %f, Gaussian\n", state_er[5], state_er[6],0.4);
 
-  fprintf(fp, "\ntemperature = %.2f K, %.2f C \n", (float)TEXP, (float)TEXP-272.15);
+  fprintf(fp, "\ntemperature = %.2f C, %.2f K \n", (float)TEXP, (float)TEXP-273.15);
 
   fprintf(fp, "\nresolution (eV) in incident and energy transfer direction: %le %le \n",res[0],res[1]);
 
   fprintf(fp,     "\n================ general parameters ===============\n");
   fprintf(fp,    "======================= END =======================\n\n\n" );
-
 
   /* print data for the ground state screening */
   /* printf( "print data for the ground state transitions\n" ); */
@@ -799,7 +766,7 @@ in the calculation: \n\n" );
 
   /* screen ground state */
   e_gs = parsed_input[2][gs_idx];
-  bw = get_rbdist(e0,e_gs);
+  bw   = get_rbdist(e0,e_gs);
   flag = 0;
   n_is = n_sis = 0;
 
@@ -809,13 +776,13 @@ in the calculation: \n\n" );
 
   sint_tot = tint_tot = 0;
   tot_sint = tot_tint = 0;
-  tot_st = tot_t = 0;
+  tot_st   = tot_t = 0;
   /* print data for the final state transitions */
   /* printf( "print data for the final state transitions\n" ); */
   fprintf(fp,    "====================== START ======================\n" );
   fprintf(fp,"=== states in group 3, range [%d,%d] ===\n\n",(int)state_er[5],(int)state_er[6]);
 
-  fprintf(fp,"\nprinting states %.2f as intense as the transition maximum for a given initial state.\n\n",pt*100);
+  fprintf(fp,"\nprinting states %.2f%% as intense as the transition maximum for a given initial state.\n\n",pt*100);
 
   while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
 
@@ -825,7 +792,7 @@ in the calculation: \n\n" );
         n_is++;
       }
 
-      tmom_jk = parsed_input[4][k];
+      tmom_jk     = parsed_input[4][k];
       /* screen intermediate transition */
       if (parsed_input[5][k] == 1) {
         tmp_tmax1 = tmax_d;
@@ -833,15 +800,15 @@ in the calculation: \n\n" );
         tmp_tmax1 = tmax_q;
       }
       if ((tmom_jk/tmp_tmax1) > state_t[2]){
-        is_idx = k;
+        is_idx                                    = k;
         fprintf(fp,"\nI(2) = %d, E = %f to.. \n\n",(int)parsed_input[1][k], (e_is-e0)*AUTOEV);
         if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
 
           l = fs_idx;
-          tmp_sint = tmp_tint = 0;
-          n_sfs = n_fs = 0;
-          flag = 0;
-          max_ts3 = -1;
+          tmp_sint                       = tmp_tint = 0;
+          n_sfs                          = n_fs = 0;
+          flag                           = 0;
+          max_ts3                        = -1;
           while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
             e_fs = parsed_input[3][l];
             if (ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])) {
@@ -854,7 +821,7 @@ in the calculation: \n\n" );
                 tmp_tmax2 = tmax_q;
               }
               if ((tmom_kl/tmp_tmax2) > state_t[3]){
-                if (flag == 0) {
+                if (flag   == 0) {
                   n_sfs++;
                   tot_st++;
                   tmp_sint += tmom_kl;
@@ -865,8 +832,8 @@ in the calculation: \n\n" );
                     max_ts3 = tmom_kl;
                   }
                 } else {
-                  if (tmom_kl >= (max_ts3 * pt)) {
-                    fprintf(fp, "  I(3) = %d, E(3) = %f, type %d, <f> = %le ,<f>/scr = %.2e%%, <f>/tot = %.2e%% ",(int)parsed_input[1][l], (e_fs-e0)*AUTOEV,(int)parsed_input[5][l], tmom_kl, ((tmom_kl/tmp_sint)*100), (tmom_kl/tmp_tint)*100);
+                  if (tmom_kl           >= (max_ts3 * pt)) {
+                    fprintf(fp, "  I(3)  = %d, E(3) = %f, type %d, <f> = %le ,<f>/scr = %.2e%%, <f>/tot = %.2e%% ",(int)parsed_input[1][l], (e_fs-e0)*AUTOEV,(int)parsed_input[5][l], tmom_kl, ((tmom_kl/tmp_sint)*100), (tmom_kl/tmp_tint)*100);
                     if(tmom_kl == max_ts3){
                       fprintf(fp,"<- max <f>(%d)",(int)parsed_input[0][l]);
 
@@ -875,7 +842,7 @@ in the calculation: \n\n" );
                   }
                 }
               }
-              if (flag == 0) {
+              if (flag   == 0) {
                 tot_t++;
                 n_fs++;
                 tmp_tint += tmom_kl;
@@ -900,9 +867,14 @@ in the calculation: \n\n" );
   }
 
   /* fprintf(fp,"\n%d out of %d (%.2f%%) of the (2) states kept after screening. (%.2f%%) of the total intensity for transitions from state %d was screened. \n",n_tsfs, n_tfs,((n_sfs/n_fs)*100), (sint_tot/tint_tot)*100,(int)parsed_input[0][fs_idx]); */
-  fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 2 ([%d,%d]),\n  were screened out.\n", (int)state_er[5],(int)state_er[6], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)state_er[4],(int)state_er[5]);
+  fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 2 ([%d,%d]),\n  were screened out.\n", (int)state_er[5],(int)state_er[6], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)state_er[3],(int)state_er[4]);
   printf( " done.\n" );
   fprintf(fp,"\n=== states in group 3, range [%d,%d] ===\n",(int)state_er[5],(int)state_er[6]);
   fprintf(fp,    "======================= END =======================\n\n\n" );
 
+  if (fclose(fp) != 0) {
+    fprintf(stderr, "smap.c, function write_log: unable to close file:\n%s\n", fp);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
 }

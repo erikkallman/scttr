@@ -15,17 +15,12 @@
 
    */
 void
-calc_smap_m (char * fn_relpath,
-             char * fn_infile,
-             int len_infile,
+calc_smap_m (char * fn_infile,
+             char * dat_fpstr,
+             char * plot_fpstr,
              double * state_er,
              double * state_t,
              double * res
-             );
-
-void
-calc_smap_dbg(double * state_er,
-             double * state_t
              );
 
 void
@@ -33,8 +28,7 @@ write_log (double * state_er,
            double * state_t,
            double * res,
            char * fn_relpath,
-           char * fn_infile,
-           int len_infile,
+           char * log_fpstr,
            int n_max
            );
 

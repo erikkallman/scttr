@@ -3,6 +3,18 @@
 #include "dynarray.h"
 #include "structs.h"
 
+int
+add_elastic (double * state_er);
+
+int
+parse_input_bin (char * bin_fpstr
+                 );
+int
+parse_molout (char * fn_relpath,
+              char * fn_infile,
+              int len_infile
+              );
+
 int ISINSIDE(double v,
              double r1,
              double r2);
@@ -131,7 +143,6 @@ get_inext (int from
 double*
 get_es (int idx);
 
-
 /* function parse_input:
  * synopsis:
  parse_input is the output data file interface to smap. For a given output type,
@@ -169,12 +180,16 @@ get_es (int idx);
 
 int
 parse_input_tmp (double * state_er,
-                 char * fn_tmpdata
+                 char * fn_tmpdata,
+                 char * bin_fpstr
                  );
 
 int
 parse_input (double * state_er,
              char * fn_relpath, /* name of input file */
+             char * tmp_fpstr,
+             char * format,
+             char * bin_fpstr,
              int len_fn);
 
 #endif /* PARSE_INPUT_H */

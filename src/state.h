@@ -4,7 +4,6 @@
 
 extern int ns;
 extern int nt;
-extern n_is, n_fs;
 
 extern double tmax_d;
 extern double tmax_q;

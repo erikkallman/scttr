@@ -8,6 +8,47 @@
 /* check if both x and y are dashes */
 #define isddash(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
 
+size_t
+fpread(void *buffer,
+       size_t size,
+       size_t mitems,
+       size_t offset,
+       FILE *fp){
+
+     if (fseek(fp, offset, SEEK_SET) != 0)
+         return 0;
+     return fread(buffer, size, mitems, fp);
+}
+
+/* function strscmp
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+strscmp (const char * str1,
+         const char ** str2,
+         int n_str) {
+  int j;
+
+  for (j=0; j<n_str; j++) {
+    if (strstr(str1, str2[j])){
+      /* printf( "found %s = %s\n", str1, str2[j]); */
+      return j;
+    }
+  }
+
+  return -1;
+}
+
 int
 isanyalpha (char * s,
            int len) {
@@ -18,7 +59,8 @@ isanyalpha (char * s,
   for (j=0; j<len; j++) {
     if ((isalpha(s[j]) &&
         (charinstr(num_key,s[j]) == 0)) ||
-        (s[j] == '#')
+        (s[j] == '#') ||
+        (s[j] == '*')
         ){
       return 1;
     }

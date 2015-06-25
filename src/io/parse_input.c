@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <ctype.h>
 #include <math.h>
 #include <signal.h>
 #include <string.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "std_char_ops.h"
 #include "std_num_ops.h"
 #include "get_numsl.h"
@@ -12,6 +13,347 @@
 #include "input_formats.h"
 #include "sci_const.h"
 #include "state.h"
+
+int nt;
+double ** parsed_input;
+double e0;
+
+/* function add_elastic
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+add_elastic (double * state_er) {
+  /* allocate memory for pi_el that is at most the size of ngs*nis*nfs*/
+  /* copy the entire pi buffer to pi_el */
+  /* make PI point to pi_el instead */
+  /* deallocate the memory to PI */
+
+  int j,l;
+  int tmp_idx,next_to;
+  int nt_el = nt;
+
+  /* all elastic transitions handled so far */
+  int * proc_st;
+
+  double ** pi_buf;
+
+  /* PI matrix with enough space to acommodate the elastic transitions */
+  double ** pi_el;
+  double ** pi_old;
+
+  int n_proc,nb;
+
+  if((pi_buf = malloc(6*sizeof(double*))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"input_data\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<6; j++) {
+    if((pi_buf[j] = malloc(nt*sizeof(double))) == NULL ){
+      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
+for pointers in \"input_data\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  if((pi_el = malloc(6*sizeof(double*))) == NULL ){
+    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
+ \"input_data\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<6; j++) {
+    if((pi_el[j] = malloc(2*nt*sizeof(double))) == NULL ){
+      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
+for pointers in \"input_data\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  /* free up the memory space occupied by the old matrix */
+  if((proc_st = malloc(nt*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input.c , function add_elastic, malloc: failed to allocate memory for\
+ \"proc_st\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  j = nb = n_proc = 0;
+  while ((int)parsed_input[0][j] > 0) {
+    /* printf( "state %d\n", (int)parsed_input[0][j]); */
+    if (!intinint(proc_st, (int)parsed_input[1][j], n_proc) &&
+        (((parsed_input[2][j]-e0)*AUTOEV >= state_er[1]) && ((parsed_input[2][j]-e0)*AUTOEV <= state_er[2])) &&
+        (((parsed_input[3][j]-e0)*AUTOEV >= state_er[3]) && ((parsed_input[3][j]-e0)*AUTOEV <= state_er[4]))
+        ) {
+
+      next_to = (int)parsed_input[1][j];
+      /* printf( "found elastic %d\n", next_to); */
+      /* sleep(1); */
+      /* found a "to" state that has not had its elastic transitions
+       added yet. loop over the PI matrix and check if there are transitions
+       fromn other states that need to be taken into account. */
+
+      nb = 0;
+      pi_buf[0][nb] = parsed_input[1][j];
+      pi_buf[1][nb] = parsed_input[0][j];
+      pi_buf[2][nb] = parsed_input[3][j];
+      pi_buf[3][nb] = parsed_input[2][j];
+      pi_buf[4][nb] = parsed_input[4][j];
+      pi_buf[5][nb] = parsed_input[5][j];
+      nb++;
+      /* ^some un-rolling */
+
+      l = get_inext((int)parsed_input[0][j]);
+      while ((int)parsed_input[0][l] != -1) {
+        if (((int)parsed_input[1][l] == next_to) &&
+            ((parsed_input[2][l]-e0)*AUTOEV >= state_er[1]) && ((parsed_input[2][l]-e0)*AUTOEV <= state_er[2])){
+          /* printf( "found from state %d\n", (int)parsed_input[1][l]); */
+          /* transitions from another state */
+          pi_buf[0][nb] = parsed_input[1][l];
+          pi_buf[1][nb] = parsed_input[0][l];
+          pi_buf[2][nb] = parsed_input[3][l];
+          pi_buf[3][nb] = parsed_input[2][l];
+          pi_buf[4][nb] = parsed_input[4][l];
+          pi_buf[5][nb] = parsed_input[5][l];
+          nb++;
+
+          /* jump to the next "from" state, since any given state can only have
+           one transition to another specific state */
+          l = get_inext(parsed_input[1][j]);
+        }
+        else {
+          /* printf( "didt find %d from state %d\n",next_to, (int)parsed_input[0][l]); */
+          l++;
+        }
+      }
+
+      tmp_idx = get_inext(next_to);
+      proc_st[n_proc++] = next_to;
+    }
+
+    /* printf( "appending .. " ); */
+    /* append the data to the parsed_input matrix */
+    for (l=0; l<nb; nt_el++,l++) {
+      pi_el[0][nt_el] = pi_buf[0][l];
+      pi_el[1][nt_el] = pi_buf[1][l];
+      pi_el[2][nt_el] = pi_buf[2][l];
+      pi_el[3][nt_el] = pi_buf[3][l];
+      pi_el[4][nt_el] = pi_buf[4][l];
+      pi_el[5][nt_el] = pi_buf[5][l];
+    }
+    /* printf( "done\n" ); */
+    /* jump to the next state */
+    j = get_inext((int)parsed_input[0][j]);
+
+    j++;
+  }
+
+  /* copy the old pi data to pi_el */
+    /* copy all of pi to pi_el */
+  for (l=0; l<nt; l++) {
+    pi_el[0][nt] = parsed_input[0][l];
+    pi_el[1][nt] = parsed_input[1][l];
+    pi_el[2][nt] = parsed_input[2][l];
+    pi_el[3][nt] = parsed_input[3][l];
+    pi_el[4][nt] = parsed_input[4][l];
+    pi_el[5][nt] = parsed_input[5][l];
+  }
+
+  pi_old = parsed_input;
+
+  pi_el[0][nt_el] = -1;
+  parsed_input = pi_el;
+
+  for (j=0; j<6; j++) {
+    free(pi_old[j]);
+  }
+  free(pi_old);
+
+  nt = nt_el;
+
+  return 1;
+}
+
+int
+parse_input_bin (char * bin_fpstr
+                 ) {
+
+  int j; /* looping variables */
+
+  int pi_xdim,pi_ydim;
+  /* double ** parsed_input;
+  /* test writing to binary */
+  FILE * fp_bin = fopen(bin_fpstr,"rb");
+
+  fread(&pi_ydim, sizeof(int),1,fp_bin);
+  pi_xdim = 6;
+
+  nt = pi_ydim;
+
+  if((parsed_input = malloc(pi_xdim*sizeof(double*))) == NULL ){
+    fprintf(stderr, "parse_input_bin, malloc: failed to allocate memory for\
+ \"input_data\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<pi_xdim; j++) {
+    if((parsed_input[j] = malloc((pi_ydim+1)*sizeof(double))) == NULL ){
+      fprintf(stderr, "parse_input_bin, malloc: failed to allocate memory \
+for pointers in \"input_data\"\n");
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  /* fp_bin = fopen(bin_fpstr,"rb"); */
+  /* fseek(fp_bin,0,SEEK_SET); */
+  /* fread(&nt, sizeof(int),1,fp_bin); */
+
+  for (j=0; j<6; j++) {
+    if (fread(parsed_input[j], sizeof(double), nt, fp_bin) != nt) {
+      fprintf(stderr, "parse_input.c, function parse_input_bin: unable to read the PI matrix\n");
+      printf( "program terminating due to the previous error.\n");
+      fclose(fp_bin);
+      exit(1);
+    }
+  }
+
+  e0 = parsed_input[2][0];
+  parsed_input[0][pi_ydim] = -1;
+
+  if (fclose(fp_bin) != 0) {
+    fprintf(stderr, "parse_input.c, function parse_input_bin: unable to close file:\n%s\n", fp_bin);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  return 1;
+}
+
+int
+parse_molout (char * fn_relpath,
+              char * tmp_fpstr,
+              int len_infile
+              ) {
+
+  int j,k,l,m,j_last; /* control loop variables */
+  int mode; /* string matching mode flag */
+  int string_flag = 0;
+
+  FILE * fp_tmpdata;
+  FILE * fp_relpath;
+
+  const int n_lookup_str = 6; /* number of strings used for searching the input file */
+
+  int c; /* temporary char for storing input file characters */
+  /* we are looking for four strings in the output file: one at the beginning
+     of each data block, and one at the end. */
+  char * str_buf = malloc(BUF_SIZE*5);
+
+  const char s1[35] = "Eigenvalues of complex Hamiltonian";
+  const char s2[40] = "Dipole transition strengths (SO states)";
+  const char s3[44] = "Quadrupole transition strengths (SO states)";
+
+  /* create a pointer to the three data block beginners s1,s2,s3 */
+  const char * lookup_str[3] = {s1,s2,s3};
+
+  /* open the input file */
+  if((fp_relpath = fopen(fn_relpath, "r")) == NULL) {
+    fprintf(stderr,"parse_input: unable to open the input file %s.\n",fn_relpath);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+  if((fp_tmpdata = fopen(tmp_fpstr, "w+")) == NULL) {
+    fprintf(stderr,"parse_input: unable to open the output file %s.\n",tmp_fpstr);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  k    = 0;                     /* index for tmp_string */
+  mode = 0;                     /* start of in string search mode */
+  string_flag = 0;
+
+  /* read the Molcas input file */
+  for (j=0; ((c = fgetc(fp_relpath)) != EOF); j++, k++) {
+    str_buf[k]                        = (char)c;
+
+    /* keep extracting characters from the input data until an entire line
+       has been stored in the temporary str_buf buffer */
+    if (str_buf[k] == '\n') {
+      if (mode                     == 1) {
+
+        /* check so that the string that was read only contains numbers */
+        if ((isanyalpha(str_buf,k) == 0) &&
+            (isdashes(str_buf,k)   == 0) &&
+            (isempty(str_buf,k)    == 0)){
+
+          if (string_flag == 0) {
+
+            /* we are now reading numbers. accept no strings */
+           string_flag =  bin_flip(string_flag);
+            /* printf( "%s\n", str_buf); */
+          }
+
+          for (m = 0; m<=k; m++) {
+            fputc(str_buf[m],fp_tmpdata);
+          }
+        }
+        /* if we find a flag while string_flag ==1 and mode ==1, we jhave
+         read beyond the table */
+        else if(string_flag == 1){
+          /* printf( "read last number\n" ); */
+          string_flag = bin_flip(string_flag);
+
+          /* something was read that was not a number flip back
+             to searching for new line matches */
+          mode    = bin_flip(mode);
+          /* printf( "mode flip back!\n" ); */
+          /* sleep(1); */
+          /* fseek(fp_relpath, -1*(j-j_last),SEEK_CUR); */
+        }
+      }
+      /* check every line for a matching substring */
+      /* mode = 1 and a line match means that we reached
+         the end of this data block */
+      /* if ((l = strscmp(str_buf,lookup_str,6)) != -1) { */
+      else if((l = strscmp(str_buf,lookup_str,3)) != -1) {
+
+        /* we found the first substring, the data we're looking for is
+           inside the coming table of numbers of text. switch to mode 1.*/
+          fprintf(fp_tmpdata,"%s\n",lookup_str[l]);
+          mode    = bin_flip(mode);
+          /* printf( "mode flip!\n" ); */
+          /* printf( "%s\n", lookup_str[l]); */
+          /* sleep(1); */
+      }
+      k = 0;
+      j_last = j;
+    }
+  }
+  if ((fclose(fp_tmpdata) != 0) &&\
+      (fclose(fp_relpath) != 0)) {
+    fprintf(stderr, "parse_input.c, function parse_molout: unable to close files:\n%s\n%s\n", tmp_fpstr,fn_relpath);
+    printf("program terminating due to the previous error.\n");
+    exit(1);
+  }
+}
+
 /* function
 
    * synopsis:
@@ -114,7 +456,7 @@ pi2s () {
   int j = 0;
   fprintf(stderr, "\n\n===========================\n");
   fprintf(stderr, "=======content of PI=======\n\n");
-  while (1) {
+  while (parsed_input[0][j++] != -1) {
     printf( "\n%le   %le   %le   %le   %le  %le\n",
             parsed_input[0][j],
             parsed_input[1][j],
@@ -122,12 +464,7 @@ pi2s () {
             parsed_input[3][j],
             parsed_input[4][j],
             parsed_input[5][j]);
-
-    /* printf( "index data %d %d %d\n", idxs_map[last_i-1], idxs_map[last_i-1]+j,(int)parsed_input[0][idxs_map[last_i-1]+j]); */
     j++;
-    if (parsed_input[0][j] == -1) {
-      break;
-    }
   }
   fprintf(stderr, "\n\n=======content of PI=======\n");
   fprintf(stderr, "===========================\n\n");
@@ -219,21 +556,12 @@ get_i (int from
 int
 get_inext (int from
            ) {
+
   int last_i = (int)parsed_input[0][0];
   int j      = 0;
   while (last_i != -1) {
 
     if ((int)parsed_input[0][j] == from) {
-      /* if (parsed_input[0][j]== 4) { */
-      /*   printf( "snipe2!\n" ); */
-      /*   fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-      /*   exit(1); */
-      /* } */
-      /* if (from == 4) { */
-      /*   printf( "snipe1! %d\n",parsed_input[0][j] ); */
-      /*   fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-      /*   exit(1); */
-      /* } */
       break;
     }
     j++;
@@ -241,7 +569,7 @@ get_inext (int from
   }
 
   if ((int)parsed_input[0][j] != from) {
-    fprintf(stderr, "\n\nget_inext:ERROR, cant get state %d\n", from);
+    fprintf(stderr, "\n\nget_inext:ERROR, cant get state %d, last_i = %d\n", from, last_i);
     printf( "program terminating due to the previous error.\n");
     fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
     exit(1);
@@ -261,240 +589,13 @@ get_inext (int from
   exit(1);
 }
 
-/* mdda_s * */
-/* screen_states (char * fn_relpath, */
-/*                double * state_t, */
-/*                double * state_er */
-/*                ){ */
-/*   printf( "  -screening states\n\n" ); */
-
-/*   info_node inode = get_inode(fn_relpath); */
-
-/*   int j,k; /\* looping variables *\/ */
-/*   int n_states = inode -> n_states; */
-/*   int gs_idx; /\* ground state index *\/ */
-/*   int is_idx; /\* intermediate state index *\/ */
-
-/*   int n_gfs = inode -> n_gfs; */
-/*   int n_is = inode -> n_is; */
-
-/*   /\* number of screen GS, IS, and FS *\/ */
-/*   int n_sgs = 0; */
-/*   int n_sis = 0; */
-/*   int n_tmpsis = 0; /\* number of IS for a specific GS *\/ */
-/*   int n_sfs = 0; */
-
-/*   int * tmp_idxs; */
-
-/*   /\* arrays used for storing the screened..  *\/ */
-/*   mdda_s * igs; /\* .. ground states *\/ */
-/*   mdda_s * iis; /\* .. intermediate states *\/ */
-
-/*   /\* some hard-coded threshold values that will get replaced by the call */
-/*    values *\/ */
-/*   double bw_sum = inode -> bw_sum; */
-/*   double mt_is, mt_fs; */
-/*   double * tmp_trans; */
-
-/*   estate root_state = inode -> root_e_state; */
-/*   estate curr_state = root_state; */
-/*   estate next_state; */
-/*   estate gs_bm; /\* ground state bookmark *\/ */
-/*   estate is_bm; /\* intermediate state bookmark *\/ */
-
-/* /\* initialize the data structures used to store the screened states *\/ */
-/*   igs = mdda_init(); */
-/*   iis = mdda_init(); */
-
-/*   /\* for a description of the screening algorithm below, look up this function */
-/*      in the parse_input.h file *\/ */
-/*   for (j=0; j<(inode -> mom_types[0]); j++) { */
-/*       printf( "%le %le\n", (inode -> mt)[0][j],(inode -> mt)[1][j]); */
-/*   } */
-
-/*   n_sgs = 0; */
-/*   while((next_state = curr_state -> next) != NULL){ */
-
-/*     gs_idx = curr_state -> state_idx; */
-/*     if ((curr_state -> type) == 1) { /\* if we found a ground state *\/ */
-/*       /\* printf( "GS: %d %le\n", gs_idx,((curr_state ->  bw)/bw_sum)); *\/ */
-/*       /\* perform stage 1 of the screening process *\/ */
-/*       /\* if (((curr_state ->  bw)/(inode -> bw_sum)) >= state_t[0]) { *\/ */
-/*       if ((((curr_state ->  bw)/bw_sum) >= state_t[1]) || (curr_state -> state_idx == 1)) { */
-/*         /\* we found a ground state with high enough boltzmann weight *\/ */
-/*         gs_idx = curr_state -> state_idx; */
-/*         n_sgs++; */
-/*         mdda_set(igs, 0, 0, n_sgs); */
-/*         mdda_set(igs, 0, n_sgs, gs_idx ); */
-/*         /\* printf( "found one GS at %d!\n\n", gs_idx ); *\/ */
-/*         /\* printf( "\ngs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw)/bw_sum)); *\/ */
-/*         /\* store a pointer to the final state matrix in the ground state root node *\/ */
-/*         /\* if (gs_idx != 1) { *\/ */
-/*         /\*   fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); *\/ */
-/*         /\*   exit(1); *\/ */
-/*         /\* } *\/ */
-/*         sleep(1); */
-/*         /\* store a bookmark of where we found the last ground state *\/ */
-/*         gs_bm = next_state; */
-
-/*         /\* perform stage 2 of the screening process *\/ */
-/*         n_tmpsis = 0; */
-/*         tmp_trans = curr_state -> t_moms; */
-/*         tmp_idxs = curr_state -> idxs_to; */
-/*         for (j=0; j<(curr_state -> n_tfrom); j++) { */
-/*           mt_is = (inode -> mt)[0][(curr_state -> ttypes[j])]; */
-/*           printf( "  IS:j = %d/%d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n, max = %le", j, (curr_state -> n_tfrom), tmp_idxs[j], tmp_trans[j], (tmp_trans[j]/mt_is), state_t[1]), mt_is; */
-/*           /\* if IS transition has a transition moment above threshold *\/ */
-/*           if ((tmp_trans[j]/mt_is) >= state_t[2]) { */
-/*             is_bm = curr_state; */
-/*             is_idx = tmp_idxs[j]; */
-/*             printf( "  found one IS at %d!\n\n", is_idx ); */
-
-/*            /\* locate the candidate intermediate state in the list and varify */
-/*                that the state is indeed an IS (has type == 2) *\/ */
-
-/*             /\* varify that it has been marked as an intermediate state *\/ */
-/*             if ((curr_state = get_state_sil(inode, is_idx)) != NULL){ */
-/*               /\* from the ground state found above, we also found an intermediate */
-/*                  state with high enough relative transition moment *\/ */
-
-/*               n_tmpsis++; */
-/*               mdda_set(igs, n_sgs, 0, n_tmpsis); */
-/*               mdda_set(igs, n_sgs, n_tmpsis, is_idx); */
-
-/*               /\* printf( "  is[%d] = %d %le\n", n_sis, mdda_get(igs, n_sgs,n_sis), (curr_state -> t_moms)[j]/mt_is); *\/ */
-
-/*               n_sfs = 0; */
-
-/*               /\* before this is done, check so that the specific is_idx isnt */
-/*                  in the iis already, in which case we would find its index in */
-/*                  the 0th column of that mdda *\/ */
-/*               if (mdda_intinint((iis->root), is_idx) == 0) { */
-/*                 n_sis++; */
-/*                 mdda_set(iis, 0, 0, n_sis); */
-/*                 mdda_set(iis, 0, n_sis, is_idx); */
-
-/*                 /\* perform stage 3 of the screening process *\/ */
-/*                 /\* find final state transitions that pass stage 3 screening *\/ */
-/*                 for (k=0; k < (curr_state -> n_tfrom); k++) { */
-/*                   /\* printf( "    is %d -> FS:j = %d, sidx = %d, trans = %le, reltrans = %le, thrsh = %le\n",is_idx, k, ((curr_state -> idxs_to)[k]), ((curr_state -> t_moms)[k]), (((curr_state -> t_moms)[k])/mt_fs), state_t[3]); *\/ */
-
-/*                   mt_fs = (inode -> mt[1][(curr_state -> ttypes[k])-1]); */
-/*                   /\* screen the final state *\/ */
-/*                   if ((((curr_state -> t_moms)[k])/mt_fs) >= state_t[3]) { */
-/*                     /\* from the intermediate state found above, we also found a */
-/*                        final state transition with high enough relative */
-/*                        transition moment *\/ */
-/*                     /\* printf( "    found one FS at %d!\n\n", mdda_get(iis, n_sis, n_sfs) ); *\/ */
-/*                     n_sfs++; */
-/*                     mdda_set(iis, n_sis, 0, n_sfs); */
-/*                     mdda_set(iis, n_sis, n_sfs, (curr_state -> idxs_to)[k]); */
-
-/*                     /\* printf("    is %d -> fs[%d][%d] = %d %le\n",is_idx, n_sis, n_sfs, mdda_get(iis, n_sis, n_sfs), (((curr_state -> t_moms)[k])/mt_fs)); *\/ */
-/*                   }/\*  else { *\/ */
-/*                   /\*   printf( "    is %d -> FS not accepted.\n",is_idx ); *\/ */
-/*                   /\* } *\/ */
-/*                 } */
-/*               /\* if we looped over all final state transitions for this specific */
-/*                  intermediate state and didnt find any FS transitions of high */
-/*                  enough intensity, remove that intermediate state from the list *\/ */
-
-/*                 /\* COMMENT OUT THIS BLOCK IF YOU WANT ELASTIC TRANSITIONS *\/ */
-/*                 /\* if (n_sfs == 0) { *\/ */
-/*                 /\*   /\\* printf( "\nis %d: %d %d %d\n",is_idx, n_sgs, n_tmpsis, n_sis); *\\/ *\/ */
-/*                 /\*   /\\* mdda2s(igs); *\\/ *\/ */
-/*                 /\*   /\\* mdda2s(iis); *\\/ *\/ */
-/*                 /\*   mdda_set(iis, 0, 0, n_sis-1); *\/ */
-/*                 /\*   mdda_set(iis, 0, n_sis, 0); *\/ */
-/*                 /\*   mdda_set(iis, n_sis, 0, 0); *\/ */
-/*                 /\*   mdda_set(iis, n_sis, n_sfs, 0); *\/ */
-
-/*                 /\*   mdda_set(igs, n_sgs, 0, n_tmpsis-1); *\/ */
-/*                 /\*   mdda_set(igs, n_sgs, n_tmpsis, 0); *\/ */
-/*                 /\*   /\\* mdda_set(igs, n_sgs, n_tmpsis, n_tmpsis); *\\/ *\/ */
-/*                 /\*   /\\* mdda_show(igs); *\\/ *\/ */
-
-/*                 /\*   n_sis--; *\/ */
-/*                 /\*   n_tmpsis--; *\/ */
-/*                 /\*   /\\* mdda2s(igs); *\\/ *\/ */
-/*                 /\*   /\\* mdda2s(iis); *\\/ *\/ */
-/*                 /\*   /\\* printf( "\nstate treshold: %le\n", (inode -> mt_is)*state_t[2]); *\\/ *\/ */
-/*                 /\*   /\\* e_state2s(get_state_si(inode, gs_idx),2); *\\/ *\/ */
-
-/*                 /\*   /\\* printf( "\nstate treshold: %le\n", (inode -> mt_fs)*state_t[3]); *\\/ *\/ */
-/*                 /\*   /\\* e_state2s(get_state_si(inode, is_idx),1); *\\/ *\/ */
-/*                 /\*   /\\* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); *\\/ *\/ */
-/*                 /\*   /\\* exit(1); *\\/ *\/ */
-/*                 /\* } *\/ */
-/*               } */
-/*             } */
-
-/*             curr_state = is_bm; /\* reset the state to the last initial state *\/ */
-/*           } else { */
-/*             printf( "  IS not accepted.\n" ); */
-/*           } */
-/*         } */
-/*         /\* jump back to the last ground state that was found in the list *\/ */
-/*         next_state = gs_bm; */
-/*       } /\* else { *\/ */
-/*       /\* printf( "unacceptable bw: gs[%d] = %d %le\n", n_sgs,gs_idx,((curr_state ->  bw))); *\/ */
-/*       /\* } *\/ */
-/*     } */
-
-/*     curr_state = next_state; */
-/*   } */
-
-/*   /\* check so that every IS index in the igs is also in the iis array *\/ */
-/*   if (isiniis(igs,iis)) { */
-/*     fprintf(stderr, "Error: parse_input.c, function screen_states, while \ */
-/* screening the transitions, the arrays storing the state indices got corrupted \ */
-/*  and some intermediate states will be excluded from the RIXS map. this is not \ */
-/*  acceptable. \n"); */
-/*     printf( "program terminating due to the previous error.\n"); */
-/*     exit(EXIT_FAILURE); */
-/*   } */
-/*   /\* mdda_show(igs); *\/ */
-
-/*   mdda_set_branch(igs, iis, 0, 0 ); */
-/*   mdda_show(igs); */
-
-/*   /\* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); *\/ */
-/*   /\* exit(1); *\/ */
-/*   return (igs->root); */
-/* } */
-
-/* int */
-/* init_data_branch(double * state_er, /\* state energy ranges *\/ */
-/*                  double ** pi, /\* parsed input *\/ */
-/*                  int * mom, */
-/*                  int ns, /\* n states *\/ */
-/*                  int nt, /\* n transitions *\/ */
-/*                  char * fs /\* input file name string *\/ */
-/*                  ){ */
-/*   int j; /\* looping variables *\/ */
-
-/*   /\* initialize the linked list structure for the electronic states *\/ */
-/*   init_estate_list(fs, mom, ns, nt); */
-
-/*   /\* use the extracted input data to set the state of the linked list *\/ */
-/*   set_estate_list(state_er, pi, mom, ns, nt, fs); */
-
-/*   /\* free up parsed_input, since it now lives in the tree *\/ */
-/*   for (j=0; j<5; j++) { */
-/*     free(pi[j]); */
-/*   } */
-
-/*   free(pi); */
-
-/*   return EXIT_SUCCESS; */
-/* } */
-
 int
 parse_input_tmp (double * state_er,
-                 char * fn_tmpdata
+                 char * fn_tmpdata,
+                 char * bin_fpstr
                  ) {
 
-  int j,k,l,m,i,n,k_its; /* control loop variables */
+  int j,k,l,m,i,n,k_its,j_test; /* control loop variables */
   int mode; /* string matching mode flag */
   int match_start;
   int match_end;
@@ -507,7 +608,7 @@ parse_input_tmp (double * state_er,
 
   int n_proc;
 
-  int delim_count,trs_type;
+  int trs_type;
 
   int * num_idxs1;
   int * num_idxs2;
@@ -524,7 +625,7 @@ parse_input_tmp (double * state_er,
   double *  t_mom;
 
   FILE * fp_tmpdata;
-
+  FILE * fp_bin;
   int n_matchfound  = 0;
   int match_vals[2] = {0,0}; /* place to store the indexes of the lines containing the
                               matches */
@@ -534,6 +635,13 @@ parse_input_tmp (double * state_er,
      of each data block, and one at the end. */
   char * str_buf = malloc(BUF_SIZE*2);
   const char DAT_DELIM[32] =  "============ data block finish\n";
+
+  const char s1[38] = "Eigenvalues of complex Hamiltonian";
+  const char s2[40] = "Dipole transition strengths (SO states)";
+  const char s3[44] = "Quadrupole transition strengths (SO states)";
+
+  /* create a pointer to the three data block beginners s1,s3, */
+  const char * lookup_str[3] = {s1,s2,s3};
 
   /* open the input file */
   if((fp_tmpdata = fopen(fn_tmpdata, "r")) == NULL) {
@@ -615,11 +723,10 @@ parse_input_tmp (double * state_er,
   num_idxs2[2] = 2;
   int n_idxs2  = 3;
 
-  j = l = m = 0;
+  j = j_test = l = m = 0;
 
   n_states    = 0;
   n_trans     = 0;
-  delim_count = 0;
   trs_type    = 1;
 
   /* now that data structures of the rights size has memory allocated for
@@ -629,23 +736,23 @@ parse_input_tmp (double * state_er,
 
     str_buf[l] = (char)c;
 
-    if ((str_buf[l]                  == '\n') && (l > 0)) { /* dont send blank lines */
-      if (strcmp(DAT_DELIM, str_buf) <= 0) {
-        delim_count++;
-        l = 0; /* index for string matches */
-        j=2;
-        /* printf( "Found the delimiter\n" ); */
+    if ((str_buf[l]  == '\n') && (l > 0)) { /* dont send blank lines */
+      str_buf[l+1] = '\0';
+
+      /* if (strcmp(DAT_DELIM, str_buf) <= 0) { */
+      if ((j_test = strscmp(str_buf, lookup_str,3)) != -1) {
+
+        j = j_test;
+        trs_type = j;
+
+        /* printf( "Found the delimiter j = trs_type = %d\n",j ); */
         /* sleep(1); */
-        if (delim_count == 2) {
-          /* read quadrupole transition */
-          trs_type                    = 2;
-        }
       }
       else{
+
         if ((j == 0) && (isempty(str_buf,l) != 1)) {
 
           /* extract energy eigenvalues and state indexes */
-
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&tmp_idx,&e_eigval[n_states]);
 
           /* printf( "pre%d\n", j); */
@@ -658,7 +765,7 @@ parse_input_tmp (double * state_er,
           }
           /* printf( "post%d\n", j); */
         }
-        else if ((j == 2) && (isempty(str_buf,l) != 1)) {
+        else if ((j > 0) && (isempty(str_buf,l) != 1)) {
 
           /* extract transition moments and transition indexes */
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][n_trans],\
@@ -675,13 +782,17 @@ parse_input_tmp (double * state_er,
               n_trans++;
           }
         }
-        l=0; /* reset the buffer write head to start reading a the next line */
       }
+
+      /* reset the buffer write head to start reading a the next line */
+      l = 0;
     }
     else{
       l++;
     }
   }
+
+
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
   /* allocate space for the "parsed input matrix" that will be filled with data
@@ -738,31 +849,22 @@ for pointers in \"input_data\"\n");
   n_proc      = 0;
   idxs_map[0] = 1;
   last_i = 1;
-  j           = k = l = 0;
+  j = k = l = 0;
   e0 = e_eigval[0];
 
   while (l<n_trans-1) {
     if ((j+l) == (n_trans)) {
       /* dont read beyond the last value in PI */
       /* for (k=0; k<j; k++) { */
-      /*   printf( "%le %le %le %le %le\n", pi_buf[0][k],pi_buf[1][k],pi_buf[2][k],pi_buf[3][k],pi_buf[4][k],pi_buf[5][k]); */
+        /* printf( "%le %le %le %le %le\n", pi_buf[0][k],pi_buf[1][k],pi_buf[2][k],pi_buf[3][k],pi_buf[4][k],pi_buf[5][k]); */
       /* } */
       /* break; */
       pi_buf[0][j] = -1;
       idx_from = -1;
     } else {
-
-      /* if ((trs_types[j+l] == 1) && */
-      /*     ISINSIDE(e_eigval[idxs_eigval[(int)trans_idxs[1][j+l]]],state_er[1],state_er[2]) && */
-      /*     ISINSIDE(e_eigval[idxs_eigval[(int)trans_idxs[0][j+l]]],state_er[3],state_er[4])) */
-      /*   { */
-      /* if (((trans_idxs[1][j+l] == 572) || */
-      /*     (trans_idxs[1][j+l]      == 573)) && */
-      /*     (trs_types[j+l] == 1) */
-      /*     ) { */
       if ((ISINSIDE((e_eigval[idxs_eigval[(int)trans_idxs[1][j+l]]]-e0)*AUTOEV,state_er[3],state_er[4]) &&
            (ISINSIDE((e_eigval[idxs_eigval[(int)trans_idxs[0][j+l]]]-e0)*AUTOEV,state_er[5],state_er[6]))) &&
-          (trs_types[j+l]             == 1)
+          (trs_types[j+l] == 1)
           ) {
         idx_from = trans_idxs[1][j+l];
         idx_to = trans_idxs[0][j+l];
@@ -786,18 +888,18 @@ for pointers in \"input_data\"\n");
       /* printf( "\n\n === idxs_from = %d, last_i    = %d === \n\n", idx_from, last_i); */
       /* we have read all transitions for a state */
       /* check if the last_i has already been processed */
-      if (intinint(proc_idx,last_i,n_proc)          == 0) {
+      if (intinint(proc_idx,last_i,n_proc) == 0) {
         /* printf( "\n\n                          ==== adding data for state %d====\n\n", last_i ); */
-        m                                            = l;
+        m = l;
         while ((int)pi_buf[0][m-l] != idx_from) {
           /* if (idx_from == -1) { */
           /*   printf( "PI_BUF,from                  = %d, parsed = %d,m = %d\n\n",(int)pi_buf[0][m],(int)pi_buf[1][m],m); */
           /* } */
-          parsed_input[0][m]                         = pi_buf[0][m-l];
-          parsed_input[1][m]                         = pi_buf[1][m-l];
-          parsed_input[2][m]                         = pi_buf[2][m-l];
-          parsed_input[3][m]                         = pi_buf[3][m-l];
-          parsed_input[4][m]                         = pi_buf[4][m-l];
+          parsed_input[0][m] = pi_buf[0][m-l];
+          parsed_input[1][m] = pi_buf[1][m-l];
+          parsed_input[2][m] = pi_buf[2][m-l];
+          parsed_input[3][m] = pi_buf[3][m-l];
+          parsed_input[4][m] = pi_buf[4][m-l];
           parsed_input[5][m] = pi_buf[5][m-l];
           m++;
         }
@@ -815,6 +917,8 @@ for pointers in \"input_data\"\n");
 
         /* fflush(stdout); */
         /* printf( "\n\n\n\ngetting inext\n\n\n\n" ); */
+        /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+        /* exit(1); */
         tmp_idx2 = get_inext(last_i);
         /* printf( "\n\n\n\ngot inext\n\n\n\n" ); */
         /* if (last_i == 32) { */
@@ -848,20 +952,6 @@ for pointers in \"input_data\"\n");
 
       l += j;
       j = 0;
-      /* idxs_map[(int)(idx_from)-1] = l; */
-      /* printf( "%d %d\n", (int)(idx_from)-1, l-1); */
-      /* if (idx_from == 7) { */
-      /*   pi2s(); */
-      /*   /\*         printf( "%le\n",         get_t(3,572)); *\/ */
-      /*   /\* printf( "%le\n",         get_t(3,573)); *\/ */
-      /*   /\* printf( "%le\n",         get_t(1,3)); *\/ */
-      /*   /\* printf( "%le\n",         get_t(1,5)); *\/ */
-      /*   /\* printf( "%le\n",         get_t(1,15)); *\/ */
-      /*   /\* printf( "%le\n",         get_t(1,16)); *\/ */
-      /*   fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-      /*   exit(1); */
-
-      /* } */
     } else {
       j++;
     }
@@ -873,29 +963,47 @@ for pointers in \"input_data\"\n");
 
   nt = l;
 
-  if (check_pi() == 0) {
-    fprintf(stderr, "\n\nparse_input.c, function parse_input: input matrix integrity check failure.\n");
+  /* the only way the parse_input_tmp function can get called is if there is if
+   no binary file present. we can therefore safely write to the binary file
+  without checking if it already exists. */
+  if ((fp_bin = fopen(bin_fpstr,"wb")) == NULL) {
+    fprintf(stderr, "parse_input.c, function parse_input_bin: unable to open the binary file used to store the PI matrix: %s\n", bin_fpstr);
     printf( "program terminating due to the previous error.\n");
-    exit(EXIT_FAILURE);
+    exit(1);
   }
 
-  /* state2s(2); */
-  /* state2s(3); */
-  /* state2s(4); */
-  /* state2s(5); */
-  /* pi2s(); */
-  /* printf( "%d %d %d\n", get_i(1), get_i(2), get_i(3)); */
+  fwrite((const void*)&nt, sizeof(int), 1, fp_bin);
+  fflush(fp_bin);
+  fclose(fp_bin);
 
-  set_tmax();
+  if ((fp_bin = fopen(bin_fpstr,"ab")) == NULL) {
+    fprintf(stderr, "parse_input.c, function parse_input_bin: unable to open the binary file used to store the PI matrix: %s\n", bin_fpstr);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
 
-  fclose(fp_tmpdata);
+  for (j=0; j<6; j++) {
+    if (fwrite(parsed_input[j], sizeof(double), nt, fp_bin) != nt) {
+      fprintf(stderr, "parse_input.c, function parse_input_bin: unable to write the PI matrix\n");
+      printf( "program terminating due to the previous error.\n");
+      fclose(fp_bin);
+      exit(1);
+    }
+    fflush(fp_bin);
+  }
+
+  if ((fclose(fp_bin) != 0) &&\
+      (fclose(fp_tmpdata) != 0)) {
+    fprintf(stderr, "parse_input.c, function parse_input_tmp: unable to close files:\n%s\n%s\n", fp_bin,fp_tmpdata);
+    printf("program terminating due to the previous error.\n");
+    exit(1);
+  }
 
   free(str_buf);
   free(num_idxs1);
   free(num_idxs2);
 
   free(e_eigval);
-
   free(t_mom);
 
   free(idxs_map);
@@ -918,34 +1026,63 @@ for pointers in \"input_data\"\n");
 int
 parse_input (double * state_er,
              char * fn_relpath, /* name of input file */
+             char * tmp_fpstr,
+             char * format,
+             char * bin_fpstr,
              int len_fn){
 
   int j, k, l; /* looping variables */
   int n_states,n_trans;
 
-  char format[BUF_SIZE] = {0};
+  FILE * fp_tmp;
+  FILE * fp_bin;
+  /* fout = open("test.bin", O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR); */
+  fp_bin = fopen(bin_fpstr,"r");
+  if (fp_bin != NULL) {
+    printf( "\n      processing binary file corresponding to the provided input file ..");
+    fflush(stdout);
+    /* process the binary file instead */
 
-  /* after having been used in a reference call to a parsing function the
-     parsed_input array should contain an n_trans * 5 matrix loaded with
-     data for each electronic transition that was calculated:
-     [idx_f,idx_t,e_f,e_t,osc] where...
-     idx_f = the index the electronic state FROM which the transition took place
-     idx_t = the index the electronic state where the transition went TO
-     e_f = energy corresponding to idx_f
-     e_t = energy corresponding to idx_t
-     mom = the transition moment for the transition
-  */
-  j = len_fn;
-  while(fn_relpath[--j] != '.'){};
+    fclose(fp_bin);
+    parse_input_bin(bin_fpstr);
 
-  /* loop over the input file name and extract the ending */
-  for (k=0; j<len_fn; j++) {
-    format[k] = fn_relpath[j];
-    k++;
+  } else {
+
+    if (strcmp(format,MOLCAS_FORMAT) <= 0) {
+      /* reduce the molcas output to a temp file */
+      printf( "\n      reducing the molcas logfile to a suitable input format ..");
+      fflush(stdout);
+      parse_molout(fn_relpath, tmp_fpstr, len_fn-1);
+
+      /* check so that the tmp file exists, and then read it */
+      fp_tmp = fopen(fn_relpath,"r");
+      if (fp_tmp == NULL) {
+        fprintf(stderr, "parse_input.c, function parse_input: unable to locate file %s for processing.\n",fn_relpath);
+        printf( "program terminating due to the previous error.\n");
+        fclose(fp_tmp);
+        exit(1);
+      } else {
+        parse_input_tmp(state_er, tmp_fpstr, bin_fpstr);
+      }
+    }
+    else {
+      /* the tmp file path was provided in the input */
+      parse_input_tmp(state_er, fn_relpath, bin_fpstr);
+    }
   }
-  format[k] = '\0';
 
-  parse_input_tmp(state_er, fn_relpath);
+  if ((state_er[1] == state_er[5]) &&
+      (state_er[2] == state_er[6])){
+    add_elastic(state_er);
+  }
+
+  if (check_pi() == 0) {
+    fprintf(stderr, "\n\nparse_input.c, function parse_input: input matrix integrity check failure.\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  set_tmax();
 
   return EXIT_SUCCESS;
 }

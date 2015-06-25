@@ -9,4 +9,5 @@
 #define TEXP 298.15 /* experimental ambient temperature */
 #define TTOEV 8.617385e-05 /* temperature to eV conversion factor */
 #define PI 3.14159265359
+#define CTOK 273.15
 #endif /* CONST_H */
