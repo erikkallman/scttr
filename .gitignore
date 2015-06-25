@@ -1,8 +1,11 @@
 
 cmake/*
 !cmake/CMakeLists.txt
-output/
-test/
+!cmake/smap_cfg.h.in
+output/*
+test/*
+!test/fe2p_1s3d.log
+!test/fe2p_2p1s.log
 
 # Compiled source #
 ###################
