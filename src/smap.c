@@ -873,7 +873,7 @@ in the calculation: \n\n" );
   fprintf(fp,    "======================= END =======================\n\n\n" );
 
   if (fclose(fp) != 0) {
-    fprintf(stderr, "smap.c, function write_log: unable to close file:\n%s\n", fp);
+    fprintf(stderr, "smap.c, function write_log: unable to close file:\n%s\n", log_fpstr);
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }

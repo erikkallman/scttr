@@ -16,19 +16,20 @@
 #include "smap_cfg.h"
 
 #define BUF_SIZE 256
+int sz_inp;
 
 int
 main (int argc, char * argv[]) {
 
   printf( "\n\n smap calculation initiated.\n\n" );
-  int      j,k,l;               /* iteration variables */
-  int      n_t;                 /* number of numbers read from input flag */
-  int      n_er;                /* number of numbers eigenstate energy values provided */
-  int      n_res;
-  int      len_op      = 0;
-  int      len_fn      = 0;
-  int      dbg_flag    = 0;
-  int      out_set     = 0;
+  int j,k,l;                    /* iteration variables */
+  int n_t;                      /* number of numbers read from input flag */
+  int n_er;                     /* number of numbers eigenstate energy values provided */
+  int n_res;
+  int len_op   = 0;
+  int len_fn   = 0;
+  int dbg_flag = 0;
+  int out_set  = 0;
 
   int len_lf,len_df,len_pf,len_bf,len_tf;
 
@@ -44,7 +45,7 @@ main (int argc, char * argv[]) {
 
   char format[BUF_SIZE] = {0};
   char curr_dir[BUF_SIZE] = {0};
-
+  char out_buf[BUF_SIZE] = {0};
 
   /* strings of all output files from the program */
   char * dat_fpstr;
@@ -313,8 +314,28 @@ main (int argc, char * argv[]) {
 
   /* check if the output directory exists. if not, create it */
   if (stat(outpath,&st) == -1) {
-     mkdir(outpath,0700);
+    printf( "      output path not existing. creating directory.\n");
+
+    out_buf[0] = outpath[0];
+    /* expect the output path to start with a backslashe */
+    for (j=1; j<len_op; j++) {
+
+      out_buf[j] = outpath[j];
+      if (out_buf[j] == '/') {
+        out_buf[j+1] = '\0';
+
+        /* some directories in the outpath might exists, so check
+         for that*/
+        if (stat(out_buf,&st) == -1) {
+          mkdir(out_buf,0777);
+        }
+      }
+    }
   }
+
+  /* set the input file size */
+  stat(fn_relpath,&st);
+  sz_inp = (int)st.st_size;
 
   /* the output path string length is known, build the output file strings */
   dat_fpstr = malloc(len_op+len_df+len_fn);
@@ -397,7 +418,7 @@ contained in %s.\n",fn_relpath);
       printf( "program terminating due to the previous error.\n");
       exit(EXIT_FAILURE);
     } else {
-      printf( " done.\n" );
+      printf( "    done.\n" );
     }
   }
 

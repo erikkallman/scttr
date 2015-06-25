@@ -12,4 +12,5 @@ extern double e0;
 extern int * idxs_map;
 extern double ** parsed_input;
 
+extern int sz_inp;
 #endif /* STATE_H */
