@@ -18,7 +18,6 @@ extern int nt;
 extern double tmax_d, tmax_q, e0;
 extern int * idxs_map;
 extern double ** parsed_input;
-int n_is, n_fs;
 
 /* const double xshift = -19/AUTOEV; /\* Fe2pCN 1s -> 3d *\/ */
 
@@ -42,7 +41,10 @@ calc_smap_m (char * fn_infile,
 
   char * line;
 
-  int progress;
+  unsigned long progress;
+
+  unsigned long ksum;
+
   int j,k,l,m,n; /* control loop indices */
   int maxgridj;
   int maxgridk;
@@ -295,77 +297,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
     }
   }
 
-  /* printf( "    maximum dipole transition intensity = %le\n", tmax_d); */
-  /* printf( "    maximum quadrupole transition intensity = %le\n\n",  tmax_q); */
-
-
-  /* ============= atomic systems ============= */
-
-  /* fwhm_tr = (double)0.8/AUTOEV; */
-  /* fwhm_in = (double)1.2/AUTOEV; */
-  /* /\* for Fe2p 2p->3d transitions *\/ */
-  /* eminj = (double)(722/AUTOEV); */
-  /* emaxj = (double)(739/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-
-  /* for Fe2p 1s->3d transitions */
-  /* eminj = (double)(7148/AUTOEV); */
-  /* emaxj = (double)(7160/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-  /* xshift = -40/AUTOEV; */
-
-  /* emin_gs = (double)(0/AUTOEV); */
-  /* emax_gs = (double)(14/AUTOEV); */
-  /* de_gs = (emax_gs-emin_gs)/(double)maxgridj; */
-  /* xshift = -40/AUTOEV; */
-
-  /* for Fe3p 2p->3d transitions */
-  /* eminj = (double)(726/AUTOEV); */
-  /* emaxj = (double)(750/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-
-  /* for Fe3p 1s->p3d transitions */
-  /* xshift = -49.5/AUTOEV; */
-  /* eminj = (double)(7158/AUTOEV); */
-  /* emaxj = (double)(7168/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-
-  /* ============= cyanide complex systems ============= */
-
-  /* Fe2pCN 1s -> 3d */
-  /* fwhm_tr = (double)0.8/AUTOEV; */
-  /* fwhm_in = (double)1.2/AUTOEV; */
-  /* eminj = (double)(7130/AUTOEV); */
-  /* emaxj = (double)(7137/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-
-  /* for Fe2pCN 2p->3d transitions */
-  /* fwhm_tr = (double)0.8/AUTOEV; */
-  /* fwhm_in = (double)1.2/AUTOEV; */
-  /* eminj = (double)(710/AUTOEV); */
-  /* emaxj = (double)(730/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-
-  /* for Fe3p 2p->3d transitions */
-  /* eminj = (double)(726/AUTOEV); */
-  /* emaxj = (double)(750/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-
-  /* for Fe3p 1s->p3d transitions */
-  /* xshift = -49.5/AUTOEV; */
-  /* eminj = (double)(7158/AUTOEV); */
-  /* emaxj = (double)(7168/AUTOEV); */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-
-  /* emink = -(double)(2/AUTOEV); */
-  /* emaxk = emink + (double)(14/AUTOEV); */
-  /* dek = (emaxk-emink)/(double)maxgridk; */
-
-  /* emink = (double)(1390/AUTOEV); */
-  /* emaxk = emink + (double)(25/AUTOEV); */
-  /* dek = (emaxk-emink)/(double)maxgridk; */
-
-  progress = n_gs*n_is*n_fs*maxgridj*maxgridk;
+  progress = maxgridj*maxgridk;
 
   /* x */
   grms_in = 2.0*powerl((fwhm_in/(2*sqrt(2*log(2)))),2);
@@ -377,8 +309,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
   printf( "  - calculating the RIXS map .. \n");
 
-  int kjtot = maxgridj*maxgridk;
-  int ksum = 0;
+  ksum = 0;
 
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     omegain = eminj+(jgrid*dej);
@@ -481,7 +412,10 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       }
       /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
       /* exit(1); */
-       printf( "      progress: %.2f%%\r", (((float)(ksum*n_gs*n_is*n_fs)/(float)progress)*100));
+
+      printf( "      progress: %.2f%%\r", (((float)ksum/(float)progress)*100));
+      /* printf( "      progress: %le%%\r", (((long double)(pp)/(long double)progress)*100)); */
+
       fflush(stdout);
     }
   }

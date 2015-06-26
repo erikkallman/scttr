@@ -62,6 +62,8 @@ state2s(int idx);
 void
 pi2s ();
 
+void
+pi2f (char * fn);
 
 /* function get_t
 

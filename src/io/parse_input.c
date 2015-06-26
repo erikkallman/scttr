@@ -434,22 +434,29 @@ double tmax_d, tmax_q, e0;
 
 int
 check_pi (){
+  int prog_step = nt/10000;
+  int last_i;
   printf( "\n      checking the integrity of the input matrix ..\n");
   int j = 0;
-
-  /* check so that every state in PI can be reached with teh get_i function */
-  while (1) {
-    printf( "        %.2f%%\r", (((float)j/(float)nt)*100));
-    if ((int)parsed_input[0][j] != (int)parsed_input[0][get_i((int)parsed_input[0][j])]) {
-      return 0;
+  /* printf( "%d %d\n", nt, (int)parsed_input[0][nt-1]); */
+  /* pi2s(); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
+  /* check so that every state in PI can be reached with the get_i function */
+  last_i = -2;
+  while ((int)parsed_input[0][j] != -1) {
+    if (j % prog_step == 0) {
+      printf( "        %.2f%%\r", (((float)j/(float)nt)*100));
     }
 
-    j = get_inext((int)parsed_input[0][j]);
-    /* printf( "%d\n", parsed_input[0][j]); */
-    if ((int)parsed_input[0][j] == -1) {
-      break;
+    if ((int)parsed_input[0][j] != last_i) {
+      if ((int)parsed_input[0][j] != (int)parsed_input[0][get_i((int)parsed_input[0][j])]) {
+        return 0;
+      }
     }
+    last_i = (int)parsed_input[0][j++];
   }
+
   printf( "\n      done.\n");
   return 1;
 }
@@ -504,7 +511,7 @@ pi2s () {
   int j = 0;
   fprintf(stderr, "\n\n===========================\n");
   fprintf(stderr, "=======content of PI=======\n\n");
-  while ((int)parsed_input[0][j++] != -1) {
+  while ((int)parsed_input[0][j] != -1) {
     printf( "\n%le   %le   %le   %le   %le  %le\n",
             parsed_input[0][j],
             parsed_input[1][j],
@@ -517,6 +524,31 @@ pi2s () {
   fprintf(stderr, "\n\n=======content of PI=======\n");
   fprintf(stderr, "===========================\n\n");
 
+}
+
+void
+pi2f (char * fn) {
+
+  FILE * fp;
+  fp = fopen(fn,"w+");
+
+  int j = 0;
+  fprintf(fp, "\n\n===========================\n");
+  fprintf(fp, "=======content of PI=======\n\n");
+  while ((int)parsed_input[0][j] != -1) {
+    fprintf(fp, "\n%le   %le   %le   %le   %le  %le\n",
+            parsed_input[0][j],
+            parsed_input[1][j],
+            parsed_input[2][j],
+            parsed_input[3][j],
+            parsed_input[4][j],
+            parsed_input[5][j]);
+    j++;
+  }
+  fprintf(fp, "\n\n=======content of PI=======\n");
+  fprintf(fp, "===========================\n\n");
+
+  close(fp);
 }
 
 double
@@ -605,36 +637,30 @@ int
 get_inext (int from
            ) {
 
-  int last_i = (int)parsed_input[0][0];
   int j      = 0;
-  while (last_i != -1) {
 
+  while ((int)parsed_input[0][j] != -1) {
     if ((int)parsed_input[0][j] == from) {
       break;
     }
     j++;
-    last_i = (int)parsed_input[0][j];
   }
 
   if ((int)parsed_input[0][j] != from) {
-    fprintf(stderr, "\n\nget_inext:ERROR, cant get state %d, last_i = %d\n", from, last_i);
+    fprintf(stderr, "\n\nget_inext:ERROR, cant get state %d\n", from);
     printf( "program terminating due to the previous error.\n");
     fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
     exit(1);
   }
 
-
-  while(1){
+  while((int)parsed_input[0][j] != -1){
     if ((int)parsed_input[0][j] != from) {
       return j;
     }
     j++;
   }
 
-  fprintf(stderr, "\n\nget_inext:ERROR\n");
-  printf( "program terminating due to the previous error.\n");
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+  return -1;
 }
 
 int
@@ -904,6 +930,7 @@ for pointers in \"input_data\"\n");
       /* dont read beyond the last value in PI */
       /* for (k=0; k<j; k++) { */
         /* printf( "%le %le %le %le %le\n", pi_buf[0][k],pi_buf[1][k],pi_buf[2][k],pi_buf[3][k],pi_buf[4][k],pi_buf[5][k]); */
+        /* sleep(1); */
       /* } */
       /* break; */
       pi_buf[0][j] = -1;
@@ -944,6 +971,7 @@ for pointers in \"input_data\"\n");
           parsed_input[3][m] = pi_buf[3][m-l];
           parsed_input[4][m] = pi_buf[4][m-l];
           parsed_input[5][m] = pi_buf[5][m-l];
+          /* printf( "%le %le %le %le %le\n", parsed_input[0][m],parsed_input[1][m],parsed_input[2][m],parsed_input[3][m],parsed_input[4][m],parsed_input[5][m]); */
           m++;
         }
         proc_idx[n_proc++] = last_i;
@@ -961,9 +989,7 @@ for pointers in \"input_data\"\n");
     last_i = idx_from;
 
   }
-
   parsed_input[0][l] = -1;
-
   nt = l;
 
   /* the only way the parse_input_tmp function can get called is if there is if
