@@ -46,6 +46,10 @@ set_tmax();
 
 void
 state2s(int idx);
+
+void
+astate2s(double ** pi,
+         int idx);
 /* function pi2s
 
    * synopsis:

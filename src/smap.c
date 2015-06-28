@@ -360,11 +360,15 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
                   while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
                     e_fs = parsed_input[3][l];
-                    /* printf( "is_idx = %d TO fs_idx = %d, e_is = %le e_fs = %le %d\n", (int)parsed_input[0][fs_idx], (int)parsed_input[1][l],parsed_input[2][fs_idx], (e_fs-e0)*AUTOEV, ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])); */
+                    printf( "is_idx = %d TO fs_idx = %d, e_is = %le e_fs = %le %d\n", (int)parsed_input[0][fs_idx], (int)parsed_input[1][l],(parsed_input[2][fs_idx]-e0)*AUTOEV, (e_fs-e0)*AUTOEV, ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6]));
                     /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
                     /* exit(1); */
 
                     if (ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])) {
+                      printf( "YEP!\n" );
+                        printf( "    fs[%d] = %d\n",l, (int)parsed_input[1][l]);
+                        sleep(1);
+
                       tmom_kl = parsed_input[4][l];
 
                       /* screen final state transition */
@@ -375,8 +379,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
                       }
                       if ((tmom_kl/tmp_tmax2) > state_t[3]){
 
-                        /* printf( "YEP!\n" ); */
-                        /* printf( "    fs[%d] = %d\n",l, (int)parsed_input[1][l]); */
+
                         de_kl = (parsed_input[3][l] - parsed_input[2][is_idx]);
                         /* .. excitation energy */
                         ediffj = omega_x[jgrid][kgrid] - de_jk;
@@ -390,7 +393,6 @@ to allocate memory for \"omega_y[%d]\"\n",j);
                         /* printf( "map[%d][%d] = %le, ej %le, ek %le, mom %le, gj %le, gk %le\n", jgrid, kgrid, rixsmap[jgrid][kgrid], ediffj,ediffk,tmom_jk*tmom_kl*bw,exp(-(powerl(ediffj,2))/grms_in)/gvar_tr*dej,exp(-(powerl(ediffk,2))/grms_tr)/gvar_tr*dek); */
                       }/* else { */
                       /*   printf( " NOPE! %le %le\n", (tmom_kl/tmp_tmax2), tmom_kl); */
-
                       /* } */
 
                     }
@@ -413,15 +415,15 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
       /* exit(1); */
 
-      printf( "      progress: %.2f%%\r", (((float)ksum/(float)progress)*100));
+      printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100));
       /* printf( "      progress: %le%%\r", (((long double)(pp)/(long double)progress)*100)); */
 
       fflush(stdout);
     }
   }
-  printf( "      progress: 100%%\r");
+  printf( "      progress: 100%%\n");
   fflush(stdout);
-  printf( "\n      .. done.\n");
+  printf( "    .. done.\n");
 
   printf( "  - normalizing the calculated RIXS map ..");
   /* normalize the map */
