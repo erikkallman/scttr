@@ -9,7 +9,6 @@ extern double tmax_d;
 extern double tmax_q;
 extern double e0;
 
-extern int * idxs_map;
 extern double ** parsed_input;
 
 extern int sz_inp;

@@ -26,7 +26,6 @@ fwdsplice (double ** from,
   for (j=end; j>=start; j--) {
 
     l++;
-    /* printf( "\nfrom[0][%d] = ",j); */
     for (k=0; k<n_dims; k++) {
       if (memcpy(&into[k][j+s],&into[k][j],sizeof(into[0][0])) != &into[k][j+s]) {
         fprintf(stderr, "parse_input.c, function sharr_fwd: the double %le stored at memory location %p cannot be copied to location %p.\n",into[j][k],&into[j][k+s],&into[j][k]);
@@ -35,14 +34,7 @@ fwdsplice (double ** from,
       }
 
       into[k][j] = from[k][j-start];
-      /* if ((int)from[0][j-start] == 58) { */
-      /*   printf( " %le[%d,%d]",from[k][j-start],j,j-start); */
-      /* } */
     }
-
-    /* if ((int)from[0][j-start] == 58) { */
-    /*   printf( "\n" ); */
-    /* } */
   }
 
   return 1;

@@ -4,7 +4,7 @@
 #include "structs.h"
 
 int
-add_elastic (double * state_er);
+add_sym (double * state_er);
 
 int
 parse_input_bin (char * bin_fpstr
@@ -92,6 +92,7 @@ get_i (int from
 int
 get_inext (int from
        );
+
 int
 get_pinext (double ** pi,
            int from

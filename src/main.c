@@ -22,7 +22,7 @@ int
 main (int argc, char * argv[]) {
 
   printf( "\n\n smap calculation initiated.\n\n" );
-  int j,k,l;                    /* iteration variables */
+  int j,k,l,m;                    /* iteration variables */
   int n_t;                      /* number of numbers read from input flag */
   int n_er;                     /* number of numbers eigenstate energy values provided */
   int n_res;
@@ -66,15 +66,29 @@ main (int argc, char * argv[]) {
   len_bf = 4;
   len_tf = 4;
 
-  /* double state_t[3] = {0.005, 0.001, 0.001}; */
-
   /* use first element to specify number of values stored in matrix */
   /* threshold values for the three or six different state types */
-  double * state_t = malloc(7*sizeof(double));
-  /* initial/final and intermediate state energy ranges */
-  double * state_er = malloc(9*sizeof(double));
+  double * state_t = malloc(4*sizeof(double));
 
-  state_t[0] = 0;
+  /* initial/final and intermediate state energy ranges */
+  double * state_er = malloc(7*sizeof(double));
+
+  double * fwhm_inp = malloc(2*sizeof(double));
+
+  /* set default values for the parameter arrays */
+  fwhm_inp[0] = 0.5;
+  fwhm_inp[1] = 0.5;
+
+  state_t[0] = 3;
+  for (j=1; j<4; j++) {
+    state_t[j] = 0.001;
+  }
+  n_t = 3;
+  state_t[0] = n_t;
+
+  res[0] = 0.05;
+  res[1] = 0.05;
+
   state_er[0] = 0;
 
   struct stat st = {0};
@@ -95,7 +109,7 @@ main (int argc, char * argv[]) {
       break;
 
     case 'h' :
-      printf("some help was requested. \n");
+      printf("Welcome to the yet-to-be implemented help message.\n");
       exit(1);
       break;
 
@@ -248,6 +262,44 @@ main (int argc, char * argv[]) {
       }
       state_er[0] = n_er-1;
 
+      break;
+
+    case 'f' :
+
+      /* the user specified thresholds for each state type (ground, initial,
+         final) to be used for screening the states when calculating the map */
+      m = 0;
+      for (j = 3,k=0; argv[1][j] != '\0'; j++) {
+
+        input_sbuff[k++] = argv[1][j];
+        /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
+
+        if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
+          /* k--; /\* we dont want the comma or null sent to atof *\/ */
+          num_buf = malloc(k+1);
+
+          for (l = 0; l<k; l++) {
+            num_buf[l] = input_sbuff[l];
+            /* printf( "%c", num_buf[l]); */
+          }
+          num_buf[k] = '\0';
+
+          /* printf( "\n" ); */
+
+          fwhm_inp[m++] = atof(num_buf);
+          free(num_buf);
+          num_buf        = NULL;
+          /* if ((n_er > 4)) { */
+          /*   /\* switch on the dipole+quadrupole flag  *\/ */
+          /* break; */
+          /* } */
+          /* if ((n_er > 8)) { */
+          /* break; */
+          /* } */
+
+          k = 0;
+        }
+      }
       break;
 
     case 't' :
@@ -440,8 +492,8 @@ contained in %s.\n",fn_relpath);
   printf( "\n\n" );
   printf( " execution progress:\n\n");
 
-  calc_smap_m(fn_infile,dat_fpstr,plot_fpstr,state_er, state_t, res);
-  write_log(state_er, state_t, res, fn_relpath, log_fpstr, 5);
+  calc_smap_m(fn_infile,dat_fpstr,plot_fpstr,state_er, state_t, res, fwhm_inp);
+  write_log(state_er, state_t, res, fwhm_inp, fn_relpath, log_fpstr, 5);
 
   for (j=0; j<6; j++) {
     free(parsed_input[j]);

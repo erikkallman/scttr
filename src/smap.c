@@ -27,11 +27,10 @@ calc_smap_m (char * fn_infile,
              char * plot_fpstr,
              double * state_er,
              double * state_t,
-             double * res
+             double * res,
+             double * fwhm_inp
              ) {
 
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");curr */
-  /* exit(1); */
   FILE * fp;
   FILE * fp_plot_in;
   FILE * fp_plot_out;
@@ -109,11 +108,6 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
       exit(1);
     }
   }
-
-  /* eminj = state_er[4]; */
-  /* emaxj = state_er[3]; */
-  /* emink = state_er[6]; */
-  /* emaxk = state_er[5]; */
 
   /* figure out the energy ranges by analyzing the energy ranges in the input */
   n_gs = n_is = n_fs = 0;
@@ -218,40 +212,23 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
     }
 
     gs_idx = get_inext((int)parsed_input[0][gs_idx]);
-    /* printf( "%d %d %d\n",gs_idx , nt, j); */
-    /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-    /* exit(1); */
+
   }
-  eminj = (int)(get_min(tmp_evals[0],n_is)-2)/AUTOEV;
-  emaxj = (int)(get_maxl(tmp_evals[0],n_is) + 4)/AUTOEV;
-  emink = (int)(get_min(tmp_evals[1],n_fs)-2)/AUTOEV;
-  emaxk = (int)(get_maxl(tmp_evals[1],n_fs) + 4)/AUTOEV;
-  /* maxgridj = 100; */
-  /* maxgridk = 100; */
-  /* for Fe2p 1s->3d,2p->1s transitions */
-  fwhm_in = (double)1.25/AUTOEV;
-  /* eminj = (double)(7154/AUTOEV); */
-  /* emaxj = (double)(7158/AUTOEV); */
-  /* eminj = (double)((eminj - 2)/AUTOEV); */
-  /* emaxj = (double)((emaxj + 2)/AUTOEV); */
 
-  fwhm_tr = (double)0.4/AUTOEV;
-  /* emink = (double)(720/AUTOEV); */
-  /* emaxk = (double)(743/AUTOEV); */
-  /* emink = (double)((emink - 2)/AUTOEV); */
-  /* emaxk = (double)((emaxk + 2)/AUTOEV); */
+  eminj = floor((get_min(tmp_evals[0],n_is)-2))/AUTOEV;
+  emaxj = ceil((get_maxl(tmp_evals[0],n_is) + 2))/AUTOEV;
+  emink = floor((get_min(tmp_evals[1],n_fs)-2))/AUTOEV;
+  emaxk = ceil((get_maxl(tmp_evals[1],n_fs) + 2))/AUTOEV;
 
-  /* set grid point distances of 0.05 eV */
+  fwhm_in = fwhm_inp[0]/AUTOEV;
+  fwhm_tr = fwhm_inp[1]/AUTOEV;
+
+
   dej = res[0]/AUTOEV;
-  dek = res[1]/AUTOEV; /* x = y = 0.05 */
-  /* dej = (emaxj-eminj)/(double)maxgridj; */
-  /* dek = (emaxk-emink)/(double)maxgridk; */
+  dek = res[1]/AUTOEV;
+
   maxgridj = (int)((emaxj-eminj)/dej);
   maxgridk = (int)((emaxk-emink)/dek);
-
-  /* printf( "maxgridj = %d, maxgridk = %d\n}", maxgridj,maxgridk); */
-  /* printf( "eminj = %le, emaxj = %le\n}", eminj,emaxj); */
-  /* printf( "emink = %le, emaxk = %le\n}", emink,emaxk); */
 
   if((omega_x = malloc(maxgridj*sizeof(double*))) == NULL ){
     fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
@@ -412,15 +389,15 @@ to allocate memory for \"omega_y[%d]\"\n",j);
         /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
         /* exit(1); */
       }
-      /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-      /* exit(1); */
 
       printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100));
-      /* printf( "      progress: %le%%\r", (((long double)(pp)/(long double)progress)*100)); */
-
       fflush(stdout);
     }
+
+    /* printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100)); */
+    /* fflush(stdout); */
   }
+
   printf( "      progress: 100%%\n");
   fflush(stdout);
   printf( "    .. done.\n");
@@ -442,8 +419,10 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       rixsmap[jgrid][kgrid] = rixsmap[jgrid][kgrid]/rmax;
       /* write the map */
       fprintf(fp,"%le %le %le\n", (omega_x[jgrid][kgrid])*AUTOEV, omega_y[jgrid][kgrid]*AUTOEV, rixsmap[jgrid][kgrid]);
+      fflush(fp);
     }
     fprintf(fp,"\n");
+    fflush(fp);
   }
   printf( " done.\n");
 
@@ -492,6 +471,7 @@ void
 write_log (double * state_er,
            double * state_t,
            double * res,
+           double * fwhm_inp,
            char * fn_relpath,
            char * log_fpstr,
            int n_max
@@ -571,8 +551,8 @@ in the calculation: \n\n" );
   }
 
   fprintf(fp, "\nbroadening values (eV, fwhm) for energy ranges (eV) used in the calculation: \n" );
-  fprintf(fp, "[%f,%f] = %f , Gaussian\n", state_er[3], state_er[4],1.25);
-  fprintf(fp, "[%f,%f] = %f, Gaussian\n", state_er[5], state_er[6],0.4);
+  fprintf(fp, "[%f,%f] = %f , Gaussian\n", state_er[3], state_er[4],fwhm_inp[0]);
+  fprintf(fp, "[%f,%f] = %f, Gaussian\n", state_er[5], state_er[6],fwhm_inp[1]);
 
   fprintf(fp, "\ntemperature = %.2f C, %.2f K \n", (float)TEXP, (float)TEXP-273.15);
 
