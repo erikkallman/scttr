@@ -92,7 +92,10 @@ get_i (int from
 int
 get_inext (int from
        );
-
+int
+get_pinext (double ** pi,
+           int from
+            );
 /* function screen_states
    The screen_states function is used to reduce the number of states used
    for generating the RIXS map. Through analyzing the boltzmann distribution

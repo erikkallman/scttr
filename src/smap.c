@@ -360,14 +360,14 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
                   while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
                     e_fs = parsed_input[3][l];
-                    printf( "is_idx = %d TO fs_idx = %d, e_is = %le e_fs = %le %d\n", (int)parsed_input[0][fs_idx], (int)parsed_input[1][l],(parsed_input[2][fs_idx]-e0)*AUTOEV, (e_fs-e0)*AUTOEV, ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6]));
+                    /* printf( "is_idx = %d TO fs_idx = %d, e_is = %le e_fs = %le %d\n", (int)parsed_input[0][fs_idx], (int)parsed_input[1][l],(parsed_input[2][fs_idx]-e0)*AUTOEV, (e_fs-e0)*AUTOEV, ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])); */
                     /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
                     /* exit(1); */
 
                     if (ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])) {
-                      printf( "YEP!\n" );
-                        printf( "    fs[%d] = %d\n",l, (int)parsed_input[1][l]);
-                        sleep(1);
+                      /* printf( "YEP!\n" ); */
+                      /*   printf( "    fs[%d] = %d\n",l, (int)parsed_input[1][l]); */
+                      /*   sleep(1); */
 
                       tmom_kl = parsed_input[4][l];
 

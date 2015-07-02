@@ -197,7 +197,8 @@ for pointers in \"input_data\"\n");
         }
       }
       else {
-        tmp_idx = get_inext(next_to);
+        tmp_idx = get_pinext(pi_el,next_to);
+
         /* if (next_to == 58) { */
         /* /\*   for (k=0; k<nb; k++) { *\/ */
         /* /\*     printf( "\n%le   %le   %le   %le   %le  %le\n", *\/ */
@@ -214,23 +215,26 @@ for pointers in \"input_data\"\n");
         /*   exit(1); */
         /* } */
 
-        printf( "at %d, splicing state %d\n", last_i,next_to );
+        /* printf( "at %d, splicing state %d\n", last_i,next_to ); */
 
-        if (next_to == 57) {
-          printf( "=========PRE=========\n" );
-          astate2s(pi_el,57);
-        }
+        /* if (next_to == 58) { */
+        /*   /\* printf( "%d\n", (int)pi_el[0][tmp_idx]); *\/ */
+        /*   /\* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); *\/ */
+        /*   /\* exit(1); *\/ */
+        /*   printf( "=========PRE=========\n" ); */
+        /*   astate2s(pi_el,58); */
+        /* } */
 
         fwdsplice(pi_buf,pi_el,tmp_idx,nt_el,nb,6);
         /* printf( "Printing post\n" ); */
 
-        if (next_to == 57) {
-          printf( " =========POST=========\n" );
-          astate2s(pi_el,57);
-          fprintf(stderr, "\n\n=======break point=======\n\n");
-          exit(1);
-        }
-        printf( "spliced state %d\n", next_to);
+        /* if (next_to == 58) { */
+        /*   printf( " =========POST=========\n" ); */
+        /*   astate2s(pi_el,58); */
+        /*   fprintf(stderr, "\n\n=======break point=======\n\n"); */
+        /*   exit(1); */
+        /* } */
+        /* printf( "spliced state %d\n", next_to); */
         /* sleep(2); */
       }
     }
@@ -238,9 +242,6 @@ for pointers in \"input_data\"\n");
   }
   pi_el[0][nt_el] = -1;
 
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
-  pi2f("./pi.dat");
   for (j=0; j<6; j++) {
     free(parsed_input[j]);
   }
@@ -496,6 +497,18 @@ check_pi (){
   int last_i;
   int prog_step;
 
+  /* keep check on what states that have been processed to make sure that no
+     "to" state appears in the pi matrix more than once  */
+  int * proc_st;
+  int n_proc = 0;
+
+  if((proc_st = malloc(nt*sizeof(double))) == NULL ){
+    fprintf(stderr, "parse_input.c, malloc: failed to allocate memory for\
+ \"proc_st\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
   if (nt >= 10) {
     prog_step = nt/10;
   }
@@ -515,14 +528,22 @@ check_pi (){
     }
 
     if ((int)parsed_input[0][j] != last_i) {
+
+
       if ((int)parsed_input[0][j] != (int)parsed_input[0][get_i((int)parsed_input[0][j])]) {
         return 0;
       }
+      else if(intinint(proc_st, last_i, n_proc)){
+        return 0;
+      }
+      proc_st[n_proc++] = last_i;
     }
     last_i = (int)parsed_input[0][j++];
   }
-
+  printf( "          100%\r", (((float)j/(float)nt)*100));
   printf( "\n      done.\n");
+
+  free(proc_st);
   return 1;
 }
 
@@ -600,7 +621,6 @@ astate2s(double ** pi,
     /* printf( "index data %d %d %d\n", idxs_map[last_i-1], idxs_map[last_i-1]+j,(int)pi[0][idxs_map[last_i-1]+j]); */
     j++;
   }
-
   fprintf(stderr, "\n\n=======content of state %d=======\n",idx);
   fprintf(stderr,     "================================\n\n");
 
@@ -756,6 +776,38 @@ get_inext (int from
 
   while((int)parsed_input[0][j] != -1){
     if ((int)parsed_input[0][j] != from) {
+      return j;
+    }
+    j++;
+  }
+
+  return -1;
+}
+
+int
+get_pinext (double ** pi,
+           int from
+           ) {
+
+  int j      = 0;
+
+  while ((int)pi[0][j] != -1) {
+    if ((int)pi[0][j] == from) {
+      break;
+    }
+    j++;
+  }
+
+  if ((int)pi[0][j] != from) {
+    /* fprintf(stderr, "\n\nget_inext:ERROR, cant get state %d (%d)\n", from,(int)pi[0][j]); */
+    /* printf( "program terminating due to the previous error.\n"); */
+    /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+    /* exit(1); */
+    return (int)pi[0][j];
+  }
+
+  while((int)pi[0][j] != -1){
+    if ((int)pi[0][j] != from) {
       return j;
     }
     j++;
@@ -1206,11 +1258,8 @@ parse_input (double * state_er,
 
   if ((state_er[1] == state_er[5]) &&
       (state_er[2] == state_er[6])){
-    /* printf( "adding elastic\n" ); */
     add_elastic(state_er);
-    /* printf( "added elastic\n" ); */
   }
-  /* pi2f("./pi_el.dat"); */
 
   if (check_pi() == 0) {
     fprintf(stderr, "\n\nparse_input.c, function parse_input: input matrix integrity check failure.\n");

@@ -56,7 +56,7 @@ main (int argc, char * argv[]) {
 
   char datformat[5] = ".dat";
   char plotformat[4] = ".gp";
-  char logformat[5] = ".log";
+  char logformat[5] = ".txt";
   char binformat[5] = ".bin";
   char tmpformat[5] = ".tmp";
 

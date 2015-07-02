@@ -35,14 +35,14 @@ fwdsplice (double ** from,
       }
 
       into[k][j] = from[k][j-start];
-      if ((int)from[0][j-start] == 58) {
-        printf( " %le[%d,%d]",from[k][j-start],j,j-start);
-      }
+      /* if ((int)from[0][j-start] == 58) { */
+      /*   printf( " %le[%d,%d]",from[k][j-start],j,j-start); */
+      /* } */
     }
 
-    if ((int)from[0][j-start] == 58) {
-      printf( "\n" );
-    }
+    /* if ((int)from[0][j-start] == 58) { */
+    /*   printf( "\n" ); */
+    /* } */
   }
 
   return 1;
