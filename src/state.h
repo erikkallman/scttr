@@ -10,6 +10,6 @@ extern double tmax_q;
 extern double e0;
 
 extern double ** parsed_input;
-
+extern int * idx_map;
 extern int sz_inp;
 #endif /* STATE_H */

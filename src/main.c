@@ -188,7 +188,7 @@ main (int argc, char * argv[]) {
 
     case 'r' :
       n_res = 0;
-      /* the user specified a method to be used for calculating the scattering map */
+
       for (j = 3,k=0; argv[1][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[1][j];
@@ -210,13 +210,6 @@ main (int argc, char * argv[]) {
           free(num_buf);
           num_buf = NULL;
           n_res++;
-          /* if ((n_res > 2)) { */
-          /*   /\* switch on the dipole+quadrupole flag  *\/ */
-          /*   break; */
-          /* } */
-          /* if ((n_res > 8)) { */
-          /* break; */
-          /* } */
 
           k = 0;
         }
@@ -249,13 +242,6 @@ main (int argc, char * argv[]) {
           free(num_buf);
           num_buf        = NULL;
           n_er++;
-          /* if ((n_er > 4)) { */
-          /*   /\* switch on the dipole+quadrupole flag  *\/ */
-          /* break; */
-          /* } */
-          /* if ((n_er > 8)) { */
-          /* break; */
-          /* } */
 
           k = 0;
         }

@@ -16,6 +16,7 @@
 
 int nt;
 double ** parsed_input;
+int * idx_map;
 double e0;
 
 /* function add_sym
@@ -443,7 +444,7 @@ double tmax_d, tmax_q, e0;
 int
 check_pi (){
 
-  int last_i;
+  int last_i,curr_i;
   int prog_step;
 
   /* keep check on what states that have been processed to make sure that no
@@ -458,29 +459,45 @@ check_pi (){
     exit(1);
   }
 
-  if (nt >= 10) {
-    prog_step = nt/10;
+  if((idx_map = malloc((nt+1)*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input.c, malloc: failed to allocate memory for\
+ \"idx_map\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
   }
+
+  for (j=0; j<nt; j++) {
+    idx_map[j] = -1;
+  }
+
+  idx_map[nt] = -2; /* mark the end of the list */
+
+  prog_step = nt/10;
 
   printf( "\n      checking the integrity of the input matrix ..\n");
   int j = 0;
 
   /* check so that every state in PI can be reached with the get_i function */
   last_i = -2;
+  curr_i = 0;
+  idx_map[1] = 0;
 
   while ((int)parsed_input[0][j] != -1) {
+    curr_i = (int)parsed_input[0][j];
     if (j % prog_step == 0) {
       printf( "        %.2f%%\r", (((float)j/(float)nt)*100));
     }
 
-    if ((int)parsed_input[0][j] != last_i) {
+    if (curr_i != last_i) {
 
-      if ((int)parsed_input[0][j] != (int)parsed_input[0][get_i((int)parsed_input[0][j])]) {
+      if (curr_i != (int)parsed_input[0][get_i(curr_i)]) {
         return -1;
       }
       else if(intinint(proc_st, last_i, n_proc)){
         return last_i;
       }
+
+      idx_map[curr_i] = j;
       proc_st[n_proc++] = last_i;
     }
     last_i = (int)parsed_input[0][j++];
@@ -696,6 +713,12 @@ get_i (int from
 }
 
 int
+get_il (int from
+       ) {
+  return idx_map[from];
+}
+
+int
 get_inext (int from
            ) {
 
@@ -707,6 +730,26 @@ get_inext (int from
     }
     j++;
   }
+
+  if ((int)parsed_input[0][j] != from) {
+
+    return (int)parsed_input[0][j];
+  }
+
+  while((int)parsed_input[0][j] != -1){
+    if ((int)parsed_input[0][j] != from) {
+      return j;
+    }
+    j++;
+  }
+
+  return -1;
+}
+
+int
+get_ilnext (int from
+           ) {
+  int j = get_il(from);
 
   if ((int)parsed_input[0][j] != from) {
 

@@ -90,7 +90,15 @@ get_i (int from
        );
 
 int
+get_il (int from
+        );
+
+int
 get_inext (int from
+       );
+
+int
+get_ilnext (int from
        );
 
 int

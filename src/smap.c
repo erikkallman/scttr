@@ -49,6 +49,8 @@ calc_smap_m (char * fn_infile,
   int maxgridk;
   int jgrid,kgrid;
 
+  int pstep; /* determines at what values progression is printed */
+
   int gs_idx,is_idx,fs_idx;
   int n_gs,n_is, n_fs;
 
@@ -159,7 +161,7 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
  /*              } */
 
               is_idx = k;
-              if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
+              if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
                 de_jk = parsed_input[3][k] - parsed_input[2][gs_idx];
 
                 l = fs_idx;
@@ -275,7 +277,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   }
 
   progress = maxgridj*maxgridk;
-
+  pstep = progress/1000;
   /* x */
   grms_in = 2.0*powerl((fwhm_in/(2*sqrt(2*log(2)))),2);
   gvar_in = fwhm_in/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
@@ -330,7 +332,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
                 is_idx = k;
                 /* printf( "  is[%d] = %d, %le\n",k, (int)parsed_input[1][is_idx],parsed_input[3][is_idx]); */
 
-                if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
+                if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
                   de_jk = parsed_input[3][k] - parsed_input[2][gs_idx];
 
                   l = fs_idx;
@@ -390,8 +392,11 @@ to allocate memory for \"omega_y[%d]\"\n",j);
         /* exit(1); */
       }
 
-      printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100));
-      fflush(stdout);
+
+      if ((ksum%pstep) == 0) {
+        printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100));
+        fflush(stdout);
+      }
     }
 
     /* printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100)); */
@@ -718,7 +723,7 @@ in the calculation: \n\n" );
       if ((tmom_jk/tmp_tmax1) > state_t[2]){
         is_idx                                    = k;
         fprintf(fp,"\nI(2) = %d, E = %f to.. \n\n",(int)parsed_input[1][k], (e_is-e0)*AUTOEV);
-        if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
+        if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
 
           l = fs_idx;
           tmp_sint                       = tmp_tint = 0;
