@@ -14,7 +14,7 @@
 #include "sci_const.h"
 #include "state.h"
 
-int nt;
+int nt,ns;
 double ** parsed_input;
 int * idx_map;
 double e0;
@@ -34,6 +34,7 @@ double e0;
    */
 int
 add_sym (double * state_er) {
+
     printf( "      adding elastic transitions ..\n");
   /* allocate memory for pi_el that is at most the size of ngs*nis*nfs*/
   /* copy the entire pi buffer to pi_el */
@@ -43,6 +44,7 @@ add_sym (double * state_er) {
   int j,k,l;
   int tmp_idx,next_to,last_i;
   int nt_el = nt;
+
   int sz = 5;
   /* all sym transitions handled so far */
   int * proc_st;
@@ -63,7 +65,7 @@ add_sym (double * state_er) {
   }
 
   for (j=0; j<6; j++) {
-    if((pi_buf[j] = malloc(sz*nt*sizeof(double))) == NULL ){
+    if((pi_buf[j] = malloc(sz*(nt+1)*sizeof(double))) == NULL ){
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
 for pointers in \"input_data\"\n");
       printf( "program terminating due to the previous error.\n");
@@ -79,7 +81,7 @@ for pointers in \"input_data\"\n");
   }
 
   for (j=0; j<6; j++) {
-    if((pi_el[j] = malloc(sz*nt*sizeof(double))) == NULL ){
+    if((pi_el[j] = malloc(sz*(nt+1)*sizeof(double))) == NULL ){
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
 for pointers in \"input_data\"\n");
       printf( "program terminating due to the previous error.\n");
@@ -96,7 +98,7 @@ for pointers in \"input_data\"\n");
   }
 
   /* copy the old pi data to pi_el */
-  for (l=0; l<nt; nt_el++,l++) {
+  for (l=0; l<nt; /* nt_el++, */l++) {
     if (nt_el >= nt*sz) {
       fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= nt*sz = %d.\n",nt_el,nt*sz);
       printf( "program terminating due to the previous error.\n");
@@ -173,6 +175,7 @@ for pointers in \"input_data\"\n");
       /* otherwise use the fwdsplice function to add it to pi_el */
       if (get_i(next_to) == -1) {
         for (k=0; k<nb; nt_el++,k++) {
+
           pi_el[0][nt_el] = pi_buf[0][k];
           pi_el[1][nt_el] = pi_buf[1][k];
           pi_el[2][nt_el] = pi_buf[2][k];
@@ -188,6 +191,7 @@ for pointers in \"input_data\"\n");
     }
     j++;
   }
+
   printf( "          100%%\r" );
   pi_el[0][nt_el] = -1;
 
@@ -219,6 +223,7 @@ for pointe rs in \"input_data\"\n");
       parsed_input[l][j] = pi_el[l][j];
     }
   }
+
 
   for (j=0; j<6; j++) {
     free(pi_buf[j]);
@@ -444,6 +449,7 @@ double tmax_d, tmax_q, e0;
 int
 check_pi (){
 
+  int j;
   int last_i,curr_i;
   int prog_step;
 
@@ -451,6 +457,7 @@ check_pi (){
      "to" state appears in the pi matrix more than once  */
   int * proc_st;
   int n_proc = 0;
+  ns = 0;
 
   if((proc_st = malloc(nt*sizeof(double))) == NULL ){
     fprintf(stderr, "parse_input.c, malloc: failed to allocate memory for\
@@ -471,25 +478,25 @@ check_pi (){
   }
 
   idx_map[nt] = -2; /* mark the end of the list */
+  idx_map[0] = 0;
 
   prog_step = nt/10;
 
   printf( "\n      checking the integrity of the input matrix ..\n");
-  int j = 0;
 
   /* check so that every state in PI can be reached with the get_i function */
   last_i = -2;
   curr_i = 0;
-  idx_map[1] = 0;
+  j = 0;
 
-  while ((int)parsed_input[0][j] != -1) {
+  while((int)parsed_input[0][j] != -1) {
+
     curr_i = (int)parsed_input[0][j];
     if (j % prog_step == 0) {
       printf( "        %.2f%%\r", (((float)j/(float)nt)*100));
     }
 
     if (curr_i != last_i) {
-
       if (curr_i != (int)parsed_input[0][get_i(curr_i)]) {
         return -1;
       }
@@ -497,15 +504,39 @@ check_pi (){
         return last_i;
       }
 
-      idx_map[curr_i] = j;
+      idx_map[curr_i-1] = j;
+      /* printf( " \n%d, %d, %d\n", curr_i, j, nt); */
       proc_st[n_proc++] = last_i;
     }
+
     last_i = (int)parsed_input[0][j++];
   }
+
+  ns = n_proc;
+
+  /* last_i = -2; */
+  /* curr_i = 0; */
+  /* j = 0; */
+
+  /* fill idx_map */
+  /* while ((int)parsed_input[0][j] != -1) { */
+  /*   curr_i = (int)parsed_input[0][j]; */
+
+  /*   if (curr_i != last_i) { */
+  /*     if (curr_i != (int)parsed_input[0][get_i(curr_i)]) { */
+  /*       return -1; */
+  /*     } */
+
+  /*     idx_map[curr_i-1] = j; */
+  /*   } */
+  /*   last_i = (int)parsed_input[0][j++]; */
+  /* } */
+
   printf( "          100%%\r");
   printf( "\n      done.\n");
 
   free(proc_st);
+
   return 0;
 }
 
@@ -648,7 +679,6 @@ get_efrom (int from) {
   }
   fprintf(stderr, "\n\nget_t:ERROR\n");
   printf( "program terminating due to the previous error.\n");
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
   exit(1);
 }
 
@@ -668,7 +698,6 @@ get_eto (int to) {
 
   fprintf(stderr, "\n\nget_t:ERROR\n");
   printf( "program terminating due to the previous error.\n");
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
   exit(1);
 }
 
@@ -691,7 +720,6 @@ get_t (int from,
 
   fprintf(stderr, "\n\nget_t:ERROR\n");
   printf( "program terminating due to the previous error.\n");
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
   exit(1);
 }
 
@@ -715,7 +743,12 @@ get_i (int from
 int
 get_il (int from
        ) {
-  return idx_map[from];
+
+  if (from>ns) {
+    return -1;
+  } else {
+    return idx_map[from-1];
+  }
 }
 
 int
@@ -749,7 +782,15 @@ get_inext (int from
 int
 get_ilnext (int from
            ) {
-  int j = get_il(from);
+  int j = 0;
+
+  if (from > ns) {
+    return -1;
+  }
+
+  if ((j = get_il(from)) == -1) {
+    return -1;
+  }
 
   if ((int)parsed_input[0][j] != from) {
 
@@ -1071,8 +1112,7 @@ for pointers in \"input_data\"\n");
           (((int)state_er[1] != (int)state_er[5]) && ((int)state_er[2] != (int)state_er[6]))
           ) {
         /* printf( "%d %d ", (int)trans_idxs[0][j+l], (int)trans_idxs[1][j+l]); */
-        /* fprintf(stderr, "\n\n=======found oneValgrind eject point=======\n\n"); */
-        /* exit(1); */
+
         idx_from = trans_idxs[1][j+l];
         idx_to = trans_idxs[0][j+l];
       }
@@ -1121,8 +1161,9 @@ for pointers in \"input_data\"\n");
   }
 
   parsed_input[0][l] = -1;
-  nt = l;
+  nt                                    = l;
   printf( "          100%%\r");
+
   /* the only way the parse_input_tmp function can get called is if there is if
    no binary file present. we can therefore safely write to the binary file
   without checking if it already exists. */
@@ -1152,7 +1193,7 @@ for pointers in \"input_data\"\n");
     fflush(fp_bin);
   }
 
-  if ((fclose(fp_bin) != 0) &&\
+  if ((fclose(fp_bin) != 0) &&                  \
       (fclose(fp_tmpdata) != 0)) {
     fprintf(stderr, "parse_input.c, function parse_input_tmp: unable to close files:\n%s\n%s\n", bin_fpstr,fn_tmpdata);
     printf("program terminating due to the previous error.\n");
@@ -1169,7 +1210,7 @@ for pointers in \"input_data\"\n");
   free(idxs_map);
   free(proc_idx);
 
-  for (j=0; j<6; j++) {
+  for (j = 0; j<6; j++) {
     free(pi_buf[j]);
   }
   free(pi_buf);
@@ -1185,15 +1226,15 @@ for pointers in \"input_data\"\n");
 
 int
 parse_input (double * state_er,
-             char * fn_relpath, /* name of input file */
-             char * tmp_fpstr,
-             char * format,
-             char * bin_fpstr,
+             char *   fn_relpath, /* name of input file */
+             char *   tmp_fpstr,
+             char *   format,
+             char *   bin_fpstr,
              int len_fn){
 
-  int j, k, l; /* looping variables */
+  int j, k, l;                  /* looping variables */
   int n_states,n_trans;
-  int rc; /* return code */
+  int rc;                       /* return code */
 
   FILE * fp_tmp;
   FILE * fp_bin;

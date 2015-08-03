@@ -213,7 +213,7 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
       break;
     }
 
-    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
+    gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
 
   }
 
@@ -386,7 +386,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
           break;
         }
 
-        gs_idx = get_inext((int)parsed_input[0][gs_idx]);
+        gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
         /* printf( "%d %d %d\n",gs_idx , nt, j); */
         /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
         /* exit(1); */
@@ -589,7 +589,7 @@ in the calculation: \n\n" );
     } else {
       break;
     }
-    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
+    gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
   }
   fprintf(fp,"\n%d of %d , %d%% of the (1) states were screened out.)\n",\
           n_gs-n_sgs, n_gs,100-(int)((n_sgs/n_gs)*100));
@@ -676,7 +676,7 @@ in the calculation: \n\n" );
     } else {
       break;
     }
-    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
+    gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
   }
   fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 1 ([%d,%d]),\n  were screened out.\n", (int)state_er[3],(int)state_er[4], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)state_er[1],(int)state_er[2]);
   fprintf(fp,"\n=== states in group 2, range [%d,%d] ===\n",(int)state_er[3],(int)state_er[4]);
