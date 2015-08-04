@@ -250,7 +250,7 @@ parse_input_bin (char * bin_fpstr
   /* test writing to binary */
   FILE * fp_bin = fopen(bin_fpstr,"rb");
 
-  if ( fread(&pi_ydim, sizeof(int),1,fp_bin) != sizeof(int)) {
+  if ( fread(&pi_ydim, sizeof(int),1,fp_bin) != 1) {
     fprintf(stderr, "parse_input.c, parse_input_bin: unable to read pi_ydim from binary output file \n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
