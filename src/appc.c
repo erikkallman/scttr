@@ -9,7 +9,6 @@ appc_dd (int *   a1,
          int sz2) {
 
   int j,k; /* looping variables */
-  int sz3 = sz1+sz2;
   int * a3;
   /* if (a1 == NULL) { */
   /*   fprintf(stderr, "Found NULL\n"); */
@@ -48,7 +47,6 @@ appc_d (int * a1,
         int sz2) {
 
   int j,k; /* looping variables */
-  int sz3 = sz1+sz2;
   int * a3;
   /* if (a1 == NULL) { */
   /*   fprintf(stderr, "Found NULL\n"); */
@@ -88,7 +86,6 @@ appc (double * a1,
       int sz2) {
 
   int j,k; /* looping variables */
-  int sz3 = sz1+sz2;
   double * a3;
 
   if((a3 = malloc((sz1+sz2)*sizeof(double))) == NULL ){

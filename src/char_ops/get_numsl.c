@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "std_char_ops.h"
 #include "get_numsl.h"
 
@@ -14,14 +15,11 @@ get_numinstr (char * s,
 
   int j,k,l;
 
-  int n_digits_found = 0;
-
   char num_key[5] = {'-','.','E','+','\0'};
   /* mode = 1 corresponds to reading digits, = 0, to reading anything else */
   int mode = 0;
-  char c;
-  char last_c;
-  char * numstr; /* a string containing the extracted number */
+  char c = NULL;
+  char last_c = NULL;
 
   /* if we're searching this string more in the future, we can store the index
    of the last digit so that we wont have to loop over the entire string again */
@@ -79,7 +77,6 @@ get_numsl (char * str,
   va_list argv;
 
   double * tmp_num;
-  char * numstr;
   char * num_buf;
   /* store the memory address to the variadic input arguments so that we can
      assign them locally */
@@ -87,7 +84,6 @@ get_numsl (char * str,
 
   /* a number in the string can maximally be as long as the string */
   num_buf = malloc(str_len);
-  numstr = malloc(str_len);
 
   for (j=0; j<n_idxs; j++) { /* loop over indexes */
 
@@ -96,22 +92,10 @@ get_numsl (char * str,
     /* find the correctly indexed number in the string and store it. */
     l = get_numinstr(str, num_buf, idxs_out[j],str_len);
 
-    /* printf( "\n\nget_numsl got this in return:\n" ); */
-    for (k=0; k<l; k++) {
-      /* store the number and return a pointer to it.
-         this gets freed up by the caller. */
-      numstr[k] = num_buf[k];
-      /* printf( "%c", numstr[k]); */
-    }
-    /* printf( "\n" ); */
-    /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-    /* exit(1); */
-    /* sleep(1); */
-    /* *tmp_num = sci_atof(numstr); /\* extract the next memory location *\/ */
+    for (k=0; k<l; k++) {}
     *tmp_num = satof(num_buf, k+1); /* extract the next memory location */
   }
 
-  free(numstr);
   free(num_buf);
 
   va_end(argv);

@@ -1,7 +1,5 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
-#include "dynarray.h"
-#include "structs.h"
 
 int
 add_sym (double * state_er);

@@ -1,6 +1,6 @@
 #ifndef SMAP_H
 #define SMAP_H
-#include "dynarray.h"
+
 /* function calc_smap
 
    * synopsis:

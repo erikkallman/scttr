@@ -42,7 +42,8 @@ add_sym (double * state_er) {
   /* deallocate the memory to PI */
 
   int j,k,l;
-  int tmp_idx,next_to,last_i;
+  int n_proc,nb;
+  int tmp_idx,next_to;
   int nt_el = nt;
 
   int sz = 5;
@@ -53,9 +54,7 @@ add_sym (double * state_er) {
 
   /* PI matrix with enough space to acommodate the sym transitions */
   double ** pi_el;
-  double ** pi_old;
 
-  int n_proc,nb;
 
   if((pi_buf = malloc(6*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
@@ -124,7 +123,6 @@ for pointers in \"input_data\"\n");
         ) {
 
       next_to = (int)parsed_input[1][j];
-      last_i = (int)parsed_input[0][j];
 
       /* found a "to" state that has not had its sym transitions
        added yet. loop over the PI matrix and check if there are transitions
@@ -248,11 +246,15 @@ parse_input_bin (char * bin_fpstr
   int j; /* looping variables */
 
   int pi_xdim,pi_ydim;
-  /* double ** parsed_input;
+  /* double ** parsed_input; */
   /* test writing to binary */
   FILE * fp_bin = fopen(bin_fpstr,"rb");
 
-  fread(&pi_ydim, sizeof(int),1,fp_bin);
+  if ( fread(&pi_ydim, sizeof(int),1,fp_bin) != sizeof(int)) {
+    fprintf(stderr, "parse_input.c, parse_input_bin: unable to read pi_ydim from binary output file \n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
   pi_xdim = 6;
 
   nt = pi_ydim;
@@ -304,14 +306,12 @@ parse_molout (char * fn_relpath,
               int len_infile
               ) {
   printf( "\n      parsing the molcas .log file .. \n");
-  int j,k,l,m,j_last; /* control loop variables */
+  int j,k,l,m; /* control loop variables */
   int mode; /* string matching mode flag */
   int string_flag = 0;
 
   FILE * fp_tmpdata;
   FILE * fp_relpath;
-
-  const int n_lookup_str = 6; /* number of strings used for searching the input file */
 
   int c; /* temporary char for storing input file characters */
   /* we are looking for four strings in the output file: one at the beginning
@@ -399,7 +399,6 @@ parse_molout (char * fn_relpath,
           /* sleep(1); */
       }
       k = 0;
-      j_last = j;
     }
   }
   printf( "          100%%\r" );
@@ -411,6 +410,7 @@ parse_molout (char * fn_relpath,
   }
 
   printf( "\n      done. \n");
+  return 1;
 }
 
 /* function
@@ -661,7 +661,7 @@ pi2f (char * fn) {
   fprintf(fp, "\n\n=======content of PI=======\n");
   fprintf(fp, "===========================\n\n");
 
-  close(fp);
+  fclose(fp);
 }
 
 double
@@ -842,10 +842,7 @@ parse_input_tmp (double * state_er,
                  char * bin_fpstr
                  ) {
   printf( "\n      parsing the tmp file .. \n");
-  int j,k,l,m,i,n,k_its,j_test; /* control loop variables */
-  int mode; /* string matching mode flag */
-  int match_start;
-  int match_end;
+  int j,k,l,m,j_test; /* control loop variables */
   int idx_from;
   int idx_to;
   int tmp_idx2;
@@ -1232,8 +1229,6 @@ parse_input (double * state_er,
              char *   bin_fpstr,
              int len_fn){
 
-  int j, k, l;                  /* looping variables */
-  int n_states,n_trans;
   int rc;                       /* return code */
 
   FILE * fp_tmp;

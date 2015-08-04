@@ -4,22 +4,15 @@
 #include <signal.h>
 #include <time.h>
 #include "state.h"
-#include "dynarray.h"
 #include "smap.h"
 #include "parse_input.h" /* struct types */
-#include "structs.h"
 #include "sci_const.h"
 #include "std_num_ops.h" /* power */
-#include "spec.h"
-
-static double xshift;
 
 extern int nt;
 extern double tmax_d, tmax_q, e0;
 extern int * idxs_map;
 extern double ** parsed_input;
-
-/* const double xshift = -19/AUTOEV; /\* Fe2pCN 1s -> 3d *\/ */
 
 void
 calc_smap_m (char * fn_infile,
@@ -44,7 +37,7 @@ calc_smap_m (char * fn_infile,
 
   unsigned long ksum;
 
-  int j,k,l,m,n; /* control loop indices */
+  int j,k,l; /* control loop indices */
   int maxgridj;
   int maxgridk;
   int jgrid,kgrid;
@@ -60,14 +53,13 @@ calc_smap_m (char * fn_infile,
 
   double tmp_tmax1,tmp_tmax2;
 
-  double omegain, omegaut, omega_gs;
+  double omegain, omegaut;
   double bw;
-  double ediffj,ediff_jk,tmom_jk,ediffk,ediff_km,tmom_kl;
+  double ediffj,tmom_jk,ediffk,tmom_kl;
   double eminj,emaxj,emink,emaxk,dej,dek,fwhm_in,fwhm_tr;
-  double emin_gs,emax_gs,de_gs;
-  double tmp_e;
+
   /* variables used in the Kramers-Heisenberg formula */
-  double c1,c2,tmp;
+  double tmp;
 
   /* excitation energy broadening parameters */
   double grms_in; /* gaussian RMS value */
@@ -506,16 +498,14 @@ write_log (double * state_er,
   int tot_st, tot_t; /* total number of screened transitions and total total
                         (screened + non screened) for a given energy range */
 
-  int tmp_ln; /* temporary pointer to line number */
-
-  int gs_idx,is_idx,fs_idx;
+  int gs_idx,fs_idx;
 
   int flag; /* switch between gathering intensity values and printing them  */
-  int n_maxem = 5;
+  /* int n_maxem = 5; */
 
-  double pt = 0.6; /* final state printin threshold value */
-  double s_int, t_int; /* total screened and unscreened intensities for a
-                          given state*/
+  float t_idx;
+
+  double pt; /* final state printin threshold value */
   double tot_sint, tot_tint; /* total screened and unscreened intensities for
                                 all states in a range*/
 
@@ -528,13 +518,14 @@ write_log (double * state_er,
 
   double tmp_tmax1,tmp_tmax2;
   double max_ts3; /* maximum intensity for transitions from state s of type 3 */
-  double * max_em;
 
-  int fst[5] = {0}; /* n_max maximum final state transitions */
+  /* int fst[5] = {0}; /\* n_max maximum final state transitions *\/ */
 
   n_gs = n_sgs = 0;
   n_is = n_sis = 0;
   n_fs = n_sfs = 0;
+
+  pt = 0.6;
 
   fprintf(fp, "parameter log for smap calculation on the input file \"%s\", \
 date %s.\n\n",fn_relpath,date_string);
@@ -542,7 +533,7 @@ date %s.\n\n",fn_relpath,date_string);
   fprintf(fp, "note: for all transitions from a certain state in a certain\
 energy range, the \nstrongest transitions is marked \"<-max<f>([state index])\" in the log.\n\n");
 
-  float t_idx = 0;
+
 
   fprintf(fp,    "\n====================== START ======================\n" );
   fprintf(fp,      "================ general parameters ===============\n\n");
@@ -638,7 +629,6 @@ in the calculation: \n\n" );
             tmp_tmax1 = tmax_q;
           }
           if ((tmom_jk/tmp_tmax1) > state_t[2]){
-            is_idx = k;
 
             if (flag == 0) {
               n_sis++;
@@ -721,7 +711,6 @@ in the calculation: \n\n" );
         tmp_tmax1 = tmax_q;
       }
       if ((tmom_jk/tmp_tmax1) > state_t[2]){
-        is_idx                                    = k;
         fprintf(fp,"\nI(2) = %d, E = %f to.. \n\n",(int)parsed_input[1][k], (e_is-e0)*AUTOEV);
         if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
 

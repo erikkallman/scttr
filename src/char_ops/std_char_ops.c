@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <errno.h>
+#include <errno.h>
 #include "limits.h"
 #include "std_num_ops.h"
 #include "std_char_ops.h"
@@ -94,7 +97,11 @@ send_range_qmsg (double * state_er,
   }
 
   printf( "\nPick one of the above indices : ");
-  scanf("%d",&r);
+  if (scanf("%d",&r) == 0) {
+    fprintf(stderr, "std_char_ops.c, function send_range_qmsg: unable to query user errno = %s \n",strerror(errno));
+    printf( "program terminating due to the previous error.\n");
+  }
+
   return r;
 }
 
@@ -117,7 +124,7 @@ satopow(char * s,
 
   int p=-1;
   int j = len-1;
-  int psign;
+  int psign = 0;
   double pval = 0;
 
   /* extract the power of the number from the back of the string*/
@@ -163,9 +170,6 @@ satof(char * s,
       int len){
 
   int j;
-  int p = 1; /* every number is atleast to the 0th power of ten */
-
-  int psign; /* sign of the power */
   int nsign; /* sign of the number */
 
   double v = 0;
@@ -215,7 +219,8 @@ satof(char * s,
 double
 sci_atof(char * s){
   double val,pow;
-  int sign,i,esign,exp;
+  int esign = 0;
+  int sign,i,exp;
   int power(int base,int exp);
 
   for(i=0;isspace(s[i]);i++)
@@ -258,7 +263,7 @@ sci_atof(char * s){
 int
 isdashes (char * s,
          int len) {
-  int j,k;
+  int j;
   char c,last_c;
   for (j=0; j<len; j++) {
     c = s[j];
@@ -274,7 +279,7 @@ isdashes (char * s,
 int
 isempty (char * s,
          int len) {
-  int j,k;
+  int j;
 
   static char key[5] = { ' ', '\n', '\t','-', '\0' }; /* key for checking empty strings. */
   for (j=0; j<len; j++) {

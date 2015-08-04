@@ -24,11 +24,10 @@ main (int argc, char * argv[]) {
   printf( "\n\n smap calculation initiated.\n\n" );
   int j,k,l,m;                    /* iteration variables */
   int n_t;                      /* number of numbers read from input flag */
-  int n_er;                     /* number of numbers eigenstate energy values provided */
+  int n_er = 0;                     /* number of numbers eigenstate energy values provided */
   int n_res;
   int len_op   = 0;
   int len_fn   = 0;
-  int dbg_flag = 0;
   int out_set  = 0;
 
   int len_lf,len_df,len_pf,len_bf,len_tf;
@@ -36,11 +35,9 @@ main (int argc, char * argv[]) {
   double * res         = malloc(2*sizeof(double));
   /* arrays for storing input file name data */
   char *   input_sbuff = malloc(BUF_SIZE);
-  char *   fn_infile;
-  char *   outpath;
-  char *   fn_relpath;
-
-  char method[5]       = "test";
+  char *   fn_infile = NULL;
+  char *   outpath = NULL;
+  char *   fn_relpath = NULL;
   char *   num_buf;
 
   char format[BUF_SIZE] = {0};
@@ -92,7 +89,6 @@ main (int argc, char * argv[]) {
   state_er[0] = 0;
 
   struct stat st = {0};
-    /* char fn_relpath[BUF_SIZE] = {0}; */
 
   /* process the input arguments */
   if (argc == 1) {
@@ -103,10 +99,6 @@ main (int argc, char * argv[]) {
   while (argc > 1 && (argv[1][0] == '-')) {
 
     switch(argv[1][1]){
-
-    case 'd' :
-      dbg_flag = 1;
-      break;
 
     case 'h' :
       printf("Welcome to the yet-to-be implemented help message.\n");
@@ -220,7 +212,7 @@ main (int argc, char * argv[]) {
     case 'e' :
 
       n_er = 1;
-      /* the user specified a method to be used for calculating the scattering map */
+
       for (j = 3,k=0; argv[1][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[1][j];
@@ -290,7 +282,7 @@ main (int argc, char * argv[]) {
 
     case 't' :
       n_t = 1;
-      /* the user specified a method to be used for calculating the scattering map */
+
       for (j = 3,k=0; argv[1][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[1][j];
@@ -441,8 +433,8 @@ main (int argc, char * argv[]) {
   /* printf( "%s\n",plot_fpstr ); */
 
   if (len_fn == 0) {
-   fprintf(stderr, "\n\Error: smap.c, main: you didnt provide the path to an\
- input file.");
+   fprintf(stderr, "\n\Error: smap.c, main: you didnt provide the path to an \
+input file.");
     printf( "program terminating due to the previous error.\n");
     exit(EXIT_FAILURE);
   } else {
