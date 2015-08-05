@@ -5,6 +5,11 @@
 extern int ns;
 extern int nt;
 
+/* number of states in each energy range provided in the input */
+extern int n_is;
+extern int n_tmax;/* maximum number of intermediate state transitions */
+extern int n_gfs;
+
 extern double tmax_d;
 extern double tmax_q;
 extern double e0;

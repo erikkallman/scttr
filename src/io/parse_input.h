@@ -86,6 +86,10 @@ get_t (int from,
 int
 get_i (int from
        );
+int
+get_pi (int from,
+        double ** pi
+       );
 
 int
 get_il (int from
@@ -199,6 +203,22 @@ parse_input_tmp (double * state_er,
                  char * fn_tmpdata,
                  char * bin_fpstr
                  );
+
+/* function count_states
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+void
+count_states (double * state_er);
 
 int
 parse_input (double * state_er,

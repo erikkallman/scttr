@@ -14,7 +14,7 @@
 #include "sci_const.h"
 #include "state.h"
 
-int nt,ns;
+int nt,ns,n_gfs,n_is,n_tmax;
 double ** parsed_input;
 int * idx_map;
 double e0;
@@ -44,9 +44,14 @@ add_sym (double * state_er) {
   int j,k,l;
   int n_proc,nb;
   int tmp_idx,next_to;
+  int last_i;
   int nt_el = nt;
+  int sz_buf = n_tmax;
+  /* in the worst case, there is an elastic transition from every intermediate state, to every final state. */
+  int sz_el = (n_tmax*n_gfs*n_gfs)+1;
 
-  int sz = 5;
+  /* which means that at most, we might have to read sz2 states into the buffer */
+
   /* all sym transitions handled so far */
   int * proc_st;
 
@@ -55,18 +60,17 @@ add_sym (double * state_er) {
   /* PI matrix with enough space to acommodate the sym transitions */
   double ** pi_el;
 
-
   if((pi_buf = malloc(6*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
- \"input_data\"\n");
+ \"pi_buf\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j=0; j<6; j++) {
-    if((pi_buf[j] = malloc(sz*(nt+1)*sizeof(double))) == NULL ){
+    if((pi_buf[j] = malloc(sz_buf*sizeof(double))) == NULL ){
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
-for pointers in \"input_data\"\n");
+for pointers in \"pi_buf[%d]\"\n",j);
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
@@ -74,15 +78,15 @@ for pointers in \"input_data\"\n");
 
   if((pi_el = malloc(6*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate me mory for\
- \"input_data\"\n");
+ \"pi_el\"\n");
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j=0; j<6; j++) {
-    if((pi_el[j] = malloc(sz*(nt+1)*sizeof(double))) == NULL ){
+    if((pi_el[j] = malloc(sz_el*sizeof(double))) == NULL ){
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
-for pointers in \"input_data\"\n");
+for pointers in \"pi_el[%d]\"\n",j);
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
@@ -97,9 +101,9 @@ for pointers in \"input_data\"\n");
   }
 
   /* copy the old pi data to pi_el */
-  for (l=0; l<nt; /* nt_el++, */l++) {
-    if (nt_el >= nt*sz) {
-      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= nt*sz = %d.\n",nt_el,nt*sz);
+  for (l=0; l<=nt; /* nt_el++, */l++) {
+    if (nt_el >= sz_el) {
+      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= nt*sz = %d.\n",nt_el,sz_el);
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
@@ -117,7 +121,7 @@ for pointers in \"input_data\"\n");
   j = nb = n_proc = 0;
   while ((int)parsed_input[0][j] > 0) {
     printf( "        %.2f%%\r", (((float)j/(float)nt)*100));
-    if (!intinint(proc_st, (int)parsed_input[1][j], n_proc) &&
+    if ((intinint(proc_st, (int)parsed_input[1][j], n_proc) == -1) &&
         (((parsed_input[2][j]-e0)*AUTOEV >= state_er[1]) && ((parsed_input[2][j]-e0)*AUTOEV <= state_er[2])) &&
         (((parsed_input[3][j]-e0)*AUTOEV >= state_er[3]) && ((parsed_input[3][j]-e0)*AUTOEV <= state_er[4]))
         ) {
@@ -147,8 +151,12 @@ for pointers in \"input_data\"\n");
 
           /* jump to the next "from" state, since any given state can only have
            one transition to another specific state */
-          if ((l = get_inext(parsed_input[0][l])) == -1) {
-            break;
+          last_i = parsed_input[0][l];
+          while((int)parsed_input[0][l] != -1){
+            if ((int)parsed_input[0][l] != last_i) {
+              break;
+            }
+            l++;
           }
         }
         else {
@@ -156,14 +164,11 @@ for pointers in \"input_data\"\n");
         }
       }
 
-      /* tmp_idx = get_inext(next_to); */
-      proc_st[n_proc++] = next_to;
-
       /* append the data to the parsed_input matrix */
       fflush(stdout);
 
-      if ((nt_el+nb) >= nt*sz) {
-      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= nt*sz = %d.\n",nt_el,nt*sz);
+      if ((nt_el+nb) >= sz_el) {
+      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= nt*sz = %d.\n",nt_el,sz_el);
         printf( "program terminating due to the previous error.\n");
         exit(1);
       }
@@ -171,7 +176,9 @@ for pointers in \"input_data\"\n");
       /* if the from state cant be found in parsed_input, just store the data in the last available place in pi_el */
 
       /* otherwise use the fwdsplice function to add it to pi_el */
+      /* if (get_pi(next_to,pi_el) == -1) { */
       if (get_i(next_to) == -1) {
+
         for (k=0; k<nb; nt_el++,k++) {
 
           pi_el[0][nt_el] = pi_buf[0][k];
@@ -181,11 +188,13 @@ for pointers in \"input_data\"\n");
           pi_el[4][nt_el] = pi_buf[4][k];
           pi_el[5][nt_el] = pi_buf[5][k];
         }
+        pi_el[5][nt_el+1] = -1;
       }
       else {
         tmp_idx = get_pinext(pi_el,next_to);
         fwdsplice(pi_buf,pi_el,tmp_idx,nt_el,nb,6);
       }
+      proc_st[n_proc++] = next_to;
     }
     j++;
   }
@@ -222,6 +231,7 @@ for pointe rs in \"input_data\"\n");
     }
   }
 
+  parsed_input[0][nt_el] = -1;
 
   for (j=0; j<6; j++) {
     free(pi_buf[j]);
@@ -500,18 +510,20 @@ check_pi (){
       if (curr_i != (int)parsed_input[0][get_i(curr_i)]) {
         return -1;
       }
-      else if(intinint(proc_st, last_i, n_proc)){
+      else if(intinint(proc_st, last_i, n_proc) != -1){
         return last_i;
       }
 
       idx_map[curr_i-1] = j;
-      /* printf( " \n%d, %d, %d\n", curr_i, j, nt); */
+      printf( " \n%d, %d, %d\n", curr_i, j, nt);
+      fflush(stdout);
       proc_st[n_proc++] = last_i;
     }
 
-    last_i = (int)parsed_input[0][j++];
+    last_i = (int)parsed_input[0][j];
+    j++;
   }
-
+  printf( "done!\n" );
   ns = n_proc;
 
   /* last_i = -2; */
@@ -741,6 +753,25 @@ get_i (int from
 }
 
 int
+get_pi (int from,
+        double ** pi
+       ) {
+  int last_i = (int)pi[0][0];
+  int j = 0;
+  while (last_i != -1) {
+
+    if ((int)pi[0][j] == from) {
+      return j;
+    }
+    j++;
+    last_i = (int)pi[0][j];
+  }
+
+  return -1;
+}
+
+
+int
 get_il (int from
        ) {
 
@@ -769,14 +800,12 @@ get_inext (int from
     return (int)parsed_input[0][j];
   }
 
-  while((int)parsed_input[0][j] != -1){
-    if ((int)parsed_input[0][j] != from) {
-      return j;
-    }
+  while((int)parsed_input[0][j] == from){
     j++;
   }
 
-  return -1;
+  return j;
+
 }
 
 int
@@ -822,8 +851,9 @@ get_pinext (double ** pi,
   }
 
   if ((int)pi[0][j] != from) {
-
-    return (int)pi[0][j];
+    fprintf(stderr, "\n\nERROR:parse_input.c, function get_pinext: unable to locate state %d in the list of transitions.\n\n",from);
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
   }
 
   while((int)pi[0][j] != -1){
@@ -833,6 +863,9 @@ get_pinext (double ** pi,
     j++;
   }
 
+  fprintf(stderr, "\n\nERROR:parse_input.c, function get_pinext: unexpectedly reached the end of the array of transitions, while searching for the state after %d.\n\n",from);
+  printf( "program terminating due to the previous error.\n");
+  exit(EXIT_FAILURE);
   return -1;
 }
 
@@ -842,14 +875,14 @@ parse_input_tmp (double * state_er,
                  char * bin_fpstr
                  ) {
   printf( "\n      parsing the tmp file .. \n");
-  int j,k,l,m,j_test; /* control loop variables */
+  int j,k,l,m,n,j_test; /* control loop variables */
   int idx_from;
   int idx_to;
   int tmp_idx2;
   int n_states;
   int n_trans;
   int last_i;
-
+  int n_splice =0;
   int n_proc;
 
   int trs_type;
@@ -1011,7 +1044,14 @@ parse_input_tmp (double * state_er,
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][n_trans],\
                     &trans_idxs[1][n_trans],&t_mom[n_trans]);
           trs_types[n_trans] = trs_type;
-
+          if ((int)trans_idxs[0][n_trans] == 0) {
+            fprintf(stderr, "\n\nzeros1=======Valgrind eject point=======\n\n");
+            exit(1);
+          }
+          if ((int)trans_idxs[1][n_trans] == 0) {
+            fprintf(stderr, "\n\nzeros2=======Valgrind eject point=======\n\n");
+            exit(1);
+          }
           if (!((idxs_eigval[(int)(trans_idxs[0][n_trans])] == -1) || (idxs_eigval[(int)(trans_idxs[1][n_trans])] == -1)) &&
               (((fabs(e_eigval[idxs_eigval[(int)(trans_idxs[1][n_trans])]]-e_eigval[0])*AUTOEV) \
                 < maxr) &&                \
@@ -1095,7 +1135,7 @@ for pointers in \"input_data\"\n");
      from a new state */
   /* m = write head when transfering data from parsed_input */
   while (l<n_trans-1) {
-    if (l % 5 == 0) {
+    if (l % 1 == 0) {
       printf( "        %.2f%%\r", (((float)l/(float)n_trans)*100));
     }
     if ((j+l) == (n_trans)) {
@@ -1118,35 +1158,154 @@ for pointers in \"input_data\"\n");
         idx_from = trans_idxs[0][j+l];
         idx_to   = trans_idxs[1][j+l];
       }
+      if (idx_from == 0) {
+        printf( "%d %d\n", l, j);
+        fprintf(stderr, "\n\nFROM zeros=======Valgrind eject point=======\n\n");
+        exit(1);
+      }
+      if (idx_to == 0) {
+        fprintf(stderr, "\n\n TO zeros=======Valgrind eject point=======\n\n");
+        exit(1);
+      }
       pi_buf[0][j] = idx_from;
       pi_buf[1][j] = idx_to;
       pi_buf[2][j] = e_eigval[idxs_eigval[idx_from]];
       pi_buf[3][j] = e_eigval[idxs_eigval[idx_to]];
       pi_buf[4][j] = t_mom[j+l];
       pi_buf[5][j] = trs_types[j+l];
+
+      if ((int)pi_buf[0][j] == 0) {
+        printf( "%d %d\n", l, j);
+        fprintf(stderr, "\n\n JFROM zeros=======Valgrind eject point=======\n\n");
+        exit(1);
+      }
+      if ((int)pi_buf[1][j] == 0) {
+        fprintf(stderr, "\n\nJ TO zeros=======Valgrind eject point=======\n\n");
+        exit(1);
+      }
     }
     if (idx_from != last_i) {
 
       /* we have read all transitions for a state */
       /* check if the last_i has already been processed */
-      if (intinint(proc_idx,last_i,n_proc) == 0) {
-
+      if (intinint(proc_idx,last_i,n_proc) == -1) {
+        /* printf( "processing by copy%d \n",last_i ); */
         m = l;
         while ((int)pi_buf[0][m-l] != idx_from) {
+
+          if ((int)pi_buf[0][m-l] == 0) {
+            printf( "%d %d\n", l, m-l);
+            fprintf(stderr, "\n\n M-LFROM zeros=======Valgrind em-lect point=======\n\n");
+            exit(1);
+          }
+          if ((int)pi_buf[1][m-l] == 0) {
+            fprintf(stderr, "\n\nM-L TO zeros=======Valgrind em-lect point=======\n\n");
+            exit(1);
+          }
           parsed_input[0][m] = pi_buf[0][m-l];
           parsed_input[1][m] = pi_buf[1][m-l];
           parsed_input[2][m] = pi_buf[2][m-l];
           parsed_input[3][m] = pi_buf[3][m-l];
           parsed_input[4][m] = pi_buf[4][m-l];
           parsed_input[5][m] = pi_buf[5][m-l];
+
           /* printf( "%le %le %le %le %le\n", parsed_input[0][m],parsed_input[1][m],parsed_input[2][m],parsed_input[3][m],parsed_input[4][m],parsed_input[5][m]); */
+          if ((int)parsed_input[0][m] == 0) {
+            printf( "%d %d\n", l, m);
+            fprintf(stderr, "\n\n PI FROM zeros=======Valgrind emect point=======\n\n");
+            exit(1);
+          }
+          if ((int)parsed_input[1][m] == 0) {
+            fprintf(stderr, "\n\n PI TO zeros=======Valgrind emect point=======\n\n");
+            exit(1);
+          }
           m++;
         }
+
+
+        parsed_input[0][m] = -1;
+        /* pi2f("./pi_minus.test"); */
         proc_idx[n_proc++] = last_i;
+        /*         if ((int)pi_buf[0][0] == 765) { */
+        /*   fprintf(stderr, "\n\n=======added the state. Valgrind eject point=======\n\n"); */
+        /*   printf( "finally :%d %d %d %d\n", intinint(proc_idx,last_i,n_proc),n_proc,last_i,get_i(last_i),get_inext(last_i)); */
+        /*   exit(1); */
+        /* } */
+        /* printf( "processed by copy%d \n",last_i ); */
       }
       else{
-        tmp_idx2 = get_inext(last_i);
+        /* printf( "processing by splice %d \n",last_i ); */
+        if ((tmp_idx2 = get_inext(last_i)) == -1) {
+          /* the only way the loop could have ended up here is if last_i is */
+          /*    positioned at the last element of the matrix */
+
+          printf( "%d\n", tmp_idx2);
+          tmp_idx2 = get_i(last_i);
+          printf( "%d\n", tmp_idx2);
+
+          for (j=0; j<=n_proc; j++) {
+            printf( "%d\n", proc_idx[j]);
+          }
+          printf( "finally :%d %d %d\n", intinint(proc_idx,last_i,n_proc),n_proc,last_i);
+          pi2f("./pi_neg.pre");
+
+          fprintf(stderr, "\n\nGOT NEGATIVE=======Valgrind eject point=======\n\n");
+          exit(1);
+
+        }
+        n = 0;
+
+        n_splice++;
+        while((int)parsed_input[0][n] != -1){
+          if ((int)parsed_input[0][n] == 0) {
+            printf( "%d %d\n", l, m);
+
+            pi2f("./pi.test");
+
+        for (j=0; j<=n_proc; j++) {
+          printf( "%d\n", proc_idx[j]);
+        }
+        printf( "finally :%d %d %d\n", intinint(proc_idx,last_i,n_proc),n_proc,last_i);
+        printf( "splice number =%d\n", n_splice);
+                    fprintf(stderr, "\n\n PI pre FROM %d %d %d zeros=======Valgrind emect point=======\n\n",n,l,l+j);
+       exit(1);
+          }
+          if ((int)parsed_input[1][n] == 0) {
+            fprintf(stderr, "\n\n PI pre TO zeros=======Valgrind emect point=======\n\n");
+                   printf( "splice number =%d\n", n_splice); exit(1);
+          }
+          n++;
+        }
+
+
+
+
         fwdsplice(pi_buf,parsed_input,tmp_idx2,l,j,6);
+        parsed_input[0][l+j+1] = -1;
+
+
+
+        n = 0;
+        while((int)parsed_input[0][n] != -1){
+          if ((int)parsed_input[0][n] == 0) {
+            printf( "%d %d %d %d %d\n", last_i, tmp_idx2, l, j, m);
+
+            fprintf(stderr, "\n\n PI POst FROM %d %d %d zeros=======Valgrind emect point=======\n\n",n,l,l+j);
+            printf( "%le %le %le %le %le\n", pi_buf[0][0],pi_buf[1][0],pi_buf[2][0],pi_buf[3][0],pi_buf[4][0],pi_buf[5][0]);
+            pi2f("./pi.test");
+        printf( "splice number =%d\n", n_splice);            exit(1);
+          }
+          if ((int)parsed_input[1][n] == 0) {
+            fprintf(stderr, "\\n\n PI POst TO %d %d %d zeros=======Valgrind emect point=======\n\n",n,l,l+j);
+        printf( "splice number =%d\n", n_splice);
+            exit(1);
+          }
+          n++;
+        }
+
+
+
+        /* printf( "processed by splice %d \n",last_i ); */
       }
 
       l += j;
@@ -1158,6 +1317,7 @@ for pointers in \"input_data\"\n");
   }
 
   parsed_input[0][l] = -1;
+
   nt                                    = l;
   printf( "          100%%\r");
 
@@ -1221,6 +1381,71 @@ for pointers in \"input_data\"\n");
 
 }
 
+void
+count_states (double * state_er) {
+
+  int j = 0; /* looping variables */
+  int last_i = -2;
+  n_gfs = n_is = 0;
+  int s_idx;
+  int t_max;
+
+  int n_proc = 0;
+  int * t;
+  int * proc_is;
+
+  if((proc_is = malloc(nt*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input.c, count_states: malloc: failed to allocate memory for\
+ \"proc_is\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if((t = malloc(nt*sizeof(int))) == NULL ){
+    fprintf(stderr, "parse_input.c, count_states: malloc: failed to allocate memory for\
+ \"t\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (j=0; j<nt; j++) {
+    t[j] = 0;
+  }
+
+  j = 0;
+  /* gount all ground and final states */
+  while((int)parsed_input[0][j] != -1){
+    if(((parsed_input[2][j]-e0)*AUTOEV >= state_er[1]) && ((parsed_input[2][j]-e0)*AUTOEV <= state_er[2])){
+      if (last_i != (int)parsed_input[0][j]) {
+        n_gfs++;
+      }
+      if(((parsed_input[3][j]-e0)*AUTOEV >= state_er[3]) && ((parsed_input[3][j]-e0)*AUTOEV <= state_er[4])){
+        if ((s_idx = intinint(proc_is,(int)parsed_input[1][j],n_proc)) == -1) {
+          proc_is[n_proc] = (int)parsed_input[1][j];
+          t[n_proc] += 1;
+          n_proc++;
+        }
+        else{
+          t[s_idx] += 1;
+        }
+        n_is++;
+      }
+    }
+    last_i = (int)parsed_input[0][j++];
+  }
+
+  t_max = 0;
+  for (j=0; j<n_proc; j++) {
+    if (t[j] > t_max) {
+      t_max = t[j];
+    }
+  }
+
+  n_tmax = t_max;
+  free(proc_is);
+  free(t);
+}
+
 int
 parse_input (double * state_er,
              char *   fn_relpath, /* name of input file */
@@ -1266,12 +1491,15 @@ parse_input (double * state_er,
 
   if ((state_er[1] == state_er[5]) &&
       (state_er[2] == state_er[6])){
+    /* count the states in each energy range to be able to allocate the right
+     amount of memory space in the add_sym function */
+    count_states(state_er);
     add_sym(state_er);
   }
 
   if ((rc = check_pi()) != 0) {
 
-    fprintf(stderr, "\n\nparse_input.c, function parse_input: input matrix integrity check failure.\n");
+    fprintf(stderr, "\n\nparse_input.c, function check_pi: input matrix integrity check failure.\n");
 
     if (rc == -1) {
       fprintf(stderr, "\nthe get_i function was unable to obtain the element index for some states.\n");

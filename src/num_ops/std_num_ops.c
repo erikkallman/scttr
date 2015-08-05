@@ -8,25 +8,34 @@
 int
 fwdsplice (double ** from,
            double ** into,
-           int start,
+           int start, /* on what element in @into to start splicing */
            int end, /* current last allocated element in into*/
            int s,
            int n_dims
            ) {
 
   int j,k; /* looping variables */
-  int l = 0;
 
-  if (s>(end-start)) {
-    end = s;
+  if (end < start) {
+    fprintf(stderr, "\n\nERROR: std_num_ops.c, function fwdsplice: there is not enough room in the @into array for the specified data in @from to fit. end = %d < start = %d.\n\n",end,start);
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
   }
+  else if(s>(end-start)){
+    end += s;
+  }
+  else if((start < 0) || (end < 0) || (s < 0)){
+    fprintf(stderr, "\n\nERROR: std_num_ops.c, function fwdsplice: negatigve input arguments: start = %d, end = %d, s = %d .\n\n",start,end,s);
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
+
   /* make space for the new values by shifting all values forward */
   /*  we know how many values are already in the into array */
   /* start++; */
   for (j=end; j>=start; j--) {
-
-    l++;
     for (k=0; k<n_dims; k++) {
+
       if (memcpy(&into[k][j+s],&into[k][j],sizeof(into[0][0])) != &into[k][j+s]) {
         fprintf(stderr, "parse_input.c, function sharr_fwd: the double %le stored at memory location %p cannot be copied to location %p.\n",into[j][k],&into[j][k+s],&into[j][k]);
         printf( "program terminating due to the previous error.\n");
@@ -125,11 +134,11 @@ intinint (int * a,
 
   for (j=0; j<n_el; j++){
     if (a[j] == num) {
-      return 1;
+      return j;
     }
   }
 
-  return 0;
+  return -1;
 }
 
 int *
@@ -148,7 +157,7 @@ allocate memory for \"state_indices\"\n");
   }
 
   for (j=0; j<n; j++) {
-    if (intinint(a2, a1[j], n)) {
+    if (intinint(a2, a1[j], n) != -1) {
       res[k++] = a1[j];
     }
   }
