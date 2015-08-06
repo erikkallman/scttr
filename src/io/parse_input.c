@@ -120,7 +120,7 @@ for pointers in \"pi_el[%d]\"\n",j);
 
   j = nb = n_proc = 0;
   while ((int)parsed_input[0][j] > 0) {
-    printf( "        %.2f%%\r", (((float)j/(float)nt)*100));
+    /* printf( "        %.2f%%\r", (((float)j/(float)nt)*100)); */
     if ((intinint(proc_st, (int)parsed_input[1][j], n_proc) == -1) &&
         (((parsed_input[2][j]-e0)*AUTOEV >= state_er[1]) && ((parsed_input[2][j]-e0)*AUTOEV <= state_er[2])) &&
         (((parsed_input[3][j]-e0)*AUTOEV >= state_er[3]) && ((parsed_input[3][j]-e0)*AUTOEV <= state_er[4]))
@@ -176,8 +176,8 @@ for pointers in \"pi_el[%d]\"\n",j);
       /* if the from state cant be found in parsed_input, just store the data in the last available place in pi_el */
 
       /* otherwise use the fwdsplice function to add it to pi_el */
-      /* if (get_pi(next_to,pi_el) == -1) { */
-      if (get_i(next_to) == -1) {
+      if (get_pi(next_to,pi_el) == -1) {
+      /* if (get_i(next_to) == -1) { */
 
         for (k=0; k<nb; nt_el++,k++) {
 
@@ -188,11 +188,15 @@ for pointers in \"pi_el[%d]\"\n",j);
           pi_el[4][nt_el] = pi_buf[4][k];
           pi_el[5][nt_el] = pi_buf[5][k];
         }
-        pi_el[5][nt_el+1] = -1;
+        pi_el[0][nt_el+1] = -1;
       }
       else {
         tmp_idx = get_pinext(pi_el,next_to);
+        printf( "\n%d %d %d %d\n",tmp_idx,next_to,nt_el,nb );
+        fflush(stdout);
         fwdsplice(pi_buf,pi_el,tmp_idx,nt_el,nb,6);
+        pi_el[0][nt_el+nb+1] = -1;
+        nt_el+=nb;
       }
       proc_st[n_proc++] = next_to;
     }
@@ -851,22 +855,15 @@ get_pinext (double ** pi,
   }
 
   if ((int)pi[0][j] != from) {
-    fprintf(stderr, "\n\nERROR:parse_input.c, function get_pinext: unable to locate state %d in the list of transitions.\n\n",from);
-    printf( "program terminating due to the previous error.\n");
-    exit(EXIT_FAILURE);
+
+    return (int)pi[0][j];
   }
 
-  while((int)pi[0][j] != -1){
-    if ((int)pi[0][j] != from) {
-      return j;
-    }
+  while((int)pi[0][j] == from){
     j++;
   }
 
-  fprintf(stderr, "\n\nERROR:parse_input.c, function get_pinext: unexpectedly reached the end of the array of transitions, while searching for the state after %d.\n\n",from);
-  printf( "program terminating due to the previous error.\n");
-  exit(EXIT_FAILURE);
-  return -1;
+  return j;
 }
 
 int
@@ -1281,7 +1278,7 @@ for pointers in \"input_data\"\n");
 
 
         fwdsplice(pi_buf,parsed_input,tmp_idx2,l,j,6);
-        parsed_input[0][l+j+1] = -1;
+        /* parsed_input[0][l+j+1] = -1; */
 
 
 

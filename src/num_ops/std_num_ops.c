@@ -5,7 +5,7 @@
 #include "std_num_ops.h"
 #include "sci_const.h"
 
-int
+
 fwdsplice (double ** from,
            double ** into,
            int start, /* on what element in @into to start splicing */
@@ -17,7 +17,7 @@ fwdsplice (double ** from,
   int j,k; /* looping variables */
 
   if (end < start) {
-    fprintf(stderr, "\n\nERROR: std_num_ops.c, function fwdsplice: there is not enough room in the @into array for the specified data in @from to fit. end = %d < start = %d.\n\n",end,start);
+    fprintf(stderr, "\n\nERROR: std_num_ops.c, function fwdsplice: there is not enough room in the @into array for the specified data in @from to fit. end = %d < start = %d, shift = %d.\n\n",end,start,s);
     printf( "program terminating due to the previous error.\n");
     exit(EXIT_FAILURE);
   }
@@ -42,9 +42,16 @@ fwdsplice (double ** from,
         exit(1);
       }
 
-      into[k][j] = from[k][j-start];
+      /* into[k][j] = from[k][j-start]; */
     }
   }
+
+  for (j=0; j<s; j++) {
+    for (k=0; k<n_dims; k++) {
+      into[k][j+start] = from[k][j];
+    }
+  }
+
 
   return 1;
 }
