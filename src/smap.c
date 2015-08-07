@@ -455,6 +455,11 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
   free(line);
 
+  for (j=0; j<2; j++) {
+    free(tmp_evals[j]);
+  }
+  free(tmp_evals);
+
   for (j=0; j<maxgridj; j++) {
     free(omega_x[j]);
     free(omega_y[j]);
@@ -787,4 +792,6 @@ in the calculation: \n\n" );
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
+
+  free(idx_map);
 }
