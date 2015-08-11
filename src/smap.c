@@ -132,25 +132,7 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
             if ((tmom_jk/tmp_tmax1) > state_t[2]){
 
               /* set the energy range value */
-              /* if (pyth_distl(e_is-e0*AUTOEV,state_er[4]) <=\ */
-              /*      pyth_distl(e_is-e0*AUTOEV,state_er[3])) { */
-              /*   if ((e_is-e0)*AUTOEV > emaxj) { */
-              /*     emaxj = (e_is-e0)*AUTOEV; */
-              /*   } */
-              /* } */
-              /* else if ((e_is-e0)*AUTOEV < eminj) { */
-              /*   eminj = (e_is-e0)*AUTOEV; */
-              /* } */
               tmp_evals[0][n_is++] = (e_is-e0)*AUTOEV;
- /*              else{ */
- /*                fprintf(stderr, "smap.c, fuction calc_smap_m found intermediate\ */
- /* state of energy %le that was outside of the range %le to %le\n", (e_is-e0)*AUTOEV, state_er[3], state_er[4]); */
- /*                printf( "program terminating due to the previous error.\n"); */
- /*                printf( "eminj = %le, emaxj = %le\n", eminj,emaxj); */
- /*                printf( "emink = %le, emaxk = %le\n", emink,emaxk); */
- /*                printf( "p1 = %le, p2 = %le\n", pyth_distl(e_fs-e0*AUTOEV,state_er[4]),pyth_distl(e_fs-e0*AUTOEV,state_er[5])); */
- /*                exit(EXIT_FAILURE); */
- /*              } */
 
               is_idx = k;
               if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
@@ -171,26 +153,7 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
                     }
                     if ((tmom_kl/tmp_tmax2) > state_t[3]){
                       /* set the energy range value */
-                      /* if (pyth_distl(e_fs-e0*AUTOEV,state_er[6]) <=\ */
-                      /*     pyth_distl(e_fs-e0*AUTOEV,state_er[5])) { */
-                      /*   if ((e_fs-e0)*AUTOEV > emaxk) { */
-                      /*     emaxk = (e_fs-e0)*AUTOEV; */
-                      /*   } */
-                      /* } */
-                      /* else if ((e_fs-e0)*AUTOEV < emink) { */
-                      /*   emink = (e_fs-e0)*AUTOEV; */
-                      /* } */
                       tmp_evals[1][n_fs++] = (e_fs-e0)*AUTOEV;
-
- /*                      else{ */
- /*                        fprintf(stderr, "smap.c, fuction calc_smap_m found final\ */
- /* state of energy %le that was outside of the range %le to %le\n", (e_fs-e0)*AUTOEV, state_er[5], state_er[6]); */
- /*                        printf( "program terminating due to the previous error.\n"); */
- /*                          printf( "eminj = %le, emaxj = %le\n", eminj,emaxj); */
- /*                          printf( "emink = %le, emaxk = %le\n", emink,emaxk); */
- /*                          printf( "p1 = %le, p2 = %le\n", pyth_distl(e_fs-e0*AUTOEV,state_er[5]),pyth_distl(e_fs-e0*AUTOEV,state_er[6])); */
- /*                        exit(EXIT_FAILURE); */
- /*                      } */
                     }
                   }
                   l++;
@@ -305,10 +268,8 @@ to allocate memory for \"omega_y[%d]\"\n",j);
             (bw >= state_t[1])) {
           k = gs_idx;
 
-          /* printf( "gs[%d] = %d\n",k, (int)parsed_input[0][k]); */
           /* loop over all intermediate transitions from this state */
           while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
-
             e_is = parsed_input[3][k];
             if (ISINSIDE((e_is-e0)*AUTOEV,state_er[3],state_er[4])) {
               tmom_jk = parsed_input[4][k];
@@ -322,7 +283,6 @@ to allocate memory for \"omega_y[%d]\"\n",j);
               if ((tmom_jk/tmp_tmax1) > state_t[2]){
 
                 is_idx = k;
-                /* printf( "  is[%d] = %d, %le\n",k, (int)parsed_input[1][is_idx],parsed_input[3][is_idx]); */
 
                 if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
                   de_jk = parsed_input[3][k] - parsed_input[2][gs_idx];
@@ -331,15 +291,8 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
                   while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
                     e_fs = parsed_input[3][l];
-                    /* printf( "is_idx = %d TO fs_idx = %d, e_is = %le e_fs = %le %d\n", (int)parsed_input[0][fs_idx], (int)parsed_input[1][l],(parsed_input[2][fs_idx]-e0)*AUTOEV, (e_fs-e0)*AUTOEV, ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])); */
-                    /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-                    /* exit(1); */
 
                     if (ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])) {
-                      /* printf( "YEP!\n" ); */
-                      /*   printf( "    fs[%d] = %d\n",l, (int)parsed_input[1][l]); */
-                      /*   sleep(1); */
-
                       tmom_kl = parsed_input[4][l];
 
                       /* screen final state transition */
@@ -349,23 +302,16 @@ to allocate memory for \"omega_y[%d]\"\n",j);
                         tmp_tmax2 = tmax_q;
                       }
                       if ((tmom_kl/tmp_tmax2) > state_t[3]){
-
-
                         de_kl = (parsed_input[3][l] - parsed_input[2][is_idx]);
                         /* .. excitation energy */
                         ediffj = omega_x[jgrid][kgrid] - de_jk;
 
                         /* .. energy transfer */
-                        /* ediffk = omega_y[jgrid][kgrid] - (de_jk + de_kl); */
                         ediffk = omega_y[jgrid][kgrid] - de_kl;
                         tmp = tmom_jk*tmom_kl*bw*exp(-(powerl(ediffj,2))/grms_in)/gvar_in*dej;
                         tmp *= exp(-(powerl(ediffk,2))/grms_tr)/gvar_tr*dek;
                         rixsmap[jgrid][kgrid] += tmp;
-                        /* printf( "map[%d][%d] = %le, ej %le, ek %le, mom %le, gj %le, gk %le\n", jgrid, kgrid, rixsmap[jgrid][kgrid], ediffj,ediffk,tmom_jk*tmom_kl*bw,exp(-(powerl(ediffj,2))/grms_in)/gvar_tr*dej,exp(-(powerl(ediffk,2))/grms_tr)/gvar_tr*dek); */
-                      }/* else { */
-                      /*   printf( " NOPE! %le %le\n", (tmom_kl/tmp_tmax2), tmom_kl); */
-                      /* } */
-
+                      }
                     }
                     l++;
                   }
@@ -379,20 +325,13 @@ to allocate memory for \"omega_y[%d]\"\n",j);
         }
 
         gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
-        /* printf( "%d %d %d\n",gs_idx , nt, j); */
-        /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-        /* exit(1); */
       }
-
 
       if ((ksum%pstep) == 0) {
         printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100));
         fflush(stdout);
       }
     }
-
-    /* printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100)); */
-    /* fflush(stdout); */
   }
 
   printf( "      progress: 100%%\n");

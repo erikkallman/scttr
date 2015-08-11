@@ -48,7 +48,7 @@ add_sym (double * state_er) {
   int nt_el = nt;
   int sz_buf = n_tmax;
   /* in the worst case, there is an elastic transition from every intermediate state, to every final state. */
-  int sz_el = (n_is*n_gfs+1);
+  long int sz_el = (nt*n_gfs);
 
   /* which means that at most, we might have to read sz2 states into the buffer */
 
@@ -102,8 +102,8 @@ for pointers in \"pi_el[%d]\"\n",j);
 
   /* copy the old pi data to pi_el */
   for (l=0; l<=nt; /* nt_el++, */l++) {
-    if (nt_el >= sz_el) {
-      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= nt*sz = %d.\n",nt_el,sz_el);
+    if (nt_el > sz_el) {
+      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= nt*sz = %ld.\n",nt_el,sz_el);
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
@@ -117,6 +117,7 @@ for pointers in \"pi_el[%d]\"\n",j);
 
     next_to = (int)parsed_input[0][l];
   }
+  pi_el[0][l] = parsed_input[0][l] = -1;
 
   j = nb = n_proc = 0;
   while ((int)parsed_input[0][j] > 0) {
@@ -167,8 +168,8 @@ for pointers in \"pi_el[%d]\"\n",j);
       /* append the data to the parsed_input matrix */
       fflush(stdout);
 
-      if ((nt_el+nb+1) >= sz_el) {
-      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el+nb+1 = %d >= sz_el = %d.\n",nt_el+nb+1,sz_el);
+      if ((nt_el+nb+1) > sz_el) {
+      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el+nb+1 = %d >= sz_el = %ld.\n",nt_el+nb+1,sz_el);
         printf( "program terminating due to the previous error.\n");
         exit(1);
       }
