@@ -118,7 +118,6 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
         k = gs_idx;
         /* loop over all intermediate transitions from this state */
         while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
-
           e_is = parsed_input[3][k];
           if (ISINSIDE((e_is-e0)*AUTOEV,state_er[3],state_er[4])) {
             tmom_jk = parsed_input[4][k];
