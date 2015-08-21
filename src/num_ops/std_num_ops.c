@@ -5,7 +5,7 @@
 #include "std_num_ops.h"
 #include "sci_const.h"
 
-
+int
 fwdsplice (double ** from,
            double ** into,
            int start, /* on what element in @into to start splicing */

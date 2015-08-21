@@ -346,8 +346,9 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       }
     }
   }
-  printf( " done.\n");
 
+  printf( " done.\n");
+  printf( "====\nscaling factor = %le\n===\n", rmax);
   printf( "  - writing RIXS map to file: %s ..",dat_fpstr);
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
@@ -468,7 +469,7 @@ write_log (double * state_er,
   n_is = n_sis = 0;
   n_fs = n_sfs = 0;
 
-  pt = 0.6;
+  pt = 0.95;
 
   fprintf(fp, "parameter log for smap calculation on the input file \"%s\", \
 date %s.\n\n",fn_relpath,date_string);
@@ -581,7 +582,7 @@ in the calculation: \n\n" );
               tot_sint += tmom_jk;
             } else {
 
-              fprintf(fp, "  I(2) = %d, E(3) = %f, type %d, <f> = %.10e ,\
+              fprintf(fp, "  I(2) = %d, E(2) = %f, type %d, <f> = %.10e ,\
 <f>/scr = %le%%, <f>/tot = %le%% \n",(int)parsed_input[1][k],\
 (float)((e_is-e0)*AUTOEV),(int)parsed_input[5][k], tmom_jk, \
                       (tmom_jk/tmp_sint)*100, (tmom_jk/tmp_tint)*100);
@@ -719,7 +720,7 @@ in the calculation: \n\n" );
     k++;
   }
 
-  /* fprintf(fp,"\n%d out of %d (%.2f%%) of the (2) states kept after screening. (%.2f%%) of the total intensity for transitions from state %d was screened. \n",n_tsfs, n_tfs,((n_sfs/n_fs)*100), (sint_tot/tint_tot)*100,(int)parsed_input[0][fs_idx]); */
+
   fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 2 ([%d,%d]),\n  were screened out.\n", (int)state_er[5],(int)state_er[6], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)state_er[3],(int)state_er[4]);
   printf( " done.\n" );
   fprintf(fp,"\n=== states in group 3, range [%d,%d] ===\n",(int)state_er[5],(int)state_er[6]);

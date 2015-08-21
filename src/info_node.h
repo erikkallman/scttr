@@ -14,24 +14,4 @@ init_inode (char * s,
             int nt
                 );
 
-/* function set_symtrans
-
-   * synopsis:
-   set_symtrans finds all symmetric transitions between initial and
-   intermediate states, and adds them to their corresponding
-   intermediate states.
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-set_symtrans (info_node inode_root);
-
-
 #endif /* INFO_NODE_H */

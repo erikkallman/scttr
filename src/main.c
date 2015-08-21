@@ -17,6 +17,7 @@
 
 #define BUF_SIZE 256
 int sz_inp;
+int etype;
 
 int
 main (int argc, char * argv[]) {
@@ -29,7 +30,7 @@ main (int argc, char * argv[]) {
   int len_op   = 0;
   int len_fn   = 0;
   int out_set  = 0;
-
+  etype = 0;
   int len_lf,len_df,len_pf,len_bf,len_tf;
 
   double * res         = malloc(2*sizeof(double));
@@ -69,7 +70,6 @@ main (int argc, char * argv[]) {
 
   /* initial/final and intermediate state energy ranges */
   double * state_er = malloc(7*sizeof(double));
-
   double * fwhm_inp = malloc(2*sizeof(double));
 
   /* set default values for the parameter arrays */
@@ -310,8 +310,17 @@ main (int argc, char * argv[]) {
 
           k = 0;
         }
+
+
       }
+
+
       state_t[0] = n_t;
+      break;
+
+    case 'F' :
+
+      etype = 1;
       break;
 
     default :
@@ -426,12 +435,6 @@ main (int argc, char * argv[]) {
   bin_fpstr[j] = '\0';
   tmp_fpstr[j] = '\0';
 
-  /* printf( "%s\n",dat_fpstr ); */
-  /* printf( "%s\n", log_fpstr); */
-  /* printf( "%s\n",tmp_fpstr ); */
-  /* printf( "%s\n",bin_fpstr ); */
-  /* printf( "%s\n",plot_fpstr ); */
-
   if (len_fn == 0) {
    fprintf(stderr, "\n\Error: smap.c, main: you didnt provide the path to an \
 input file.");
@@ -451,6 +454,8 @@ contained in %s.\n",fn_relpath);
       printf( "    done.\n" );
     }
   }
+
+  /* init_inode(fn_infile); */
 
   printf( "\n executing smap with the following..\n\n" );
   printf( "  - data contained in the input file:\n    %s\n\n", fn_relpath);

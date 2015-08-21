@@ -18,6 +18,7 @@ int nt,ns,n_gfs,n_is,n_tmax;
 double ** parsed_input;
 int * idx_map;
 double tmax_d, tmax_q, e0;
+int etype;
 
 /* function add_sym
 
@@ -330,11 +331,31 @@ parse_molout (char * fn_relpath,
   int c; /* temporary char for storing input file characters */
   /* we are looking for four strings in the output file: one at the beginning
      of each data block, and one at the end. */
-  char * str_buf = malloc(BUF_SIZE*5);
+  char * s1 = NULL;
+  char * s2 = NULL;
+  char * s3 = NULL;
 
-  const char s1[35] = "Eigenvalues of complex Hamiltonian";
-  const char s2[40] = "Dipole transition strengths (SO states)";
-  const char s3[44] = "Quadrupole transition strengths (SO states)";
+  char * str_buf = malloc(BUF_SIZE*5);
+  if (etype == 0) {
+
+    /* read spin-orbit data */
+    s1 = malloc(35);
+    s2 = malloc(40);
+    s3 = malloc(44);
+
+    s1 = "Eigenvalues of complex Hamiltonian";
+    s2 = "Dipole transition strengths (SO states)";
+    s3 = "Quadrupole transition strengths (SO states)";
+  }
+  else if(etype == 1){
+    s1 = malloc(19);
+    s2 = malloc(29);
+    s3 = malloc(32);
+
+    s1 = "SPIN-FREE ENERGIES";
+    s2 = "Dipole transition strengths:";
+    s3 = "Quadrupole transition strengths:";
+  }
 
   /* create a pointer to the three data block beginners s1,s2,s3 */
   const char * lookup_str[3] = {s1,s2,s3};
@@ -376,7 +397,7 @@ parse_molout (char * fn_relpath,
           if (string_flag == 0) {
 
             /* we are now reading numbers. accept no strings */
-           string_flag =  bin_flip(string_flag);
+            string_flag =  bin_flip(string_flag);
             /* printf( "%s\n", str_buf); */
           }
 
@@ -385,7 +406,7 @@ parse_molout (char * fn_relpath,
           }
         }
         /* if we find a flag while string_flag ==1 and mode ==1, we jhave
-         read beyond the table */
+           read beyond the table */
         else if(string_flag == 1){
           /* printf( "read last number\n" ); */
           string_flag = bin_flip(string_flag);
@@ -406,11 +427,11 @@ parse_molout (char * fn_relpath,
 
         /* we found the first substring, the data we're looking for is
            inside the coming table of numbers of text. switch to mode 1.*/
-          fprintf(fp_tmpdata,"%s\n",lookup_str[l]);
-          mode    = bin_flip(mode);
-          /* printf( "mode flip!\n" ); */
-          /* printf( "%s\n", lookup_str[l]); */
-          /* sleep(1); */
+        fprintf(fp_tmpdata,"%s\n",lookup_str[l]);
+        mode    = bin_flip(mode);
+        /* printf( "mode flip!\n" ); */
+        /* printf( "%s\n", lookup_str[l]); */
+        /* sleep(1); */
       }
       k = 0;
     }
@@ -874,11 +895,35 @@ parse_input_tmp (double * state_er,
   int c; /* temporary char for storing input file characters */
   /* we are looking for four strings in the output file: one at the beginning
      of each data block, and one at the end. */
-  char * str_buf = malloc(BUF_SIZE*2);
+  char * str_buf = malloc(BUF_SIZE*5);
+  char * s1 = NULL;
+  char * s2 = NULL;
+  char * s3 = NULL;
 
-  const char s1[38] = "Eigenvalues of complex Hamiltonian";
-  const char s2[40] = "Dipole transition strengths (SO states)";
-  const char s3[44] = "Quadrupole transition strengths (SO states)";
+  if (etype == 0) {
+
+    /* read spin-orbit data */
+    s1 = malloc(35);
+    s2 = malloc(40);
+    s3 = malloc(44);
+
+    s1 = "Eigenvalues of complex Hamiltonian";
+    s2 = "Dipole transition strengths (SO states)";
+    s3 = "Quadrupole transition strengths (SO states)";
+  }
+  else if(etype == 1){
+    s1 = malloc(19);
+    s2 = malloc(28);
+    s3 = malloc(32);
+
+    s1 = "SPIN-FREE ENERGIES";
+    s2 = "Dipole transition strengths";
+    s3 = "Quadrupole transition strengths";
+  }
+
+  /* const char s1[38] = "Eigenvalues of complex Hamiltonian"; */
+  /* const char s2[40] = "Dipole transition strengths (SO states)"; */
+  /* const char s3[44] = "Quadrupole transition strengths (SO states)"; */
 
   /* create a pointer to the three data block beginners s1,s3, */
   const char * lookup_str[3] = {s1,s2,s3};
@@ -1117,9 +1162,10 @@ for pointers in \"input_data\"\n");
     }
     if (idx_from != last_i) {
 
+      tmp_idx2 = get_inext(last_i);
       /* we have read all transitions for a state */
       /* check if the last_i has already been processed */
-      if (intinint(proc_idx,last_i,n_proc) == -1) {
+      if ((intinint(proc_idx,last_i,n_proc) == -1) /* || (parsed_input[0][tmp_idx2] == -1 ) */) {
         m = l;
         while ((int)pi_buf[0][m-l] != idx_from) {
 
@@ -1139,8 +1185,16 @@ for pointers in \"input_data\"\n");
       }
       else{
         tmp_idx2 = get_inext(last_i);
+        printf( "PRE\n");
+        printf( "%d %le %le %le %le %le\n", last_i, parsed_input[0][tmp_idx2],parsed_input[1][tmp_idx2],parsed_input[2][tmp_idx2],parsed_input[3][tmp_idx2],parsed_input[4][tmp_idx2],parsed_input[5][tmp_idx2]);
+        fflush(stdout);
+
         fwdsplice(pi_buf,parsed_input,tmp_idx2,l,j,6);
-        parsed_input[0][l+j+1] = -1;
+        printf( "POST1\n");
+        fflush(stdout);
+        /* parsed_input[0][l+j+1] = -1; */
+        printf( "POST2\n");
+        fflush(stdout);
       }
       l += j;
       j = 0;
@@ -1152,7 +1206,6 @@ for pointers in \"input_data\"\n");
   }
 
   parsed_input[0][l] = -1;
-
   nt                                    = l;
   printf( "          100%%\r");
 

@@ -3,10 +3,6 @@
 
 /* the structs used by the program are not logically separable and are all
    mutually dependent, which is why they share the same scope */
-
-struct e_state_s;
-typedef struct e_state_s * estate;
-
 struct info_node_s;
 typedef struct info_node_s * info_node;
 
@@ -14,41 +10,6 @@ struct spec_s;
 typedef struct spec_s * spec;
 
 static int n_inodes;
-
-struct e_state_s{
-
-  int list_idx;
-  int state_idx;
-
-  /* 0=not yet assigned, 1=ground state, 2=intermediate state, 3=final state,
-   23= either 2 or 3 */
-  int type;
-  int ttype;
-
-  double bw; /* boltzmann weight */
-  double max_tmom;
-  double e_val; /* energy of the state on the node (the "from" energy) */
-
-  /* number of transitions from this state */
-  int n_tfrom;
-
-  /* indices of states in transitions occuring from this state*/
-  int * idxs_to;
-
-   /* transition moments types for each transition found in idxs_to */
-  int * ttypes;
-
-   /* transition moments values for each transition found in idxs_to */
-  double * t_moms;
-
-  /* energy eigenvalues for the "to" state */
-  double * e_vals;
-
-  /* this list is doubly linked. */
-  info_node info;
-  estate next;
-  estate last;
-};
 
 /* each input file loaded into the program has an associated info node
  containing general data about that specific input file*/
@@ -71,9 +32,6 @@ struct info_node_s{
   double bw_sum; /* sum of all boltz  */
 
   char * str_id; /* the input file name identifying this info node */
-
-  estate root_e_state;
-  estate * e_states;
 
   spec root_spec;
 

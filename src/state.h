@@ -17,4 +17,6 @@ extern double e0;
 extern double ** parsed_input;
 extern int * idx_map;
 extern int sz_inp;
+
+extern int etype; /* SF or SO energies */
 #endif /* STATE_H */
