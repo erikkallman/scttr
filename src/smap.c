@@ -106,7 +106,7 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
   /* figure out the energy ranges by analyzing the energy ranges in the input */
   n_gs = n_is = n_fs = 0;
   gs_idx = 0;
-  while(gs_idx < nt){
+  while((gs_idx < nt) && (gs_idx >= 0)){
 
     /* screen ground state */
     e_gs = parsed_input[2][gs_idx];
@@ -507,7 +507,7 @@ in the calculation: \n\n" );
   fprintf(fp,"=== states in group 1, range [%d,%d] ===\n\n",(int)state_er[1],(int)state_er[2]);
 
   gs_idx = 0;
-  while(gs_idx < nt){
+  while((gs_idx < nt) && (gs_idx >= 0)){
 
     /* screen ground state */
     e_gs = parsed_input[2][gs_idx];

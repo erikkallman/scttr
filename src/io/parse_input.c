@@ -324,6 +324,7 @@ parse_molout (char * fn_relpath,
   int j,k,l,m; /* control loop variables */
   int mode; /* string matching mode flag */
   int string_flag = 0;
+  int n_match = 0;
 
   FILE * fp_tmpdata;
   FILE * fp_relpath;
@@ -377,7 +378,7 @@ parse_molout (char * fn_relpath,
   string_flag = 0;
 
   /* read the Molcas input file */
-  for (j=0; ((c = fgetc(fp_relpath)) != EOF); j++, k++) {
+  for (j=0; ((c = fgetc(fp_relpath)) != EOF) && (n_match != 3); j++, k++) {
     if (j % 100000 == 0) {
       printf( "        %.2f%%\r", (((float)(j*sizeof(char))/(float)sz_inp)*100));
     }
@@ -414,6 +415,8 @@ parse_molout (char * fn_relpath,
           /* something was read that was not a number flip back
              to searching for new line matches */
           mode    = bin_flip(mode);
+
+          n_match++;
           /* printf( "mode flip back!\n" ); */
           /* sleep(1); */
           /* fseek(fp_relpath, -1*(j-j_last),SEEK_CUR); */
@@ -1185,15 +1188,15 @@ for pointers in \"input_data\"\n");
       }
       else{
         tmp_idx2 = get_inext(last_i);
-        printf( "PRE\n");
-        printf( "%d %le %le %le %le %le\n", last_i, parsed_input[0][tmp_idx2],parsed_input[1][tmp_idx2],parsed_input[2][tmp_idx2],parsed_input[3][tmp_idx2],parsed_input[4][tmp_idx2],parsed_input[5][tmp_idx2]);
-        fflush(stdout);
+        /* printf( "PRE\n"); */
+        /* printf( "%d %le %le %le %le %le\n", last_i, parsed_input[0][tmp_idx2],parsed_input[1][tmp_idx2],parsed_input[2][tmp_idx2],parsed_input[3][tmp_idx2],parsed_input[4][tmp_idx2],parsed_input[5][tmp_idx2]); */
+        /* fflush(stdout); */
 
         fwdsplice(pi_buf,parsed_input,tmp_idx2,l,j,6);
-        printf( "POST1\n");
-        fflush(stdout);
+        /* printf( "POST1\n"); */
+        /* fflush(stdout); */
         /* parsed_input[0][l+j+1] = -1; */
-        printf( "POST2\n");
+        /* printf( "POST2\n"); */
         fflush(stdout);
       }
       l += j;
