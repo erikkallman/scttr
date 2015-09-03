@@ -13,6 +13,7 @@ extern int n_gfs;
 extern double tmax_d;
 extern double tmax_q;
 extern double e0;
+extern double sfac; /* scaling factor for the spectrum */
 
 extern double ** parsed_input;
 extern int * idx_map;

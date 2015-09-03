@@ -13,6 +13,8 @@ extern int nt;
 extern double tmax_d, tmax_q, e0;
 extern int * idxs_map;
 extern double ** parsed_input;
+double sfac;
+
 
 void
 calc_smap_m (char * fn_infile,
@@ -347,8 +349,8 @@ to allocate memory for \"omega_y[%d]\"\n",j);
     }
   }
 
-  printf( " done.\n");
-  printf( "====\nscaling factor = %le\n===\n", rmax);
+  sfac = rmax;
+
   printf( "  - writing RIXS map to file: %s ..",dat_fpstr);
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
@@ -497,6 +499,8 @@ in the calculation: \n\n" );
   fprintf(fp, "\ntemperature = %.2f C, %.2f K \n", (float)TEXP, (float)TEXP-273.15);
 
   fprintf(fp, "\nresolution (eV) in incident and energy transfer direction: %le %le \n",res[0],res[1]);
+
+  fprintf(fp, "\nscaling factor for rixs map normalization: %le \n",sfac);
 
   fprintf(fp,     "\n================ general parameters ===============\n");
   fprintf(fp,    "======================= END =======================\n\n\n" );
