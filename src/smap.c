@@ -258,7 +258,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
       gs_idx = get_i(1);
 
-      while(gs_idx < nt){
+      while((gs_idx < nt) && (gs_idx >= 0)){
         /* for (j=1; j<nt+1; j++) { /\* loop over all states *\/ */
 
         /* screen ground state */
@@ -546,7 +546,7 @@ in the calculation: \n\n" );
   tot_st = tot_t = 0;
   tot_sint = tot_tint = 0;
 
-  while(gs_idx < nt){
+  while((gs_idx < nt) && (gs_idx >= 0)){
     /* for (j=1; j<nt+1; j++) { /\* loop over all states *\/ */
 
     /* screen ground state */
