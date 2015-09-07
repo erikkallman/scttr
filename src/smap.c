@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <math.h>
 #include <signal.h>
@@ -113,15 +114,16 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
     /* screen ground state */
     e_gs = parsed_input[2][gs_idx];
     if (ISINSIDE((e_gs-e0)*AUTOEV,state_er[1],state_er[2])){
-
       bw = get_rbdist(e0,e_gs);
       if(bw >= state_t[1]) {
         n_gs++;
         k = gs_idx;
         /* loop over all intermediate transitions from this state */
         while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
+
           e_is = parsed_input[3][k];
           if (ISINSIDE((e_is-e0)*AUTOEV,state_er[3],state_er[4])) {
+
             tmom_jk = parsed_input[4][k];
 
             /* screen intermediate transition */
@@ -130,13 +132,15 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
             } else {
               tmp_tmax1 = tmax_q;
             }
-            if ((tmom_jk/tmp_tmax1) > state_t[2]){
 
+            if ((tmom_jk/tmp_tmax1) > state_t[2]){
+            /* printf( "found is\n" ); */
+            /* sleep(1); */
               /* set the energy range value */
               tmp_evals[0][n_is++] = (e_is-e0)*AUTOEV;
 
               is_idx = k;
-              if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
+              if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
                 de_jk = parsed_input[3][k] - parsed_input[2][gs_idx];
 
                 l = fs_idx;
@@ -153,14 +157,23 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
                       tmp_tmax2 = tmax_q;
                     }
                     if ((tmom_kl/tmp_tmax2) > state_t[3]){
+                      /* printf( "found fs\n" ); */
                       /* set the energy range value */
                       tmp_evals[1][n_fs++] = (e_fs-e0)*AUTOEV;
                     }
+                    /* else{ */
+                    /*   printf( "no fs %le vs %le\n", tmom_kl ,tmp_tmax2); */
+                    /* } */
                   }
                   l++;
                 }
               }
-            }
+              /* printf( "found is post\n" ); */
+            }/* else{ */
+            /*   printf( "no is %le vs %le\n", tmom_jk ,tmp_tmax1); */
+
+            /* } */
+
           }
           k++;
         }
@@ -173,10 +186,23 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
 
   }
 
+
+  /* printf( "\n\nIS\n\n" ); */
+  /* for (j=0; j<n_is; j++) { */
+  /*   printf( "%d %le\n", j, tmp_evals[0][j]); */
+  /* } */
+
+
+  /* printf( "\n\nFS\n\n" ); */
+  /* for (j=0; j<n_fs; j++) { */
+  /*   printf( "%d %le\n", j, tmp_evals[1][j]); */
+  /* } */
+
   eminj = floor((get_min(tmp_evals[0],n_is)-2))/AUTOEV;
   emaxj = ceil((get_maxl(tmp_evals[0],n_is) + 2))/AUTOEV;
   emink = floor((get_min(tmp_evals[1],n_fs)-2))/AUTOEV;
   emaxk = ceil((get_maxl(tmp_evals[1],n_fs) + 2))/AUTOEV;
+  printf( "%d %d %le %le %le %le\n",n_is,n_fs, eminj, emaxj, emink,emaxk);
 
   fwhm_in = fwhm_inp[0]/AUTOEV;
   fwhm_tr = fwhm_inp[1]/AUTOEV;
