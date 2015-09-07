@@ -1040,10 +1040,10 @@ parse_input_tmp (double * state_er,
 
           /* extract energy eigenvalues and state indexes */
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&tmp_idx,&e_eigval[n_states]);
-
+          printf( "CHECK = e_eigval[%d]  = %le, %le\n", n_states+1, (e_eigval[n_states]-e_eigval[0])*AUTOEV, maxr);
           if ((fabs(e_eigval[n_states]-e_eigval[0])*AUTOEV) \
               < maxr) {
-            /* printf( "e_eigval[%d]  = %le, %d\n", n_states+1, e_eigval[n_states],tmp_idx ); */
+            printf( "   GOT = e_eigval[%d]  = %le, %le\n", n_states+1, (e_eigval[n_states]-e_eigval[0])*AUTOEV, maxr);
             idxs_eigval[(int)tmp_idx] = n_states;
             n_states++;
 
