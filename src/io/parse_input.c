@@ -1042,7 +1042,7 @@ parse_input_tmp (double * state_er,
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&tmp_idx,&e_eigval[n_states]);
 
           if ((fabs(e_eigval[n_states]-e_eigval[0])*AUTOEV) \
-              < (maxr + 100 )) {
+              < maxr) {
             /* printf( "e_eigval[%d]  = %le, %d\n", n_states+1, e_eigval[n_states],tmp_idx ); */
             idxs_eigval[(int)tmp_idx] = n_states;
             n_states++;
