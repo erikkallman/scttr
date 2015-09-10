@@ -572,6 +572,9 @@ set_tmax(){
       break;
     }
   }
+  printf( "%le %le\n", tmax_q, tmax_d);
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
 }
 
 void

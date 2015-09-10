@@ -497,7 +497,7 @@ write_log (double * state_er,
   n_is = n_sis = 0;
   n_fs = n_sfs = 0;
 
-  pt = 0.95;
+  pt = 0.05;
 
   fprintf(fp, "parameter log for smap calculation on the input file \"%s\", \
 date %s.\n\n",fn_relpath,date_string);
