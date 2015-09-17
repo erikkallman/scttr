@@ -9,6 +9,9 @@
 #include "parse_input.h" /* struct types */
 #include "sci_const.h"
 #include "std_num_ops.h" /* power */
+#include "std_char_ops.h" /* power */
+#include "spec_info.h"
+#include "structs.h"
 
 extern int nt;
 extern double tmax_d, tmax_q, e0;
@@ -18,14 +21,11 @@ double sfac;
 
 
 void
-calc_smap_m (char * fn_infile,
-             char * dat_fpstr,
-             char * plot_fpstr,
-             double * state_er,
-             double * state_t,
-             double * res,
-             double * fwhm_inp
+calc_smap_m (metadata md
              ) {
+
+  char * dat_fpstr = concs(3,md->outpath,md->inp_fn,dat_sfx);
+  char * plot_fpstr = concs(3,md->outpath,md-> inp_fn,plot_sfx);
 
   FILE * fp;
   FILE * fp_plot_in;
@@ -48,7 +48,8 @@ calc_smap_m (char * fn_infile,
   int pstep; /* determines at what values progression is printed */
 
   int gs_idx,is_idx,fs_idx;
-  int n_gs,n_is, n_fs;
+  int n_gs,n_is,n_fs;
+  int n_is_tot,n_fs_tot;
 
   double rmax = -0.1;
 
@@ -60,7 +61,7 @@ calc_smap_m (char * fn_infile,
   double bw;
   double ediffj,tmom_jk,ediffk,tmom_kl;
   double eminj,emaxj,emink,emaxk,dej,dek,fwhm_in,fwhm_tr;
-
+  double t_emin,t_emax;
   /* variables used in the Kramers-Heisenberg formula */
   double tmp;
 
@@ -109,20 +110,31 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
   /* figure out the energy ranges by analyzing the energy ranges in the input */
   n_gs = n_is = n_fs = 0;
   gs_idx = 0;
+
+  /* stating guesses for the x-dimension values */
+  eminj = md->state_er[4]/AUTOEV;
+  emaxj = md->state_er[3]/AUTOEV;
+
+  /* stating guesses for the y-dimension values */
+  emink = md->state_er[6]/AUTOEV;
+  emaxk = md->state_er[5]/AUTOEV;
+  n_is_tot = n_fs_tot = 0;
+
   while((gs_idx < nt) && (gs_idx >= 0)){
 
     /* screen ground state */
     e_gs = parsed_input[2][gs_idx];
-    if (ISINSIDE((e_gs-e0)*AUTOEV,state_er[1],state_er[2])){
+    if (inrange((e_gs-e0)*AUTOEV,md->state_er[1],md->state_er[2])){
       bw = get_rbdist(e0,e_gs);
-      if(bw >= state_t[1]) {
+      if(bw >= md->state_t[1]) {
         n_gs++;
         k = gs_idx;
+        n_is = 0;
         /* loop over all intermediate transitions from this state */
         while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
-
           e_is = parsed_input[3][k];
-          if (ISINSIDE((e_is-e0)*AUTOEV,state_er[3],state_er[4])) {
+          if (inrange((e_is-e0)*AUTOEV,md->state_er[3],md->state_er[4])){
+            /* printf( "yes is en %le \n", (e_is-e0)*AUTOEV); */
 
             tmom_jk = parsed_input[4][k];
 
@@ -133,12 +145,11 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
               tmp_tmax1 = tmax_q;
             }
 
-            if ((tmom_jk/tmp_tmax1) > state_t[2]){
-            /* printf( "found is\n" ); */
-            /* sleep(1); */
+            if ((tmom_jk/tmp_tmax1) > md->state_t[2]){
               /* set the energy range value */
               tmp_evals[0][n_is++] = (e_is-e0)*AUTOEV;
-
+              n_is_tot++;
+              n_fs = 0;
               is_idx = k;
               if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
                 de_jk = parsed_input[3][k] - parsed_input[2][gs_idx];
@@ -146,8 +157,10 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
                 l = fs_idx;
 
                 while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
+                  /* printf("%d %d %le %le %le %d\n",(int)parsed_input[0][l],(int)parsed_input[1][l],(parsed_input[2][l]-e0)*AUTOEV,(parsed_input[3][l]-e0)*AUTOEV,parsed_input[4][l],(int)parsed_input[5][l]); */
+
                   e_fs = parsed_input[3][l];
-                  if (ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])) {
+                  if (inrange((e_fs-e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
                     tmom_kl = parsed_input[4][l];
 
                     /* screen final state transition */
@@ -156,36 +169,82 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
                     } else {
                       tmp_tmax2 = tmax_q;
                     }
-                    if ((tmom_kl/tmp_tmax2) > state_t[3]){
-                      /* printf( "found fs\n" ); */
+                    if ((tmom_kl/tmp_tmax2) > md->state_t[3]){
+                      /* printf( "nfs = %d,%d\n", n_fs, nt); */
+                      /* printf("%d %d %le %le %le %d\n",(int)parsed_input[0][l],(int)parsed_input[1][l],(parsed_input[2][l]-e0)*AUTOEV,(parsed_input[3][l]-e0)*AUTOEV,parsed_input[4][l],(int)parsed_input[5][l]); */
+                      /* fflush(stdout); */
                       /* set the energy range value */
+                      /* printf( "%le \n", tmp_evals[1][n_fs]); */
                       tmp_evals[1][n_fs++] = (e_fs-e0)*AUTOEV;
+                      n_fs_tot++;
                     }
-                    /* else{ */
-                    /*   printf( "no fs %le vs %le\n", tmom_kl ,tmp_tmax2); */
-                    /* } */
                   }
+                   /* else { */
+                   /*    printf( "===== FAIL IN ====\n" ); */
+                   /*    printf( "nfs = %d,%d\n", n_fs, nt); */
+                   /*    printf("%d %d %le %le %le %d\n",(int)parsed_input[0][l],(int)parsed_input[1][l],(parsed_input[2][l]-e0)*AUTOEV,(parsed_input[3][l]-e0)*AUTOEV,parsed_input[4][l],(int)parsed_input[5][l]); */
+                   /*    printf( "===== FAIL OUT ====\n" ); */
+                   /*    fflush(stdout); */
+                   /*  } */
                   l++;
                 }
-              }
-              /* printf( "found is post\n" ); */
-            }/* else{ */
-            /*   printf( "no is %le vs %le\n", tmom_jk ,tmp_tmax1); */
+                /* printf( "=== THE L = %d\n", l); */
+
+                /* update the final state max and min values */
+                t_emax = ceil(get_maxl(tmp_evals[1],n_fs));
+                t_emin = floor(get_maxl(tmp_evals[1],n_fs));
+
+                if (t_emin < eminj) {
+                  eminj = t_emin;
+                }
+                else if (t_emax > emaxj){
+                  emaxj = t_emax;
+                }
+                /* printf( "NEXT %d \n",n_fs ); */
+              } /* else { */
+              /*   printf( "Failed to get fs %d\n", (int)parsed_input[1][k]); */
+              /* } */
+
+            }
+            /* else{ */
+            /*   printf( "no fs %le vs %le\n", tmom_jk ,tmp_tmax1); */
 
             /* } */
 
           }
+          /* else{ */
+          /*     printf( "no is en %le \n", (e_is-e0)*AUTOEV); */
+
+          /*   } */
           k++;
+        }
+
+        /* update the intermediate state max and min values */
+        t_emax = ceil(get_maxl(tmp_evals[0],n_is));
+        t_emin = floor(get_maxl(tmp_evals[0],n_is));
+
+        if (t_emin < emink) {
+          emink = t_emin;
+        }
+        else if (t_emax > emaxk){
+          emaxk = t_emax;
         }
       }
     } else {
       break;
     }
 
-    gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
-
+    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
   }
 
+  /* printf( "%d %d %le %le %le %le => %d %d\n",n_is_tot,n_fs_tot, eminj*AUTOEV, \ */
+  /*         emaxj*AUTOEV, emink*AUTOEV,emaxk*AUTOEV, maxgridj, maxgridk); */
+  if ((n_is_tot == 0) || (n_fs_tot == 0)) {
+    fprintf(stderr, "smap.c, : no intermediate or final states states were\
+ found in the energy range you provided. \n");
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
 
   /* printf( "\n\nIS\n\n" ); */
   /* for (j=0; j<n_is; j++) { */
@@ -202,17 +261,17 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
   emaxj = ceil((get_maxl(tmp_evals[0],n_is) + 2))/AUTOEV;
   emink = floor((get_min(tmp_evals[1],n_fs)-2))/AUTOEV;
   emaxk = ceil((get_maxl(tmp_evals[1],n_fs) + 2))/AUTOEV;
-  printf( "%d %d %le %le %le %le\n",n_is,n_fs, eminj, emaxj, emink,emaxk);
-
-  fwhm_in = fwhm_inp[0]/AUTOEV;
-  fwhm_tr = fwhm_inp[1]/AUTOEV;
 
 
-  dej = res[0]/AUTOEV;
-  dek = res[1]/AUTOEV;
+  fwhm_in = md->fwhm[0]/AUTOEV;
+  fwhm_tr = md->fwhm[1]/AUTOEV;
+
+  dej = md->res[0]/AUTOEV;
+  dek = md->res[1]/AUTOEV;
 
   maxgridj = (int)((emaxj-eminj)/dej);
   maxgridk = (int)((emaxk-emink)/dek);
+
 
   if((omega_x = malloc(maxgridj*sizeof(double*))) == NULL ){
     fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
@@ -291,14 +350,14 @@ to allocate memory for \"omega_y[%d]\"\n",j);
         e_gs = parsed_input[2][gs_idx];
         bw = get_rbdist(e0,e_gs);
 
-        if (ISINSIDE((e_gs-e0)*AUTOEV,state_er[1],state_er[2]) &&\
-            (bw >= state_t[1])) {
+        if (inrange((e_gs-e0)*AUTOEV,md->state_er[1],md->state_er[2]) &&\
+            (bw >= md->state_t[1])) {
           k = gs_idx;
 
           /* loop over all intermediate transitions from this state */
           while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
             e_is = parsed_input[3][k];
-            if (ISINSIDE((e_is-e0)*AUTOEV,state_er[3],state_er[4])) {
+            if (inrange((e_is-e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
               tmom_jk = parsed_input[4][k];
 
               /* screen intermediate transition */
@@ -307,11 +366,11 @@ to allocate memory for \"omega_y[%d]\"\n",j);
               } else {
                 tmp_tmax1 = tmax_q;
               }
-              if ((tmom_jk/tmp_tmax1) > state_t[2]){
+              if ((tmom_jk/tmp_tmax1) > md->state_t[2]){
 
                 is_idx = k;
 
-                if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
+                if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
                   de_jk = parsed_input[3][k] - parsed_input[2][gs_idx];
 
                   l = fs_idx;
@@ -319,7 +378,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
                   while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
                     e_fs = parsed_input[3][l];
 
-                    if (ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])) {
+                    if (inrange((e_fs-e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
                       tmom_kl = parsed_input[4][l];
 
                       /* screen final state transition */
@@ -328,7 +387,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
                       } else {
                         tmp_tmax2 = tmax_q;
                       }
-                      if ((tmom_kl/tmp_tmax2) > state_t[3]){
+                      if ((tmom_kl/tmp_tmax2) > md->state_t[3]){
                         de_kl = (parsed_input[3][l] - parsed_input[2][is_idx]);
                         /* .. excitation energy */
                         ediffj = omega_x[jgrid][kgrid] - de_jk;
@@ -351,7 +410,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
           break;
         }
 
-        gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
+        gs_idx = get_inext((int)parsed_input[0][gs_idx]);
       }
 
       if ((ksum%pstep) == 0) {
@@ -398,9 +457,9 @@ to allocate memory for \"omega_y[%d]\"\n",j);
     fprintf(fp_plot_out, "%s",line);
   }
 
-  fprintf(fp_plot_out, "set output \"./%s.png\"\n",fn_infile);
-  fprintf(fp_plot_out, "set title \"%s\" font \"Helvetica,40\" offset 0,1\n",fn_infile);
-  fprintf(fp_plot_out, "splot [%le:%le][%le:%le] \"./%s.dat\" u (($1+xshift)/1):2:($3*sc) with pm3d title \"\"",omega_x[0][0]*AUTOEV,omega_x[maxgridj-1][0]*AUTOEV,omega_y[0][0]*AUTOEV,omega_y[0][maxgridk-1]*AUTOEV,fn_infile);
+  fprintf(fp_plot_out, "set output \"./%s.png\"\n",md -> inp_fn);
+  fprintf(fp_plot_out, "set title \"%s\" font \"Helvetica,40\" offset 0,1\n",md -> inp_fn);
+  fprintf(fp_plot_out, "splot [%le:%le][%le:%le] \"./%s.dat\" u (($1+xshift)/1):2:($3*sc) with pm3d title \"\"",omega_x[0][0]*AUTOEV,omega_x[maxgridj-1][0]*AUTOEV,omega_y[0][0]*AUTOEV,omega_y[0][maxgridk-1]*AUTOEV,md -> inp_fn);
 
   if (fclose(fp_plot_in) != 0) {
     fprintf(stderr, "smap.c, function calc_smap_m: unable to close some of the files:\n%s\n", "../src/plot_template");
@@ -437,14 +496,10 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 }
 
 void
-write_log (double * state_er,
-           double * state_t,
-           double * res,
-           double * fwhm_inp,
-           char * fn_relpath,
-           char * log_fpstr,
-           int n_max
+write_log (metadata md
            ) {
+
+  char * log_fpstr = concs(3,md->outpath,md->inp_fn,log_sfx);
   printf( "  - writing parameter log to file: %s ..",log_fpstr);
 
   fflush(stdout);
@@ -473,7 +528,6 @@ write_log (double * state_er,
   int gs_idx,fs_idx;
 
   int flag; /* switch between gathering intensity values and printing them  */
-  /* int n_maxem = 5; */
 
   float t_idx;
 
@@ -500,7 +554,7 @@ write_log (double * state_er,
   pt = 0.05;
 
   fprintf(fp, "parameter log for smap calculation on the input file \"%s\", \
-date %s.\n\n",fn_relpath,date_string);
+date %s.\n\n",md->inpath,date_string);
 
   fprintf(fp, "note: for all transitions from a certain state in a certain\
 energy range, the \nstrongest transitions is marked \"<-max<f>([state index])\" in the log.\n\n");
@@ -514,17 +568,17 @@ energy range, the \nstrongest transitions is marked \"<-max<f>([state index])\" 
  ground state energy\nrange, maximum boltzmann weight, else, maximum\
 transition moment for a given\nmomentum type) values for energy ranges used \
 in the calculation: \n\n" );
-  for (j=1,t_idx=1; j<=state_er[0]; j+=2, t_idx +=0.5) {
-    fprintf(fp, "[%f,%f] = %.2f%%\n", state_er[j], state_er[j+1],state_t[(int)t_idx]*100);
+  for (j=1,t_idx=1; j<=md->state_er[0]; j+=2, t_idx +=0.5) {
+    fprintf(fp, "[%f,%f] = %.2f%%\n", md->state_er[j], md->state_er[j+1],md->state_t[(int)t_idx]*100);
   }
 
   fprintf(fp, "\nbroadening values (eV, fwhm) for energy ranges (eV) used in the calculation: \n" );
-  fprintf(fp, "[%f,%f] = %f , Gaussian\n", state_er[3], state_er[4],fwhm_inp[0]);
-  fprintf(fp, "[%f,%f] = %f, Gaussian\n", state_er[5], state_er[6],fwhm_inp[1]);
+  fprintf(fp, "[%f,%f] = %f , Gaussian\n", md->state_er[3], md->state_er[4],md->fwhm[0]);
+  fprintf(fp, "[%f,%f] = %f, Gaussian\n", md->state_er[5], md->state_er[6],md->fwhm[1]);
 
   fprintf(fp, "\ntemperature = %.2f C, %.2f K \n", (float)TEXP, (float)TEXP-273.15);
 
-  fprintf(fp, "\nresolution (eV) in incident and energy transfer direction: %le %le \n",res[0],res[1]);
+  fprintf(fp, "\nresolution (eV) in incident and energy transfer direction: %le %le \n",md->res[0],md->res[1]);
 
   fprintf(fp, "\nscaling factor for rixs map normalization: %le \n",sfac);
 
@@ -534,7 +588,7 @@ in the calculation: \n\n" );
   /* print data for the ground state screening */
   /* printf( "print data for the ground state transitions\n" ); */
   fprintf(fp,    "\n====================== START ======================\n" );
-  fprintf(fp,"=== states in group 1, range [%d,%d] ===\n\n",(int)state_er[1],(int)state_er[2]);
+  fprintf(fp,"=== states in group 1, range [%d,%d] ===\n\n",(int)md->state_er[1],(int)md->state_er[2]);
 
   gs_idx = 0;
   while((gs_idx < nt) && (gs_idx >= 0)){
@@ -543,9 +597,9 @@ in the calculation: \n\n" );
     e_gs = parsed_input[2][gs_idx];
     bw = get_rbdist(e0,e_gs);
 
-    if (ISINSIDE((e_gs-e0)*AUTOEV,state_er[1],state_er[2])) {
+    if (inrange((e_gs-e0)*AUTOEV,md->state_er[1],md->state_er[2])) {
       n_gs++;
-      if (bw >= state_t[1]) {
+      if (bw >= md->state_t[1]) {
         n_sgs++;
         k = gs_idx;
 
@@ -554,19 +608,19 @@ in the calculation: \n\n" );
     } else {
       break;
     }
-    gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
+    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
   }
   fprintf(fp,"\n%d of %d , %d%% of the (1) states were screened out.)\n",\
           n_gs-n_sgs, n_gs,100-(int)((n_sgs/n_gs)*100));
 
-  fprintf(fp,  "\n=== states in group 1, range [%d,%d] ===\n",(int)state_er[1],(int)state_er[2]);
+  fprintf(fp,  "\n=== states in group 1, range [%d,%d] ===\n",(int)md->state_er[1],(int)md->state_er[2]);
     fprintf(fp,    "======================= END =======================\n\n\n" );
   /* append, to the beginning, the data on number of states etc. */
 
   /* print data for the intermediate state transitions */
   /* printf( "print data for the intermediate state transitions\n" ); */
   fprintf(fp,    "====================== START ======================\n" );
-  fprintf(fp,"=== states in group 2, range [%d,%d] ===\n\n",(int)state_er[3],(int)state_er[4]);
+  fprintf(fp,"=== states in group 2, range [%d,%d] ===\n\n",(int)md->state_er[3],(int)md->state_er[4]);
 
   tint_tot = sint_tot = gs_idx = 0;
   tot_st = tot_t = 0;
@@ -580,8 +634,8 @@ in the calculation: \n\n" );
     bw = get_rbdist(e0,e_gs);
     flag = 0;
     n_is = n_sis = 0;
-    if (ISINSIDE((e_gs-e0)*AUTOEV,state_er[1],state_er[2]) &&\
-        (bw >= state_t[1])) {
+    if (inrange((e_gs-e0)*AUTOEV,md->state_er[1],md->state_er[2]) &&\
+        (bw >= md->state_t[1])) {
 
       k = gs_idx;
       /* printf( "gs[%d] = %d\n",k, (int)parsed_input[0][k]); */
@@ -593,7 +647,7 @@ in the calculation: \n\n" );
       while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
 
         e_is = parsed_input[3][k];
-        if (ISINSIDE((e_is-e0)*AUTOEV,state_er[3],state_er[4])) {
+        if (inrange((e_is-e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
 
           tmom_jk = parsed_input[4][k];
           /* screen intermediate transition */
@@ -602,7 +656,7 @@ in the calculation: \n\n" );
           } else {
             tmp_tmax1 = tmax_q;
           }
-          if ((tmom_jk/tmp_tmax1) > state_t[2]){
+          if ((tmom_jk/tmp_tmax1) > md->state_t[2]){
 
             if (flag == 0) {
               n_sis++;
@@ -632,7 +686,7 @@ in the calculation: \n\n" );
           flag = 1;
         } else if (((int)parsed_input[0][k] != (int)parsed_input[0][gs_idx]) && (flag == 1)) {
           /* fprintf(fp,"\n%d of %d (%.2f%%) of the (2) states screened out, along with (%.2f%%) of the total intensity for transitions from state %d.\n",n_is-n_sis, n_is,100-(((float)n_sis/(float)n_is)*100), 100-((float)sint_tot/(float)tint_tot)*100,(int)parsed_input[0][gs_idx]); */
-          fprintf(fp,"\n  summary, state %d:\n    after screeing out all states %.3f%% below the maximum intensity,\n    - %d of %d (%.2f%%) of the (3) states,\n    - %.2f%% of the total intensity for transitions from this state,\n    was screened out.\n",(int)parsed_input[0][gs_idx], (float)(state_t[2]*100),n_is-n_sis, n_is,100-(((float)n_sis/(float)n_is)*100), 100-(sint_tot/tint_tot)*100);
+          fprintf(fp,"\n  summary, state %d:\n    after screeing out all states %.3f%% below the maximum intensity,\n    - %d of %d (%.2f%%) of the (3) states,\n    - %.2f%% of the total intensity for transitions from this state,\n    was screened out.\n",(int)parsed_input[0][gs_idx], (float)(md->state_t[2]*100),n_is-n_sis, n_is,100-(((float)n_sis/(float)n_is)*100), 100-(sint_tot/tint_tot)*100);
           flag = 0;
           break;
         }
@@ -640,10 +694,10 @@ in the calculation: \n\n" );
     } else {
       break;
     }
-    gs_idx = get_ilnext((int)parsed_input[0][gs_idx]);
+    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
   }
-  fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 1 ([%d,%d]),\n  were screened out.\n", (int)state_er[3],(int)state_er[4], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)state_er[1],(int)state_er[2]);
-  fprintf(fp,"\n=== states in group 2, range [%d,%d] ===\n",(int)state_er[3],(int)state_er[4]);
+  fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 1 ([%d,%d]),\n  were screened out.\n", (int)md->state_er[3],(int)md->state_er[4], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)md->state_er[1],(int)md->state_er[2]);
+  fprintf(fp,"\n=== states in group 2, range [%d,%d] ===\n",(int)md->state_er[3],(int)md->state_er[4]);
   fprintf(fp,    "======================= END =======================\n\n\n" );
 
 
@@ -665,14 +719,14 @@ in the calculation: \n\n" );
   /* print data for the final state transitions */
   /* printf( "print data for the final state transitions\n" ); */
   fprintf(fp,    "====================== START ======================\n" );
-  fprintf(fp,"=== states in group 3, range [%d,%d] ===\n\n",(int)state_er[5],(int)state_er[6]);
+  fprintf(fp,"=== states in group 3, range [%d,%d] ===\n\n",(int)md->state_er[5],(int)md->state_er[6]);
 
   fprintf(fp,"\nprinting states %.2f%% as intense as the transition maximum for a given initial state.\n\n",pt*100);
 
   while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
 
     e_is = parsed_input[3][k];
-    if (ISINSIDE((e_is-e0)*AUTOEV,state_er[3],state_er[4])) {
+    if (inrange((e_is-e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
       if (flag == 0) {
         n_is++;
       }
@@ -684,9 +738,9 @@ in the calculation: \n\n" );
       } else {
         tmp_tmax1 = tmax_q;
       }
-      if ((tmom_jk/tmp_tmax1) > state_t[2]){
+      if ((tmom_jk/tmp_tmax1) > md->state_t[2]){
         fprintf(fp,"\nI(2) = %d, E = %f to.. \n\n",(int)parsed_input[1][k], (e_is-e0)*AUTOEV);
-        if ((fs_idx = get_il(parsed_input[1][k])) != -1) {
+        if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
 
           l = fs_idx;
           tmp_sint                       = tmp_tint = 0;
@@ -695,7 +749,7 @@ in the calculation: \n\n" );
           max_ts3                        = -1;
           while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
             e_fs = parsed_input[3][l];
-            if (ISINSIDE((e_fs-e0)*AUTOEV,state_er[5],state_er[6])) {
+            if (inrange((e_fs-e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
 
               tmom_kl = parsed_input[4][l];
               /* screen final state transition */
@@ -704,7 +758,7 @@ in the calculation: \n\n" );
               } else {
                 tmp_tmax2 = tmax_q;
               }
-              if ((tmom_kl/tmp_tmax2) > state_t[3]){
+              if ((tmom_kl/tmp_tmax2) > md->state_t[3]){
                 if (flag   == 0) {
                   n_sfs++;
                   tot_st++;
@@ -740,7 +794,7 @@ in the calculation: \n\n" );
               flag = 1;
 
             } else if (((int)parsed_input[0][l] != (int)parsed_input[0][fs_idx]) && (flag == 1)) {
-              fprintf(fp,"\n  summary, state %d:\n    after screeing out all states %.3f%% below the maximum intensity,\n    - %d of %d (%.2f%%) of the (3) states,\n    - %.2f%% of the total intensity for transitions from this state,\n    was screened out.\n",(int)parsed_input[0][fs_idx], state_t[2]*100,n_fs-n_sfs, n_fs,100-(((float)n_sfs/(float)n_fs)*100), 100-(sint_tot/tint_tot)*100);
+              fprintf(fp,"\n  summary, state %d:\n    after screeing out all states %.3f%% below the maximum intensity,\n    - %d of %d (%.2f%%) of the (3) states,\n    - %.2f%% of the total intensity for transitions from this state,\n    was screened out.\n",(int)parsed_input[0][fs_idx], md->state_t[2]*100,n_fs-n_sfs, n_fs,100-(((float)n_sfs/(float)n_fs)*100), 100-(sint_tot/tint_tot)*100);
               flag = 0;
             }
           }
@@ -751,9 +805,9 @@ in the calculation: \n\n" );
   }
 
 
-  fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 2 ([%d,%d]),\n  were screened out.\n", (int)state_er[5],(int)state_er[6], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)state_er[3],(int)state_er[4]);
+  fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 2 ([%d,%d]),\n  were screened out.\n", (int)md->state_er[5],(int)md->state_er[6], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)md->state_er[3],(int)md->state_er[4]);
   printf( " done.\n" );
-  fprintf(fp,"\n=== states in group 3, range [%d,%d] ===\n",(int)state_er[5],(int)state_er[6]);
+  fprintf(fp,"\n=== states in group 3, range [%d,%d] ===\n",(int)md->state_er[5],(int)md->state_er[6]);
   fprintf(fp,    "======================= END =======================\n\n\n" );
 
   if (fclose(fp) != 0) {
@@ -761,6 +815,6 @@ in the calculation: \n\n" );
     printf( "program terminating due to the previous error.\n");
     exit(1);
   }
-
+  free(log_fpstr);
   free(idx_map);
 }

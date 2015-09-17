@@ -6,11 +6,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+#include "spec_info.h"
+#include "structs.h"
 #include "state.h"
 #include "std_char_ops.h"
 #include "get_numsl.h"
 #include "smap.h"
-#include "input_formats.h"
+#include "formats.h"
 #include "parse_input.h" /* for input_data array, as well as other
                             calculation-specific variables */
 #include "smap_cfg.h"
@@ -31,38 +33,18 @@ main (int argc, char * argv[]) {
   int len_fn   = 0;
   int out_set  = 0;
   etype = 0;
-  int len_lf,len_df,len_pf,len_bf,len_tf;
 
-  double * res         = malloc(2*sizeof(double));
+  double * res = malloc(2*sizeof(double));
   /* arrays for storing input file name data */
   char *   input_sbuff = malloc(BUF_SIZE);
-  char *   fn_infile = NULL;
+  char *   inp_fn = NULL;
   char *   outpath = NULL;
-  char *   fn_relpath = NULL;
+  char *   inpath = NULL;
+  char *   inp_sfx = NULL;
   char *   num_buf;
 
-  char format[BUF_SIZE] = {0};
   char curr_dir[BUF_SIZE] = {0};
   char out_buf[BUF_SIZE] = {0};
-
-  /* strings of all output files from the program */
-  char * dat_fpstr;
-  char * plot_fpstr;
-  char * log_fpstr;
-  char * bin_fpstr;
-  char * tmp_fpstr;
-
-  char datformat[5] = ".dat";
-  char plotformat[4] = ".gp";
-  char logformat[5] = ".txt";
-  char binformat[5] = ".bin";
-  char tmpformat[5] = ".tmp";
-
-  len_df = 4;
-  len_pf = 3;
-  len_lf = 4;
-  len_bf = 4;
-  len_tf = 4;
 
   /* use first element to specify number of values stored in matrix */
   /* threshold values for the three or six different state types */
@@ -71,6 +53,9 @@ main (int argc, char * argv[]) {
   /* initial/final and intermediate state energy ranges */
   double * state_er = malloc(7*sizeof(double));
   double * fwhm_inp = malloc(2*sizeof(double));
+
+  metadata md = init_md();
+  spec_info s;
 
   /* set default values for the parameter arrays */
   fwhm_inp[0] = 0.5;
@@ -116,7 +101,7 @@ main (int argc, char * argv[]) {
         }
       }
 
-      fn_infile = malloc(j-k+1);
+      inp_fn = malloc(j-k+1);
 
       for (l = 0,j=k; argv[1][j] != '\0'; j++){
 
@@ -125,7 +110,7 @@ main (int argc, char * argv[]) {
           break;
         }
 
-        fn_infile[l] = argv[1][j];
+        inp_fn[l] = argv[1][j];
         l++;
       }
 
@@ -136,24 +121,25 @@ main (int argc, char * argv[]) {
 
       /* printf( "\n" ); */
       len_fn     = j-3;
-      fn_relpath = malloc(len_fn+1);
+      inpath = malloc(len_fn+1);
 
       for (j          = 0; j<len_fn; j++) {
-        fn_relpath[j] = input_sbuff[j];
-        /* printf( "%c", fn_relpath[j]); */
+        inpath[j] = input_sbuff[j];
+        /* printf( "%c", inpath[j]); */
       }
       /* printf( "\n" ); */
-      fn_relpath[len_fn] = '\0';
+      inpath[len_fn] = '\0';
 
-      /* set the format  */
+      /* set the inp_sfx  */
       j = len_fn;
-      while(fn_relpath[--j] != '.'){};
+      while(inpath[--j] != '.'){};
+
+      inp_sfx = malloc(len_fn-j+1);
 
       for (k=0; j<=len_fn; j++) {
-        format[k] = fn_relpath[j];
+        inp_sfx[k] = inpath[j];
         k++;
       }
-      format[k] = '\0';
 
       break;
 
@@ -188,7 +174,7 @@ main (int argc, char * argv[]) {
 
         if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
           /* k--; /\* we dont want the comma or null sent to atof *\/ */
-          num_buf                                 = malloc(k+1);
+          num_buf = malloc(k+1);
 
           for (l = 0; l<k; l++) {
             num_buf[l] = input_sbuff[l];
@@ -310,10 +296,7 @@ main (int argc, char * argv[]) {
 
           k = 0;
         }
-
-
       }
-
 
       state_t[0] = n_t;
       break;
@@ -373,81 +356,36 @@ main (int argc, char * argv[]) {
   }
 
   /* set the input file size */
-  stat(fn_relpath,&st);
+  stat(inpath,&st);
   sz_inp = (int)st.st_size;
-
-  /* the output path string length is known, build the output file strings */
-  dat_fpstr = malloc(len_op+len_df+len_fn);
-  plot_fpstr = malloc(len_op+len_pf+len_fn);
-  log_fpstr = malloc(len_op+len_lf+len_fn);
-  bin_fpstr = malloc(len_op+len_bf+len_fn);
-  tmp_fpstr = malloc(len_op+len_tf+len_fn);
-
-  for (j=0; outpath[j] != '\0'; j++) {
-    dat_fpstr[j] = outpath[j];
-    plot_fpstr[j] = outpath[j];
-    log_fpstr[j] = outpath[j];
-    bin_fpstr[j] = outpath[j];
-    tmp_fpstr[j] = outpath[j];
-  }
-
-  /* dat_fpstr[j] = '/'; */
-  /* plot_fpstr[j] = '/'; */
-  /* log_fpstr[j] = '/'; */
-  /* bin_fpstr[j] = '/'; */
-  /* tmp_fpstr[j] = '/'; */
-  /* j++; */
-
-  /* for (k=0; j<len_op+len_infile; j++) { */
-  for (k=0; fn_infile[k] != '\0'; j++,k++) {
-    dat_fpstr[j] = fn_infile[k];
-    plot_fpstr[j] = fn_infile[k];
-    log_fpstr[j] = fn_infile[k];
-    bin_fpstr[j] = fn_infile[k];
-    tmp_fpstr[j] = fn_infile[k];
-  }
-
   l = j;
 
-  for (j=l, k=0; datformat[k] != '\0'; j++) {
-    dat_fpstr[j] = datformat[k++];
-  }
+  md -> outpath = outpath;
+  md -> inpath = inpath;
+  md -> inp_fn = inp_fn;
+  md -> inp_sfx = inp_sfx;
 
-  for (j=l, k=0; datformat[k] != '\0'; j++) {
-    plot_fpstr[j] = plotformat[k++];
-  }
+  md -> state_er  = state_er;
+  md -> state_t = state_t;
+  md -> res = res;
+  md -> fwhm = fwhm_inp;
 
-  for (j=l, k=0; logformat[k] != '\0'; j++) {
-    log_fpstr[j] = logformat[k++];
-  }
-
-  for (j=l, k=0; binformat[k] != '\0'; j++) {
-    bin_fpstr[j] = binformat[k++];
-  }
-
-  for (j=l, k=0; tmpformat[k] != '\0'; j++) {
-    tmp_fpstr[j] = tmpformat[k++];
-  }
-
-  dat_fpstr[j] = '\0';
-  plot_fpstr[j] = '\0';
-  log_fpstr[j] = '\0';
-  bin_fpstr[j] = '\0';
-  tmp_fpstr[j] = '\0';
+  s = init_sinfo(md);
 
   if (len_fn == 0) {
    fprintf(stderr, "\n\Error: smap.c, main: you didnt provide the path to an \
 input file.");
     printf( "program terminating due to the previous error.\n");
     exit(EXIT_FAILURE);
-  } else {
+  }
+  else {
     /* extract the needed data from the input */
     printf( "  - extracting input data ..");
     fflush(stdout);
 
-    if (parse_input(state_er, fn_relpath, tmp_fpstr, format, bin_fpstr, len_fn+1)) {
+    if (parse_input(md)) {
       fprintf(stderr, "smap.c, main: unable to parse the input data \
-contained in %s.\n",fn_relpath);
+contained in %s.\n",inpath);
       printf( "program terminating due to the previous error.\n");
       exit(EXIT_FAILURE);
     } else {
@@ -455,10 +393,8 @@ contained in %s.\n",fn_relpath);
     }
   }
 
-  /* init_inode(fn_infile); */
-
   printf( "\n executing smap with the following..\n\n" );
-  printf( "  - data contained in the input file:\n    %s\n\n", fn_relpath);
+  printf( "  - data contained in the input file:\n    %s\n\n", inpath);
   printf( "  - threshold values:\n    " );
 
   for (j=1; j<n_t; j++) {
@@ -475,17 +411,15 @@ contained in %s.\n",fn_relpath);
   printf( "\n\n" );
   printf( " execution progress:\n\n");
 
-  calc_smap_m(fn_infile,dat_fpstr,plot_fpstr,state_er, state_t, res, fwhm_inp);
-  write_log(state_er, state_t, res, fwhm_inp, fn_relpath, log_fpstr, 5);
+  calc_smap_m(md);
+  write_log(md);
 
   for (j=0; j<6; j++) {
     free(parsed_input[j]);
   }
   free(parsed_input);
-
-  free(outpath);
-  free(fn_relpath);
-  free(fn_infile);
+  free(inp_sfx);
+  free_md(md);
   free(input_sbuff);
   free(state_er);
   free(state_t);

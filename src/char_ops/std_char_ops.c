@@ -3,13 +3,72 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
-#include <errno.h>
+#include <stdarg.h>
 #include "limits.h"
 #include "std_num_ops.h"
 #include "std_char_ops.h"
 
 /* check if both x and y are dashes */
 #define isddash(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
+
+/* function concs
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+char *
+concs (int n_args, ...) {
+
+  int j,k,l;
+  int slen_tot = 0;
+  int * slen = malloc(n_args*sizeof(int));
+
+  va_list argv;
+
+  va_start(argv, n_args);
+
+  char * tmp_str;
+  char * path;
+  char ** s = malloc(n_args*sizeof(char*));
+
+  for (j=0; j<n_args; j++) {
+    tmp_str = va_arg(argv,char*);
+    slen[j] = strlen(tmp_str);
+
+    s[j] = malloc(slen[j]);
+    s[j] = tmp_str;
+    slen_tot += slen[j];
+    /* store a pointer to the input string */
+    /* get its length */
+    /* add memory to the return string */
+    /* use strcat to copy tmp_str to the return string */
+  }
+
+  path = malloc(slen_tot+1);
+  for(l=0,j=0,k=0;; j++,l++){
+    if (j == slen[k]) {
+      if (++k==n_args) {
+        break;
+      }
+      j = 0;
+    }
+    path[l] = s[k][j];
+  }
+
+  free(s);
+  free(slen);
+
+  va_end(argv);
+  return path;
+}
 
 size_t
 fpread(void *buffer,

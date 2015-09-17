@@ -1,5 +1,6 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
+#include "structs.h"
 
 int
 add_sym (double * state_er);
@@ -9,13 +10,8 @@ parse_input_bin (char * bin_fpstr
                  );
 int
 parse_molout (char * fn_relpath,
-              char * fn_infile,
-              int len_infile
+              char * fn_infile
               );
-
-int ISINSIDE(double v,
-             double r1,
-             double r2);
 
 double
 get_efrom (int from);
@@ -38,9 +34,6 @@ get_eto (int to);
    */
 int
 check_pi ();
-
-void
-set_tmax();
 
 void
 state2s(int idx);
@@ -221,11 +214,7 @@ void
 count_states (double * state_er);
 
 int
-parse_input (double * state_er,
-             char * fn_relpath, /* name of input file */
-             char * tmp_fpstr,
-             char * format,
-             char * bin_fpstr,
-             int len_fn);
+parse_input (metadata md
+             );
 
 #endif /* PARSE_INPUT_H */

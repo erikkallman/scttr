@@ -60,6 +60,7 @@ add_library(smap_std_inc
   "${project_root_dir}/src/char_ops/get_numsl.c"
   "${project_root_dir}/src/char_ops/std_char_ops.c"
   "${project_root_dir}/src/appc.c"
+  "${project_root_dir}/src/spec_info.c"
   )
 
 add_library(smap_smap

@@ -1,6 +1,22 @@
 #ifndef CHAR_OPS_H
 #define CHAR_OPS_H
 
+/* function concs
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+char *
+concs (int n_args, ...);
+
 size_t
 fpread(void *buffer,
        size_t size,

@@ -1,19 +1,21 @@
 #ifndef STD_NUM_OPS_H
 #define STD_NUM_OPS_H
 
-/* function get_wi
-
-   get long type value from array, using an input array of integer indices and a requested integer
+/* function
 
    * synopsis:
+   Check if value @v is inside of the closed range bound by @r1 and @r2
+   */
+int inrange(double v,
+            double r1,
+            double r2);
 
-   * algorithm:
+/* function get_wi
 
-   * input:
+   * synopsis:
+   get long type value from array, using an input array of integer indices and a requested integer
 
-   * output:
-
-   * side-effects:
+   * side-effects: none
 
    */
 double
@@ -21,13 +23,20 @@ get_wi (double * vals,
         int * idxs_map,
         int wanted_idx,
         int n_idxs);
-/* splice the values from the array @from, into the array @into by shifting the latter forwards, n_vals elements. assumes that from is of the same dimensionality as into */
+
+/* function get_wi
+ * synopsis:
+ splice the values from the array @from, into the array @into by shifting the
+ latter forwards, n_vals elements. assumes that from is of the same
+ dimensionality as into
+
+*/
 
 int
 fwdsplice (double ** from,
            double ** into,
-           int start,
-           int end,
+           int start, /* on what element in @into to start splicing */
+           int end, /* current last allocated element in into*/
            int s,
            int n_dims
            );

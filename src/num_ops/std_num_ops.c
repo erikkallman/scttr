@@ -5,6 +5,23 @@
 #include "std_num_ops.h"
 #include "sci_const.h"
 
+int
+inrange(double v,
+         double r1,
+         double r2) {
+
+  const float thrsh = 0.0001;
+  double d1 = fabs(v-r1);
+  double d2 = fabs(v-r1);
+
+  if (((v>r1) || (d1 < thrsh))
+    && ((v<r2) || (d2 < thrsh))) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 double
 get_wi (double * vals,
         int * idxs_map,
@@ -23,8 +40,8 @@ get_wi (double * vals,
 int
 fwdsplice (double ** from,
            double ** into,
-           int start, /* on what element in @into to start splicing */
-           int end, /* current last allocated element in into*/
+           int start,
+           int end,
            int s,
            int n_dims
            ) {

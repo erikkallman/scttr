@@ -68,7 +68,7 @@ free_spec (spec s,
 }
 
 void
-free_spec_stack (info_node inode,
+free_spec_stack (spec_info inode,
                  spec root_s,
                  int idx){
 
@@ -151,7 +151,7 @@ append_spec (spec s,
 }
 
 void
-init_spec (info_node inode,
+init_spec (spec_info inode,
            double ** s_data,
            int s_idx,
            int ly,
@@ -205,7 +205,7 @@ to allocate memory for \"new_spec\"\n");
 }
 
 void
-specs2s (info_node inode) {
+specs2s (spec_info inode) {
 
   printf( "\n  -printing the content of the spec list for the inode \
 to file %s:\n", inode -> str_id);

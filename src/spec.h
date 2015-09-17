@@ -30,7 +30,7 @@ free_spec (spec s,
            int layer);
 
 void
-free_spec_stack (info_node inode,
+free_spec_stack (spec_info inode,
                  spec root_s,
                  int idx);
 
@@ -78,7 +78,7 @@ append_spec (spec s,
 
 
 void
-init_spec (info_node inode,
+init_spec (spec_info inode,
            double ** s_data,
            int s_idx,
            int ly,

@@ -3,17 +3,18 @@
 
 /* the structs used by the program are not logically separable and are all
    mutually dependent, which is why they share the same scope */
-struct info_node_s;
-typedef struct info_node_s * info_node;
+struct spec_info_s;
+typedef struct spec_info_s * spec_info;
 
 struct spec_s;
 typedef struct spec_s * spec;
 
-static int n_inodes;
+struct metadata_s; /* metadata container */
+typedef struct metadata_s * metadata;
 
-/* each input file loaded into the program has an associated info node
- containing general data about that specific input file*/
-struct info_node_s{
+/* each input file loaded into the program has an associated spectrum information node
+ containing all data about that specific input file*/
+struct spec_info_s{
 
   int idx; /* default index value */
 
@@ -33,10 +34,12 @@ struct info_node_s{
 
   char * str_id; /* the input file name identifying this info node */
 
+  metadata s_md; /* spectrum information node metadata */
+
   spec root_spec;
 
-  info_node next;
-  info_node last;
+  spec_info next;
+  spec_info last;
 
 };
 
@@ -60,4 +63,20 @@ struct spec_s{
   spec root_l;
 };
 
+
+struct metadata_s{
+  /* the metadata struct contains all data that is read from the command line
+     input, like file paths, energy ranges, and so on. */
+
+  /* path to .. */
+  char * outpath; /* smap data file */
+  char * inpath; /* plot output file */
+  char * inp_fn; /* input filename */
+  char * inp_sfx; /* input file suffix */
+
+  double * state_er; /* expected range of energie eigenvalues in the input */
+  double * state_t; /* transition intensity screening thresholds */
+  double * res; /* spectral resolution (eV) of the produced spectrum */
+  double * fwhm; /* full-width half-maximum value for broadening the peaks */
+};
 #endif /* ESTATE_S_H */
