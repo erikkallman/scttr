@@ -1,6 +1,26 @@
 #ifndef STD_NUM_OPS_H
 #define STD_NUM_OPS_H
 
+/* function get_wi
+
+   get long type value from array, using an input array of integer indices and a requested integer
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+double
+get_wi (double * vals,
+        int * idxs_map,
+        int wanted_idx,
+        int n_idxs);
 /* splice the values from the array @from, into the array @into by shifting the latter forwards, n_vals elements. assumes that from is of the same dimensionality as into */
 
 int

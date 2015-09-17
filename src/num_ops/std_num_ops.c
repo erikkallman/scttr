@@ -5,6 +5,21 @@
 #include "std_num_ops.h"
 #include "sci_const.h"
 
+double
+get_wi (double * vals,
+        int * idxs_map,
+        int wanted_idx,
+        int n_idxs) {
+
+  int j;
+  for (j=0; j<n_idxs; j++) {
+    if (idxs_map[j] == wanted_idx-1) {
+      return vals[j];
+    }
+  }
+  return -1;
+}
+
 int
 fwdsplice (double ** from,
            double ** into,

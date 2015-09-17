@@ -56,6 +56,7 @@ add_library(smap_io
 
 add_library(smap_std_inc
   "${project_root_dir}/src/num_ops/std_num_ops.c"
+  "${project_root_dir}/src/num_ops/quicksort.c"
   "${project_root_dir}/src/char_ops/get_numsl.c"
   "${project_root_dir}/src/char_ops/std_char_ops.c"
   "${project_root_dir}/src/appc.c"

@@ -6,6 +6,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
+#include "quicksort.h"
 #include "std_char_ops.h"
 #include "std_num_ops.h"
 #include "get_numsl.h"
@@ -888,6 +890,7 @@ parse_input_tmp (double * state_er,
 
   double tmp_idx = 0;
   double maxr    = get_maxl(state_er,state_er[0]);
+  double from_state_en, to_state_en, tmp_state_en;
 
   double *  e_eigval;
   int *     idxs_eigval;
@@ -1043,26 +1046,44 @@ parse_input_tmp (double * state_er,
 
           /* extract energy eigenvalues and state indexes */
           get_numsl(str_buf,num_idxs1,l,n_idxs1,&tmp_idx,&e_eigval[n_states]);
-          printf( "CHECK = e_eigval[%d]  = %le, %le\n", n_states+1, (e_eigval[n_states]-e_eigval[0])*AUTOEV, maxr);
-          if ((fabs(e_eigval[n_states]-e_eigval[0])*AUTOEV) \
-              < maxr) {
-            printf( "   GOT = e_eigval[%d]  = %le, %le\n", n_states+1, (e_eigval[n_states]-e_eigval[0])*AUTOEV, maxr);
-            idxs_eigval[(int)tmp_idx] = n_states;
-            n_states++;
+          /* printf( "CHECK = e_eigval[%d]  = %le, %le\n", n_states+1, (e_eigval[n_states]-e_eigval[0])*AUTOEV, maxr); */
+          /* if ((fabs(e_eigval[n_states]-e_eigval[0])*AUTOEV) \ */
+          /*     < maxr) { */
+            /* printf( "   GOT = e_eigval[%d]  = %le, %le\n", n_states+1, (e_eigval[n_states]-e_eigval[0])*AUTOEV, maxr); */
 
-          }
+          idxs_eigval[(int)tmp_idx-1] = n_states;
+          n_states++;
+
+          /* } */
         }
         else if ((j > 0) && (isempty(str_buf,l) != 1)) {
+          if (n_trans == 0) { /* pre-process the eigenvalues */
 
+            /* sort the states in energy */
+            quicksort(e_eigval,idxs_eigval,0,n_states-1,n_states);
+            e0 = e_eigval[0];
+            /* adjust n_states so that it accounts for states not to be read
+             due to being outside of the input range */
+            m = 0;
+            for (k=0; k<n_states; k++) {
+              if ((e_eigval[k]-e0)*AUTOEV < maxr) {
+                m++;
+              }
+            }
+            n_states = m;
+          }
           /* extract transition moments and transition indexes */
           get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][n_trans],\
                     &trans_idxs[1][n_trans],&t_mom[n_trans]);
           trs_types[n_trans] = trs_type;
 
-          if (!((idxs_eigval[(int)(trans_idxs[0][n_trans])] == -1) || (idxs_eigval[(int)(trans_idxs[1][n_trans])] == -1)) &&
-              (((fabs(e_eigval[idxs_eigval[(int)(trans_idxs[1][n_trans])]]-e_eigval[0])*AUTOEV) \
+          from_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[0][n_trans]),n_states);
+
+          to_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[1][n_trans]),n_states);
+
+          if ((((fabs(to_state_en-e_eigval[0])*AUTOEV) \
                 < maxr) &&                \
-               ((fabs(e_eigval[idxs_eigval[(int)(trans_idxs[0][n_trans])]]-e_eigval[0])*AUTOEV) \
+               ((fabs(from_state_en-e_eigval[0])*AUTOEV) \
                 < maxr)))
             {
               /* printf( "%le %le %le\n", trans_idxs[0][n_trans], trans_idxs[1][n_trans], t_mom[n_trans]); */
@@ -1133,6 +1154,11 @@ for pointers in \"input_data\"\n");
   /* l = index of line in the data arrays */
   /* j = index of data read into pi_buf, reset upon reading the transitions
      from a new state */
+  /* for (k=0; k<n_states; k++) { */
+  /*   printf( "%d %le\n ", idxs_eigval[k],e_eigval[k]); */
+  /* } */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   /* m = write head when transfering data from parsed_input */
   while (l<n_trans-1) {
     if (l % 1 == 0) {
@@ -1144,13 +1170,22 @@ for pointers in \"input_data\"\n");
       idx_from = -1;
     }
     else {
-      if (ISINSIDE((e_eigval[idxs_eigval[(int)trans_idxs[1][j+l]]]-e0)*AUTOEV,state_er[3],state_er[4]) &&
-           (ISINSIDE((e_eigval[idxs_eigval[(int)trans_idxs[0][j+l]]]-e0)*AUTOEV,state_er[5],state_er[6])) &&
+
+      from_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[0][j+l]),n_states);
+      to_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[1][j+l]),n_states);
+
+
+      if (ISINSIDE((to_state_en-e0)*AUTOEV,state_er[3],state_er[4]) &&
+           (ISINSIDE((from_state_en-e0)*AUTOEV,state_er[5],state_er[6])) &&
           (((int)state_er[1] != (int)state_er[5]) && ((int)state_er[2] != (int)state_er[6]))
           ) {
 
         idx_from = trans_idxs[1][j+l];
         idx_to = trans_idxs[0][j+l];
+
+        tmp_state_en = from_state_en;
+        from_state_en = to_state_en;
+        to_state_en = tmp_state_en;
       }
       else {
 
@@ -1160,11 +1195,12 @@ for pointers in \"input_data\"\n");
 
       pi_buf[0][j] = idx_from;
       pi_buf[1][j] = idx_to;
-      pi_buf[2][j] = e_eigval[idxs_eigval[idx_from]];
-      pi_buf[3][j] = e_eigval[idxs_eigval[idx_to]];
+      pi_buf[2][j] = from_state_en;
+      pi_buf[3][j] = to_state_en;
       pi_buf[4][j] = t_mom[j+l];
       pi_buf[5][j] = trs_types[j+l];
-
+      /* printf( "%d %d %le %le %le %d\n",idx_from,idx_to,from_state_en,to_state_en,t_mom[j+l],trs_types[j+l]); */
+      /* sleep(1); */
     }
     if (idx_from != last_i) {
 
@@ -1212,7 +1248,7 @@ for pointers in \"input_data\"\n");
   }
 
   parsed_input[0][l] = -1;
-  nt                                    = l;
+  nt = l;
   printf( "          100%%\r");
 
   /* the only way the parse_input_tmp function can get called is if there is if
