@@ -13,7 +13,7 @@ get_wi (double * vals,
 
   int j;
   for (j=0; j<n_idxs; j++) {
-    if (idxs_map[j] == wanted_idx-1) {
+    if (idxs_map[j] == wanted_idx) {
       return vals[j];
     }
   }

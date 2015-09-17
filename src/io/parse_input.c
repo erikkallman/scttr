@@ -1051,7 +1051,7 @@ parse_input_tmp (double * state_er,
           /*     < maxr) { */
             /* printf( "   GOT = e_eigval[%d]  = %le, %le\n", n_states+1, (e_eigval[n_states]-e_eigval[0])*AUTOEV, maxr); */
 
-          idxs_eigval[(int)tmp_idx-1] = n_states;
+          idxs_eigval[(int)tmp_idx-1] = n_states+1;
           n_states++;
 
           /* } */
@@ -1064,6 +1064,14 @@ parse_input_tmp (double * state_er,
             e0 = e_eigval[0];
             /* adjust n_states so that it accounts for states not to be read
              due to being outside of the input range */
+
+            /* for (k=0; k<n_states; k++) { */
+            /*   if ((e_eigval[k]-e0)*AUTOEV < maxr) { */
+            /*     printf( "%d %le\n", idxs_eigval[k], e_eigval[k]); */
+            /*   } */
+            /* } */
+            /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+            /* exit(1); */
             m = 0;
             for (k=0; k<n_states; k++) {
               if ((e_eigval[k]-e0)*AUTOEV < maxr) {
@@ -1077,14 +1085,15 @@ parse_input_tmp (double * state_er,
                     &trans_idxs[1][n_trans],&t_mom[n_trans]);
           trs_types[n_trans] = trs_type;
 
-          from_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[0][n_trans]),n_states);
+          from_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[1][n_trans]),n_states);
 
-          to_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[1][n_trans]),n_states);
+          to_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[0][n_trans]),n_states);
 
-          if ((((fabs(to_state_en-e_eigval[0])*AUTOEV) \
-                < maxr) &&                \
-               ((fabs(from_state_en-e_eigval[0])*AUTOEV) \
-                < maxr)))
+          /* printf( "to %d %le %le \n",(int)(trans_idxs[0][n_trans]), to_state_en,fabs(to_state_en-e_eigval[0])*AUTOEV); */
+          /* printf( "from %d %le %le \n",(int)(trans_idxs[1][n_trans]), from_state_en,fabs(from_state_en-e_eigval[0])*AUTOEV); */
+          /* printf( "\n" ); */
+
+          if ((to_state_en != -1) && (from_state_en != -1))
             {
               /* printf( "%le %le %le\n", trans_idxs[0][n_trans], trans_idxs[1][n_trans], t_mom[n_trans]); */
               /* sleep(1); */
@@ -1173,8 +1182,8 @@ for pointers in \"input_data\"\n");
 
       from_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[0][j+l]),n_states);
       to_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[1][j+l]),n_states);
-
-
+      /* printf( "%le %d %le %d\n", from_state_en, (int)(trans_idxs[0][j+l]), to_state_en, (int)(trans_idxs[1][j+l])); */
+      /* sleep(1); */
       if (ISINSIDE((to_state_en-e0)*AUTOEV,state_er[3],state_er[4]) &&
            (ISINSIDE((from_state_en-e0)*AUTOEV,state_er[5],state_er[6])) &&
           (((int)state_er[1] != (int)state_er[5]) && ((int)state_er[2] != (int)state_er[6]))
@@ -1218,7 +1227,8 @@ for pointers in \"input_data\"\n");
           parsed_input[4][m] = pi_buf[4][m-l];
           parsed_input[5][m] = pi_buf[5][m-l];
 
-          /* printf( "%le %le %le %le %le\n", parsed_input[0][m],parsed_input[1][m],parsed_input[2][m],parsed_input[3][m],parsed_input[4][m],parsed_input[5][m]); */
+          /* printf( "%le %le %le %le %le %le\n", parsed_input[0][m],parsed_input[1][m],parsed_input[2][m],parsed_input[3][m],parsed_input[4][m],parsed_input[5][m]); */
+          /* sleep(1); */
           m++;
         }
 
