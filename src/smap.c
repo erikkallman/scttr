@@ -4,7 +4,7 @@
 #include <math.h>
 #include <signal.h>
 #include <time.h>
-#include "state.h"
+#include <complex.h>
 #include "smap.h"
 #include "parse_input.h" /* struct types */
 #include "sci_const.h"
@@ -13,16 +13,11 @@
 #include "spec_info.h"
 #include "structs.h"
 
-extern int nt;
-extern double tmax_d, tmax_q, e0;
-extern int * idxs_map;
-extern double ** parsed_input;
-double sfac;
-
-
 void
-calc_smap_m (metadata md
+calc_smap_m (spec_info s
              ) {
+
+  metadata md = s -> md;
 
   char * dat_fpstr = concs(3,md->outpath,md->inp_fn,dat_sfx);
   char * plot_fpstr = concs(3,md->outpath,md-> inp_fn,plot_sfx);
@@ -59,16 +54,25 @@ calc_smap_m (metadata md
 
   double omegain, omegaut;
   double bw;
-  double ediffj,tmom_jk,ediffk,tmom_kl;
+
+  /* energies and transition moments along the axis of .. */
+  /* .. excitiation (x-axis) */
+  double ediffj,tmom_jk;
+
+  /* .. energy transfer (y-axis)*/
+  double ediffk,tmom_kl;
+
   double eminj,emaxj,emink,emaxk,dej,dek,fwhm_in,fwhm_tr;
+
   double t_emin,t_emax;
   /* variables used in the Kramers-Heisenberg formula */
   double tmp;
 
-  /* excitation energy broadening parameters */
+  /* excitation energy (x-axis) broadening parameters */
   double grms_in; /* gaussian RMS value */
   double gvar_in; /* square root of the variance of the gaussian */
-  /* transfer energy broadening parameters */
+
+  /* transfer energy (y-axis) broadening parameters */
   double grms_tr;
   double gvar_tr;
 
@@ -99,7 +103,7 @@ calc_smap_m (metadata md
   }
 
   for (j=0; j<2; j++) {
-    if((tmp_evals[j] = malloc(nt*sizeof(double))) == NULL ){
+    if((tmp_evals[j] = malloc(s->n_trans*sizeof(double))) == NULL ){
       fprintf(stderr, "smap.c:function calc_smap_m, malloc: failed \
 to allocate memory for \"tmp_evals[%d]\"\n",j);
       printf( "program terminating due to the previous error.\n");
@@ -111,85 +115,71 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
   n_gs = n_is = n_fs = 0;
   gs_idx = 0;
 
-  /* stating guesses for the x-dimension values */
+  /* input starting guesses for the energy range values */
   eminj = md->state_er[4]/AUTOEV;
   emaxj = md->state_er[3]/AUTOEV;
-
-  /* stating guesses for the y-dimension values */
   emink = md->state_er[6]/AUTOEV;
   emaxk = md->state_er[5]/AUTOEV;
   n_is_tot = n_fs_tot = 0;
 
-  while((gs_idx < nt) && (gs_idx >= 0)){
+  while((gs_idx < s->n_trans) && (gs_idx >= 0)){
 
     /* screen ground state */
-    e_gs = parsed_input[2][gs_idx];
-    if (inrange((e_gs-e0)*AUTOEV,md->state_er[1],md->state_er[2])){
-      bw = get_rbdist(e0,e_gs);
+    e_gs = s->trs[2][gs_idx];
+    if (inrange((e_gs-s->e0)*AUTOEV,md->state_er[1],md->state_er[2])){
+
+      bw = get_rbdist(s->e0,e_gs);
       if(bw >= md->state_t[1]) {
         n_gs++;
         k = gs_idx;
         n_is = 0;
-        /* loop over all intermediate transitions from this state */
-        while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
-          e_is = parsed_input[3][k];
-          if (inrange((e_is-e0)*AUTOEV,md->state_er[3],md->state_er[4])){
-            /* printf( "yes is en %le \n", (e_is-e0)*AUTOEV); */
 
-            tmom_jk = parsed_input[4][k];
+        /* loop over all intermediate transitions from the
+           current ground state */
+        while((int)s->trs[0][k] == (int)s->trs[0][gs_idx]){
+          e_is = s->trs[3][k];
+          if (inrange((e_is-s->e0)*AUTOEV,md->state_er[3],md->state_er[4])){
+            tmom_jk = s->trs[4][k];
 
             /* screen intermediate transition */
-            if (parsed_input[5][k] == 1) {
-              tmp_tmax1 = tmax_d;
+            if (s->trs[5][k] == 1) {
+              tmp_tmax1 = s -> tmax_d;
             } else {
-              tmp_tmax1 = tmax_q;
+              tmp_tmax1 = s->tmax_q;
             }
 
             if ((tmom_jk/tmp_tmax1) > md->state_t[2]){
-              /* set the energy range value */
-              tmp_evals[0][n_is++] = (e_is-e0)*AUTOEV;
+
+              tmp_evals[0][n_is++] = (e_is-s->e0)*AUTOEV;
               n_is_tot++;
               n_fs = 0;
               is_idx = k;
-              if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
-                de_jk = parsed_input[3][k] - parsed_input[2][gs_idx];
+              if ((fs_idx = get_i(s,s->trs[1][k])) != -1) {
+                de_jk = s->trs[3][k] - s->trs[2][gs_idx];
 
                 l = fs_idx;
 
-                while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
-                  /* printf("%d %d %le %le %le %d\n",(int)parsed_input[0][l],(int)parsed_input[1][l],(parsed_input[2][l]-e0)*AUTOEV,(parsed_input[3][l]-e0)*AUTOEV,parsed_input[4][l],(int)parsed_input[5][l]); */
+                /* loop over all final state transitions from the
+                   current intermediate state */
+                while((int)s->trs[0][l] == (int)s->trs[0][fs_idx]){
 
-                  e_fs = parsed_input[3][l];
-                  if (inrange((e_fs-e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
-                    tmom_kl = parsed_input[4][l];
+                  e_fs = s->trs[3][l];
+                  if (inrange((e_fs-s->e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
+                    tmom_kl = s->trs[4][l];
 
                     /* screen final state transition */
-                    if (parsed_input[5][l] == 1) {
-                      tmp_tmax2 = tmax_d;
+                    if (s->trs[5][l] == 1) {
+                      tmp_tmax2 = s -> tmax_d;
                     } else {
-                      tmp_tmax2 = tmax_q;
+                      tmp_tmax2 = s->tmax_q;
                     }
                     if ((tmom_kl/tmp_tmax2) > md->state_t[3]){
-                      /* printf( "nfs = %d,%d\n", n_fs, nt); */
-                      /* printf("%d %d %le %le %le %d\n",(int)parsed_input[0][l],(int)parsed_input[1][l],(parsed_input[2][l]-e0)*AUTOEV,(parsed_input[3][l]-e0)*AUTOEV,parsed_input[4][l],(int)parsed_input[5][l]); */
-                      /* fflush(stdout); */
-                      /* set the energy range value */
-                      /* printf( "%le \n", tmp_evals[1][n_fs]); */
-                      tmp_evals[1][n_fs++] = (e_fs-e0)*AUTOEV;
+                      tmp_evals[1][n_fs++] = (e_fs-s->e0)*AUTOEV;
                       n_fs_tot++;
                     }
                   }
-                   /* else { */
-                   /*    printf( "===== FAIL IN ====\n" ); */
-                   /*    printf( "nfs = %d,%d\n", n_fs, nt); */
-                   /*    printf("%d %d %le %le %le %d\n",(int)parsed_input[0][l],(int)parsed_input[1][l],(parsed_input[2][l]-e0)*AUTOEV,(parsed_input[3][l]-e0)*AUTOEV,parsed_input[4][l],(int)parsed_input[5][l]); */
-                   /*    printf( "===== FAIL OUT ====\n" ); */
-                   /*    fflush(stdout); */
-                   /*  } */
                   l++;
                 }
-                /* printf( "=== THE L = %d\n", l); */
-
                 /* update the final state max and min values */
                 t_emax = ceil(get_maxl(tmp_evals[1],n_fs));
                 t_emin = floor(get_maxl(tmp_evals[1],n_fs));
@@ -200,22 +190,9 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
                 else if (t_emax > emaxj){
                   emaxj = t_emax;
                 }
-                /* printf( "NEXT %d \n",n_fs ); */
-              } /* else { */
-              /*   printf( "Failed to get fs %d\n", (int)parsed_input[1][k]); */
-              /* } */
-
+              }
             }
-            /* else{ */
-            /*   printf( "no fs %le vs %le\n", tmom_jk ,tmp_tmax1); */
-
-            /* } */
-
           }
-          /* else{ */
-          /*     printf( "no is en %le \n", (e_is-e0)*AUTOEV); */
-
-          /*   } */
           k++;
         }
 
@@ -234,11 +211,9 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
       break;
     }
 
-    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
+    gs_idx = get_inext(s,(int)s->trs[0][gs_idx]);
   }
 
-  /* printf( "%d %d %le %le %le %le => %d %d\n",n_is_tot,n_fs_tot, eminj*AUTOEV, \ */
-  /*         emaxj*AUTOEV, emink*AUTOEV,emaxk*AUTOEV, maxgridj, maxgridk); */
   if ((n_is_tot == 0) || (n_fs_tot == 0)) {
     fprintf(stderr, "smap.c, : no intermediate or final states states were\
  found in the energy range you provided. \n");
@@ -246,22 +221,10 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
     exit(EXIT_FAILURE);
   }
 
-  /* printf( "\n\nIS\n\n" ); */
-  /* for (j=0; j<n_is; j++) { */
-  /*   printf( "%d %le\n", j, tmp_evals[0][j]); */
-  /* } */
-
-
-  /* printf( "\n\nFS\n\n" ); */
-  /* for (j=0; j<n_fs; j++) { */
-  /*   printf( "%d %le\n", j, tmp_evals[1][j]); */
-  /* } */
-
   eminj = floor((get_min(tmp_evals[0],n_is)-2))/AUTOEV;
   emaxj = ceil((get_maxl(tmp_evals[0],n_is) + 2))/AUTOEV;
   emink = floor((get_min(tmp_evals[1],n_fs)-2))/AUTOEV;
   emaxk = ceil((get_maxl(tmp_evals[1],n_fs) + 2))/AUTOEV;
-
 
   fwhm_in = md->fwhm[0]/AUTOEV;
   fwhm_tr = md->fwhm[1]/AUTOEV;
@@ -271,7 +234,6 @@ to allocate memory for \"tmp_evals[%d]\"\n",j);
 
   maxgridj = (int)((emaxj-eminj)/dej);
   maxgridk = (int)((emaxk-emink)/dek);
-
 
   if((omega_x = malloc(maxgridj*sizeof(double*))) == NULL ){
     fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
@@ -319,11 +281,10 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 
   progress = maxgridj*maxgridk;
   pstep = progress/1000;
-  /* x */
+
   grms_in = 2.0*powerl((fwhm_in/(2*sqrt(2*log(2)))),2);
   gvar_in = fwhm_in/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
 
-  /* y */
   grms_tr = 2.0*powerl((fwhm_tr/(2*sqrt(2*log(2)))),2);
   gvar_tr = fwhm_tr/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
 
@@ -341,59 +302,57 @@ to allocate memory for \"omega_y[%d]\"\n",j);
       omega_x[jgrid][kgrid] = omegain;
       omega_y[jgrid][kgrid] = omegaut;
 
-      gs_idx = get_i(1);
+      gs_idx = get_i(s,1);
 
-      while((gs_idx < nt) && (gs_idx >= 0)){
-        /* for (j=1; j<nt+1; j++) { /\* loop over all states *\/ */
+      while((gs_idx < s->n_trans) && (gs_idx >= 0)){
 
         /* screen ground state */
-        e_gs = parsed_input[2][gs_idx];
-        bw = get_rbdist(e0,e_gs);
+        e_gs = s->trs[2][gs_idx];
+        bw = get_rbdist(s->e0,e_gs);
 
-        if (inrange((e_gs-e0)*AUTOEV,md->state_er[1],md->state_er[2]) &&\
+        if (inrange((e_gs-s->e0)*AUTOEV,md->state_er[1],md->state_er[2]) &&\
             (bw >= md->state_t[1])) {
           k = gs_idx;
 
           /* loop over all intermediate transitions from this state */
-          while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
-            e_is = parsed_input[3][k];
-            if (inrange((e_is-e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
-              tmom_jk = parsed_input[4][k];
+          while((int)s->trs[0][k] == (int)s->trs[0][gs_idx]){
+            e_is = s->trs[3][k];
+            if (inrange((e_is-s->e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
+              tmom_jk = s->trs[4][k];
 
               /* screen intermediate transition */
-              if (parsed_input[5][k] == 1) {
-                tmp_tmax1 = tmax_d;
+              if (s->trs[5][k] == 1) {
+                tmp_tmax1 = s -> tmax_d;
               } else {
-                tmp_tmax1 = tmax_q;
+                tmp_tmax1 = s->tmax_q;
               }
               if ((tmom_jk/tmp_tmax1) > md->state_t[2]){
-
+                de_jk = s->trs[3][k] - s->trs[2][gs_idx];
                 is_idx = k;
 
-                if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
-                  de_jk = parsed_input[3][k] - parsed_input[2][gs_idx];
+                if ((fs_idx = get_i(s,s->trs[1][k])) != -1) {
 
-                  l = fs_idx;
+                  l = fs_idx; /* index of is -> fs transitions */
 
-                  while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
-                    e_fs = parsed_input[3][l];
+                  while((int)s->trs[0][l] == (int)s->trs[0][fs_idx]){
+                    e_fs = s->trs[3][l];
 
-                    if (inrange((e_fs-e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
-                      tmom_kl = parsed_input[4][l];
+                    if (inrange((e_fs-s->e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
+                      tmom_kl = s->trs[4][l];
 
                       /* screen final state transition */
-                      if (parsed_input[5][l] == 1) {
-                        tmp_tmax2 = tmax_d;
+                      if (s->trs[5][l] == 1) {
+                        tmp_tmax2 = s -> tmax_d;
                       } else {
-                        tmp_tmax2 = tmax_q;
+                        tmp_tmax2 = s->tmax_q;
                       }
                       if ((tmom_kl/tmp_tmax2) > md->state_t[3]){
-                        de_kl = (parsed_input[3][l] - parsed_input[2][is_idx]);
-                        /* .. excitation energy */
-                        ediffj = omega_x[jgrid][kgrid] - de_jk;
 
-                        /* .. energy transfer */
-                        ediffk = omega_y[jgrid][kgrid] - de_kl;
+                        de_kl = (s->trs[3][l] - s->trs[2][l]);
+                        ediffj = omega_x[jgrid][kgrid] - de_jk;
+                        ediffk = omega_y[jgrid][kgrid] - de_jk - de_kl;
+                        /* printf( "ediff:%le %le %le\n",de_kl,omega_y[jgrid][kgrid], ediffk); */
+                        /* printf( "trans: %d (%le) %d (%le)\n", (int)nns->trs[0][l],s->trs[2][l],(int)s->trs[1][l],s->trs[3][l]); */
                         tmp = tmom_jk*tmom_kl*bw*exp(-(powerl(ediffj,2))/grms_in)/gvar_in*dej;
                         tmp *= exp(-(powerl(ediffk,2))/grms_tr)/gvar_tr*dek;
                         rixsmap[jgrid][kgrid] += tmp;
@@ -410,7 +369,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
           break;
         }
 
-        gs_idx = get_inext((int)parsed_input[0][gs_idx]);
+        gs_idx = get_inext(s,(int)s->trs[0][gs_idx]);
       }
 
       if ((ksum%pstep) == 0) {
@@ -424,7 +383,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
   fflush(stdout);
   printf( "    .. done.\n");
 
-  printf( "  - normalizing the calculated RIXS map ..");
+  printf( "  - normalizing the calculated RIXS map ..\n");
   /* normalize the map */
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
     for (kgrid=0; kgrid<maxgridk; kgrid++) {
@@ -434,7 +393,7 @@ to allocate memory for \"omega_y[%d]\"\n",j);
     }
   }
 
-  sfac = rmax;
+  s->sfac = rmax;
 
   printf( "  - writing RIXS map to file: %s ..",dat_fpstr);
   for (jgrid=0; jgrid<maxgridj; jgrid++) {
@@ -496,8 +455,481 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 }
 
 void
-write_log (metadata md
+calc_smap_g (spec_info s
+             ) {
+
+  metadata md = s -> md;
+
+  char * dat_fpstr = concs(3,md->outpath,md->inp_fn,dat_sfx);
+  char * plot_fpstr = concs(3,md->outpath,md-> inp_fn,plot_sfx);
+
+  FILE * fp;
+  FILE * fp_plot_in;
+  FILE * fp_plot_out;
+
+  size_t len;
+  ssize_t read;
+
+  char * line;
+
+  unsigned long progress;
+
+  unsigned long ksum;
+
+  int j,k,l; /* control loop indices */
+  int maxgridj;
+  int maxgridk;
+  int jgrid,kgrid;
+
+  int pstep; /* determines at what values progression is printed */
+
+  int is_num;
+  int gs_idx,fs_idx;
+  int n_gs,n_is,n_fs;
+  int n_is_tot,n_fs_tot;
+
+  double rmax = -0.1;
+
+  double e_gs,e_is,e_fs;
+
+  double de_gi,de_if;
+  double tmp_tmax1,tmp_tmax2;
+
+  double omegain, omegaut;
+  double bw;
+
+  /* energies and transition moments along the axis of .. */
+  /* .. excitiation (x-axis) */
+  double ediffj,tmom_gi;
+
+  /* .. energy transfer (y-axis)*/
+  double ediffk,tmom_if;
+
+  double eminj,emaxj,emink,emaxk,dej,dek,fwhm_in,fwhm_tr;
+
+  double t_emin,t_emax;
+  /* variables used in the Kramers-Heisenberg formula */
+  double complex tmp;
+
+  /* excitation energy (x-axis) broadening parameters */
+  double grms_in; /* gaussian RMS value */
+  double gvar_in; /* square root of the variance of the gaussian */
+
+  /* transfer energy (y-axis) broadening parameters */
+  double grms_tr;
+  double gvar_tr;
+
+  /* get a pointer to the 0th column of iis */
+  double ** omega_x;
+  double ** omega_y;
+  double ** rixsmap;
+  double ** tmp_evals = malloc(2*sizeof(double*));
+
+  /* open the placeholder file */
+  if((fp=fopen(dat_fpstr, "w"))==NULL) {
+        fprintf(stderr,"smap.c, function calc_smap_m: unable to open the output file %s.\n",dat_fpstr);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  /* open the placeholder file */
+  if((fp_plot_in=fopen("../src/plot_template", "r"))==NULL) {
+    fprintf(stderr,"smap.c, function calc_smap_m: unable to open the output file %s.\n","../src/plot_template");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((fp_plot_out=fopen(plot_fpstr, "w"))==NULL) {
+    fprintf(stderr,"smap.c, function calc_smap_m: unable to open the output file %s.\n",plot_fpstr);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<2; j++) {
+    if((tmp_evals[j] = malloc(s->n_trans*sizeof(double))) == NULL ){
+      fprintf(stderr, "smap.c:function calc_smap_m, malloc: failed \
+to allocate memory for \"tmp_evals[%d]\"\n",j);
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  /* figure out the energy ranges by analyzing the energy ranges in the input */
+  n_gs = n_is = n_fs = 0;
+  gs_idx = 0;
+
+  /* input starting guesses for the energy range values */
+  eminj = md->state_er[4]/AUTOEV;
+  emaxj = md->state_er[3]/AUTOEV;
+  emink = md->state_er[6]/AUTOEV;
+  emaxk = md->state_er[5]/AUTOEV;
+  n_is_tot = n_fs_tot = 0;
+
+  while((gs_idx < s->n_trans) && (gs_idx >= 0)){
+
+    /* screen ground state */
+    e_gs = s->trs[2][gs_idx];
+    if (inrange((e_gs-s->e0)*AUTOEV,md->state_er[1],md->state_er[2])){
+
+      bw = get_rbdist(s->e0,e_gs);
+      if(bw >= md->state_t[1]) {
+        n_gs++;
+        k = gs_idx;
+        n_is = 0;
+
+        /* loop over all intermediate transitions from the
+           current ground state */
+        while((int)s->trs[0][k] == (int)s->trs[0][gs_idx]){
+          e_is = s->trs[3][k];
+          if (inrange((e_is-s->e0)*AUTOEV,md->state_er[3],md->state_er[4])){
+            tmom_gi = s->trs[4][k];
+
+            /* screen intermediate transition */
+            if (s->trs[5][k] == 1) {
+              tmp_tmax1 = s -> tmax_d;
+            } else {
+              tmp_tmax1 = s->tmax_q;
+            }
+
+            if ((tmom_gi/tmp_tmax1) > md->state_t[2]){
+
+              tmp_evals[0][n_is++] = (e_is-s->e0)*AUTOEV;
+              n_is_tot++;
+              n_fs = 0;
+
+              if ((fs_idx = get_i(s,s->trs[1][k])) != -1) {
+
+                l = fs_idx;
+
+                /* loop over all final state transitions from the
+                   current intermediate state */
+                while((int)s->trs[0][l] == (int)s->trs[0][fs_idx]){
+
+                  e_fs = s->trs[3][l];
+                  if (inrange((e_fs-s->e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
+                    tmom_if = s->trs[4][l];
+
+                    /* screen final state transition */
+                    if (s->trs[5][l] == 1) {
+                      tmp_tmax2 = s -> tmax_d;
+                    } else {
+                      tmp_tmax2 = s->tmax_q;
+                    }
+                    if ((tmom_if/tmp_tmax2) > md->state_t[3]){
+                      tmp_evals[1][n_fs++] = (e_fs-s->e0)*AUTOEV;
+                      n_fs_tot++;
+                    }
+                  }
+                  l++;
+                }
+                /* update the final state max and min values */
+                t_emax = ceil(get_maxl(tmp_evals[1],n_fs));
+                t_emin = floor(get_maxl(tmp_evals[1],n_fs));
+
+                if (t_emin < eminj) {
+                  eminj = t_emin;
+                }
+                else if (t_emax > emaxj){
+                  emaxj = t_emax;
+                }
+              }
+            }
+          }
+          k++;
+        }
+
+        /* update the intermediate state max and min values */
+        t_emax = ceil(get_maxl(tmp_evals[0],n_is));
+        t_emin = floor(get_maxl(tmp_evals[0],n_is));
+
+        if (t_emin < emink) {
+          emink = t_emin;
+        }
+        else if (t_emax > emaxk){
+          emaxk = t_emax;
+        }
+      }
+    } else {
+      break;
+    }
+
+    gs_idx = get_inext(s,(int)s->trs[0][gs_idx]);
+  }
+  printf( "%le %le\n", s->tmax_d,s->tmax_q);
+  if ((n_is_tot == 0) || (n_fs_tot == 0)) {
+    fprintf(stderr, "smap.c, : no intermediate or final states states were\
+ found in the energy range you provided. (n_fs_tot = %d, n_is_tot = %d)\n",n_fs_tot,n_is_tot);
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  eminj = floor((get_min(tmp_evals[0],n_is)-2))/AUTOEV;
+  emaxj = ceil((get_maxl(tmp_evals[0],n_is) + 2))/AUTOEV;
+  emink = floor((get_min(tmp_evals[1],n_fs)-2))/AUTOEV;
+  emaxk = ceil((get_maxl(tmp_evals[1],n_fs) + 2))/AUTOEV;
+
+  fwhm_in = md->fwhm[0]/AUTOEV;
+  fwhm_tr = md->fwhm[1]/AUTOEV;
+
+  dej = md->res[0]/AUTOEV;
+  dek = md->res[1]/AUTOEV;
+
+  maxgridj = (int)((emaxj-eminj)/dej);
+  maxgridk = (int)((emaxk-emink)/dek);
+
+  if((omega_x = malloc(maxgridj*sizeof(double*))) == NULL ){
+    fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
+to allocate memory for \"omega_x\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((omega_y = malloc(maxgridj*sizeof(double*))) == NULL ){
+    fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
+to allocate memory for \"omega_y\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if((rixsmap = malloc(maxgridj*sizeof(double*))) == NULL ){
+    fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
+to allocate memory for \"rixsmap\"\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  for (j=0; j<maxgridj; j++) {
+    if((rixsmap[j] = malloc(maxgridk*sizeof(double))) == NULL ){
+      fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
+to allocate memory for \"rixsmap[%d]\"\n",j);
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+
+    if((omega_x[j] = malloc(maxgridk*sizeof(double))) == NULL ){
+      fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
+to allocate memory for \"omega_x[%d]\"\n",j);
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+
+    if((omega_y[j] = malloc(maxgridk*sizeof(double))) == NULL ){
+      fprintf(stderr, "smap.c:function calc_smap, malloc: failed \
+to allocate memory for \"omega_y[%d]\"\n",j);
+      printf( "program terminating due to the previous error.\n");
+      exit(1);
+    }
+  }
+
+  progress = maxgridj*maxgridk;
+  pstep = progress/1000;
+
+  grms_in = 2.0*powerl((fwhm_in/(2*sqrt(2*log(2)))),2);
+  gvar_in = fwhm_in/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
+
+  grms_tr = 2.0*powerl((fwhm_tr/(2*sqrt(2*log(2)))),2);
+  gvar_tr = fwhm_tr/(2.0*sqrt(2.0*log(2)))*sqrt(2.0*3.1415927);
+
+  double ** mxmy = malloc(s -> n_is * sizeof(double *));
+  for (j=0; j<s->n_is; j++) {
+    mxmy[j] = malloc(s -> n_gfs * sizeof(double));
+  }
+
+  printf( "  - calculating the RIXS map .. \n");
+
+  ksum = 0;
+
+  for (jgrid=0; jgrid<maxgridj; jgrid++) {
+    omegain = eminj+(jgrid*dej);
+
+    for (kgrid=0; kgrid<maxgridk; kgrid++) {
+      ksum++;
+      rixsmap[jgrid][kgrid] = 0;
+      omegaut = emink+(kgrid*dek);
+      omega_x[jgrid][kgrid] = omegain;
+      omega_y[jgrid][kgrid] = omegaut;
+
+      k = 0;
+
+      while((int)s->trs[0][k] != -1){
+
+        /* screen final state */
+        e_fs = s->trs[3][k];
+        e_is = s->trs[2][k];
+
+        /* is this a transition from an intermediate to final state? */
+        if (inrange((e_fs - s->e0)*AUTOEV,md->state_er[5],md->state_er[6]) &&
+            inrange((e_is - s->e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
+          tmom_if = s->trs[4][k];
+
+          if (s->trs[5][k] == 1) {
+            tmp_tmax1 = s->tmax_d;
+          } else {
+            tmp_tmax1 = s->tmax_q;
+          }
+
+          /* screen the i.state -> f.state transition */
+          if ((tmom_if/tmp_tmax1) > md->state_t[3]){
+            /* printf( "f %d -> i %d\n", (int)s->trs[1][k], (int)s->trs[0][k]); */
+            de_if = e_fs - e_is;
+            is_num = s->trs[0][k];
+
+            /* loop over the list of transitions looking for corresponding
+               g.state -> i-state transitions */
+            tmp = 0 + 0*I;
+            l = 0;
+            while((int)s->trs[0][l] != -1){
+              e_gs = s->trs[2][l];
+
+              if (inrange((e_gs - s->e0)*AUTOEV,md->state_er[1],md->state_er[2]) &&
+                  (((int)s->trs[1][l]) == is_num)) {
+                tmom_gi = s->trs[4][l];
+
+                /* screen intermediate state transition */
+                if (s->trs[5][l] == 1) {
+                  tmp_tmax2 = s->tmax_d;
+                } else {
+                  tmp_tmax2 = s->tmax_q;
+                }
+
+                bw = get_rbdist(s->e0,e_gs);
+                if (((tmom_gi/tmp_tmax2) > md->state_t[2]) &&
+                    (bw >= md->state_t[1])){
+                  /* printf( "i %d -> g %d\n", (int)s->trs[1][l], (int)s->trs[0][l]); */
+
+                  de_gi = (s->trs[3][l] - s->trs[2][l]);
+
+                  ediffj = omega_x[jgrid][kgrid] - de_gi;
+                  ediffk = omega_y[jgrid][kgrid] - de_gi - de_if;
+
+                  tmp += tmom_gi*tmom_if*bw/(-de_gi + omega_x[jgrid][kgrid] - (fwhm_in/2)*I);
+
+                  /* broaden the intensities */
+                  /* printf( "1:%le+%le*I  \n",creal(tmp),cimag(tmp)); */
+                  tmp*=exp(-(powerl(ediffj,2))/grms_in)/gvar_in*dej;
+                  /* printf( "2:%le+%le*I  \n",creal(tmp),cimag(tmp)); */
+                  tmp*=exp(-(powerl(ediffk,2))/grms_tr)/gvar_tr*dek;
+
+
+                  /* printf( "\n\n" ); */
+                  /* printf( "omega:%le %le\n", omega_x[jgrid][kgrid],omega_y[jgrid][kgrid]); */
+                  /* printf( "ediff:%le %le\n", ediffj,ediffk); */
+                  /* printf( "de:%le %le\n", de_gi,de_if); */
+                  /*       printf( "ediff:%le %le %le\n",de_if,omega_y[jgrid][kgrid], ediffk); */
+                  /* printf( "trans: %d (%le) %d (%le)\n", (int)s->trs[0][l],s->trs[2][l],(int)s->trs[1][l],s->trs[3][l]); */
+                  /* printf( "3:%le+%le*I  \n",creal(tmp),cimag(tmp)); */
+                  /* printf( "nom =%le\ndenom= %le + %le*I", tmom_gi*tmom_if*bw,creal((s->trs[2][l] - s->trs[3][l] + omega_x[jgrid][kgrid] - (fwhm_in/2)*I)),cimag((s->trs[2][l] - s->trs[3][l] + omega_x[jgrid][kgrid] - (fwhm_in/2)*I))); */
+                  /* printf( "\n\n" ); */
+                  /* sleep(1); */
+                }
+              }
+              l++;
+            }
+            tmp = fabsc(tmp);
+            tmp *= tmp;
+            rixsmap[jgrid][kgrid] += creal(tmp);
+
+            /* printf( "1:%le+%le*I  \n",creal(tmp),cimag(tmp)); */
+            /* tmp = fabsc(tmp); */
+            /* printf( "2:%le+%le*I  \n",creal(tmp),cimag(tmp)); */
+            /* tmp *= tmp; */
+            /* printf( "3:%le+%le*I  \n",creal(tmp),cimag(tmp)); */
+            /* sleep(1); */
+            /* rixsmap[jgrid][kgrid] += creal(tmp); */
+
+          }
+        }
+        k++;
+      }
+
+      if ((ksum%pstep) == 0) {
+        printf( "    progress: %.2f%%\r", (((float)ksum/(float)progress)*100));
+        fflush(stdout);
+      }
+    }
+  }
+
+  printf( "      progress: 100%%\n");
+  fflush(stdout);
+  printf( "    .. done.\n");
+
+  printf( "  - normalizing the calculated RIXS map ..\n");
+  /* normalize the map */
+  for (jgrid=0; jgrid<maxgridj; jgrid++) {
+    for (kgrid=0; kgrid<maxgridk; kgrid++) {
+      if (rixsmap[jgrid][kgrid] > rmax) {
+        rmax = rixsmap[jgrid][kgrid];
+      }
+    }
+  }
+
+  s->sfac = rmax;
+
+  printf( "  - writing RIXS map to file: %s ..",dat_fpstr);
+  for (jgrid=0; jgrid<maxgridj; jgrid++) {
+    for (kgrid=0; kgrid<maxgridk; kgrid++) {
+      rixsmap[jgrid][kgrid] = rixsmap[jgrid][kgrid]/rmax;
+      /* write the map */
+      fprintf(fp,"%le %le %le\n", (omega_x[jgrid][kgrid])*AUTOEV, omega_y[jgrid][kgrid]*AUTOEV, rixsmap[jgrid][kgrid]);
+      fflush(fp);
+    }
+    fprintf(fp,"\n");
+    fflush(fp);
+  }
+  printf( " done.\n");
+
+  line = NULL;
+  len = 0;
+
+  /* construct a gnuplot script from the energy ranges */
+  while((read = getline(&line, &len, fp_plot_in)) != -1){
+    fprintf(fp_plot_out, "%s",line);
+  }
+
+  fprintf(fp_plot_out, "set output \"./%s.png\"\n",md -> inp_fn);
+  fprintf(fp_plot_out, "set title \"%s\" font \"Helvetica,40\" offset 0,1\n",md -> inp_fn);
+  fprintf(fp_plot_out, "splot [%le:%le][%le:%le] \"./%s.dat\" u (($1+xshift)/1):2:($3*sc) with pm3d title \"\"",omega_x[0][0]*AUTOEV,omega_x[maxgridj-1][0]*AUTOEV,omega_y[0][0]*AUTOEV,omega_y[0][maxgridk-1]*AUTOEV,md -> inp_fn);
+
+  if (fclose(fp_plot_in) != 0) {
+    fprintf(stderr, "smap.c, function calc_smap_m: unable to close some of the files:\n%s\n", "../src/plot_template");
+    printf("program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if (fclose(fp_plot_out) != 0) {
+    fprintf(stderr, "smap.c, function calc_smap_m: unable to close some of the files:\n%s\n", plot_fpstr);
+    printf("program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  if (fclose(fp) != 0) {
+    fprintf(stderr, "smap.c, function calc_smap_m: unable to close some of the files:\n%s\n", dat_fpstr);
+    printf("program terminating due to the previous error.\n");
+    exit(1);
+  }
+
+  free(line);
+
+  for (j=0; j<2; j++) {
+    free(tmp_evals[j]);
+  }
+  free(tmp_evals);
+
+  for (j=0; j<maxgridj; j++) {
+    free(omega_x[j]);
+    free(omega_y[j]);
+  }
+  free(omega_x);
+  free(omega_y);
+
+}
+
+
+void
+write_log (spec_info s
            ) {
+
+  metadata md = s -> md;
 
   char * log_fpstr = concs(3,md->outpath,md->inp_fn,log_sfx);
   printf( "  - writing parameter log to file: %s ..",log_fpstr);
@@ -545,8 +977,6 @@ write_log (metadata md
   double tmp_tmax1,tmp_tmax2;
   double max_ts3; /* maximum intensity for transitions from state s of type 3 */
 
-  /* int fst[5] = {0}; /\* n_max maximum final state transitions *\/ */
-
   n_gs = n_sgs = 0;
   n_is = n_sis = 0;
   n_fs = n_sfs = 0;
@@ -580,45 +1010,42 @@ in the calculation: \n\n" );
 
   fprintf(fp, "\nresolution (eV) in incident and energy transfer direction: %le %le \n",md->res[0],md->res[1]);
 
-  fprintf(fp, "\nscaling factor for rixs map normalization: %le \n",sfac);
+  fprintf(fp, "\nscaling factor for rixs map normalization: %le \n",s->sfac);
 
   fprintf(fp,     "\n================ general parameters ===============\n");
   fprintf(fp,    "======================= END =======================\n\n\n" );
 
   /* print data for the ground state screening */
-  /* printf( "print data for the ground state transitions\n" ); */
   fprintf(fp,    "\n====================== START ======================\n" );
   fprintf(fp,"=== states in group 1, range [%d,%d] ===\n\n",(int)md->state_er[1],(int)md->state_er[2]);
 
   gs_idx = 0;
-  while((gs_idx < nt) && (gs_idx >= 0)){
+  while((gs_idx < s->n_trans) && (gs_idx >= 0)){
 
     /* screen ground state */
-    e_gs = parsed_input[2][gs_idx];
-    bw = get_rbdist(e0,e_gs);
+    e_gs = s->trs[2][gs_idx];
+    bw = get_rbdist(s->e0,e_gs);
 
-    if (inrange((e_gs-e0)*AUTOEV,md->state_er[1],md->state_er[2])) {
+    if (inrange((e_gs-s->e0)*AUTOEV,md->state_er[1],md->state_er[2])) {
       n_gs++;
       if (bw >= md->state_t[1]) {
         n_sgs++;
         k = gs_idx;
 
-        fprintf(fp,"I(1) = %d, E = %f, BW = %f\n\n",(int)parsed_input[0][gs_idx], (e_gs-e0)*AUTOEV, bw);
+        fprintf(fp,"I(1) = %d, E = %f, BW = %f\n\n",(int)s->trs[0][gs_idx], (e_gs-s->e0)*AUTOEV, bw);
       }
     } else {
       break;
     }
-    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
+    gs_idx = get_inext(s,(int)s->trs[0][gs_idx]);
   }
   fprintf(fp,"\n%d of %d , %d%% of the (1) states were screened out.)\n",\
           n_gs-n_sgs, n_gs,100-(int)((n_sgs/n_gs)*100));
 
   fprintf(fp,  "\n=== states in group 1, range [%d,%d] ===\n",(int)md->state_er[1],(int)md->state_er[2]);
     fprintf(fp,    "======================= END =======================\n\n\n" );
-  /* append, to the beginning, the data on number of states etc. */
 
   /* print data for the intermediate state transitions */
-  /* printf( "print data for the intermediate state transitions\n" ); */
   fprintf(fp,    "====================== START ======================\n" );
   fprintf(fp,"=== states in group 2, range [%d,%d] ===\n\n",(int)md->state_er[3],(int)md->state_er[4]);
 
@@ -626,35 +1053,34 @@ in the calculation: \n\n" );
   tot_st = tot_t = 0;
   tot_sint = tot_tint = 0;
 
-  while((gs_idx < nt) && (gs_idx >= 0)){
-    /* for (j=1; j<nt+1; j++) { /\* loop over all states *\/ */
+  while((gs_idx < s->n_trans) && (gs_idx >= 0)){
 
     /* screen ground state */
-    e_gs = parsed_input[2][gs_idx];
-    bw = get_rbdist(e0,e_gs);
+    e_gs = s->trs[2][gs_idx];
+    bw = get_rbdist(s->e0,e_gs);
     flag = 0;
     n_is = n_sis = 0;
-    if (inrange((e_gs-e0)*AUTOEV,md->state_er[1],md->state_er[2]) &&\
+    if (inrange((e_gs-s->e0)*AUTOEV,md->state_er[1],md->state_er[2]) &&\
         (bw >= md->state_t[1])) {
 
       k = gs_idx;
-      /* printf( "gs[%d] = %d\n",k, (int)parsed_input[0][k]); */
+
       /* loop over all intermediate transitions from this state */
       tmp_sint = tmp_tint = sint_tot = tint_tot = 0;
       flag = 0;
       n_sis = n_is = 0;
-      fprintf(fp,"I(1) = %d, E = %f, BW = %f to.. \n",gs_idx, (e_gs-e0)*AUTOEV, bw);
-      while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
+      fprintf(fp,"I(1) = %d, E = %f, BW = %f to.. \n",gs_idx, (e_gs-s->e0)*AUTOEV, bw);
+      while((int)s->trs[0][k] == (int)s->trs[0][gs_idx]){
 
-        e_is = parsed_input[3][k];
-        if (inrange((e_is-e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
+        e_is = s->trs[3][k];
+        if (inrange((e_is-s->e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
 
-          tmom_jk = parsed_input[4][k];
+          tmom_jk = s->trs[4][k];
           /* screen intermediate transition */
-          if (parsed_input[5][k] == 1) {
-            tmp_tmax1 = tmax_d;
+          if (s->trs[5][k] == 1) {
+            tmp_tmax1 = s -> tmax_d;
           } else {
-            tmp_tmax1 = tmax_q;
+            tmp_tmax1 = s->tmax_q;
           }
           if ((tmom_jk/tmp_tmax1) > md->state_t[2]){
 
@@ -667,8 +1093,8 @@ in the calculation: \n\n" );
             } else {
 
               fprintf(fp, "  I(2) = %d, E(2) = %f, type %d, <f> = %.10e ,\
-<f>/scr = %le%%, <f>/tot = %le%% \n",(int)parsed_input[1][k],\
-(float)((e_is-e0)*AUTOEV),(int)parsed_input[5][k], tmom_jk, \
+<f>/scr = %le%%, <f>/tot = %le%% \n",(int)s->trs[1][k],\
+(float)((e_is-s->e0)*AUTOEV),(int)s->trs[5][k], tmom_jk, \
                       (tmom_jk/tmp_sint)*100, (tmom_jk/tmp_tint)*100);
             }
           }
@@ -681,12 +1107,11 @@ in the calculation: \n\n" );
           }
         }
         k++;
-        if (((int)parsed_input[0][k] != (int)parsed_input[0][gs_idx]) && (flag == 0)) {
+        if (((int)s->trs[0][k] != (int)s->trs[0][gs_idx]) && (flag == 0)) {
           k = gs_idx;
           flag = 1;
-        } else if (((int)parsed_input[0][k] != (int)parsed_input[0][gs_idx]) && (flag == 1)) {
-          /* fprintf(fp,"\n%d of %d (%.2f%%) of the (2) states screened out, along with (%.2f%%) of the total intensity for transitions from state %d.\n",n_is-n_sis, n_is,100-(((float)n_sis/(float)n_is)*100), 100-((float)sint_tot/(float)tint_tot)*100,(int)parsed_input[0][gs_idx]); */
-          fprintf(fp,"\n  summary, state %d:\n    after screeing out all states %.3f%% below the maximum intensity,\n    - %d of %d (%.2f%%) of the (3) states,\n    - %.2f%% of the total intensity for transitions from this state,\n    was screened out.\n",(int)parsed_input[0][gs_idx], (float)(md->state_t[2]*100),n_is-n_sis, n_is,100-(((float)n_sis/(float)n_is)*100), 100-(sint_tot/tint_tot)*100);
+        } else if (((int)s->trs[0][k] != (int)s->trs[0][gs_idx]) && (flag == 1)) {
+          fprintf(fp,"\n  summary, state %d:\n    after screeing out all states %.3f%% below the maximum intensity,\n    - %d of %d (%.2f%%) of the (3) states,\n    - %.2f%% of the total intensity for transitions from this state,\n    was screened out.\n",(int)s->trs[0][gs_idx], (float)(md->state_t[2]*100),n_is-n_sis, n_is,100-(((float)n_sis/(float)n_is)*100), 100-(sint_tot/tint_tot)*100);
           flag = 0;
           break;
         }
@@ -694,7 +1119,7 @@ in the calculation: \n\n" );
     } else {
       break;
     }
-    gs_idx = get_inext((int)parsed_input[0][gs_idx]);
+    gs_idx = get_inext(s,(int)s->trs[0][gs_idx]);
   }
   fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 1 ([%d,%d]),\n  were screened out.\n", (int)md->state_er[3],(int)md->state_er[4], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)md->state_er[1],(int)md->state_er[2]);
   fprintf(fp,"\n=== states in group 2, range [%d,%d] ===\n",(int)md->state_er[3],(int)md->state_er[4]);
@@ -704,59 +1129,57 @@ in the calculation: \n\n" );
   gs_idx = 0;
 
   /* screen ground state */
-  e_gs = parsed_input[2][gs_idx];
-  bw   = get_rbdist(e0,e_gs);
+  e_gs = s->trs[2][gs_idx];
+  bw   = get_rbdist(s->e0,e_gs);
   flag = 0;
   n_is = n_sis = 0;
 
   k = gs_idx;
-  /* printf( "gs[%d] = %d\n",k, (int)parsed_input[0][k]); */
-  /* loop over all intermediate transitions from this state */
 
   sint_tot = tint_tot = 0;
   tot_sint = tot_tint = 0;
   tot_st   = tot_t = 0;
+
   /* print data for the final state transitions */
-  /* printf( "print data for the final state transitions\n" ); */
   fprintf(fp,    "====================== START ======================\n" );
   fprintf(fp,"=== states in group 3, range [%d,%d] ===\n\n",(int)md->state_er[5],(int)md->state_er[6]);
 
   fprintf(fp,"\nprinting states %.2f%% as intense as the transition maximum for a given initial state.\n\n",pt*100);
 
-  while((int)parsed_input[0][k] == (int)parsed_input[0][gs_idx]){
+  while((int)s->trs[0][k] == (int)s->trs[0][gs_idx]){
 
-    e_is = parsed_input[3][k];
-    if (inrange((e_is-e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
+    e_is = s->trs[3][k];
+    if (inrange((e_is-s->e0)*AUTOEV,md->state_er[3],md->state_er[4])) {
       if (flag == 0) {
         n_is++;
       }
 
-      tmom_jk     = parsed_input[4][k];
+      tmom_jk     = s->trs[4][k];
       /* screen intermediate transition */
-      if (parsed_input[5][k] == 1) {
-        tmp_tmax1 = tmax_d;
+      if (s->trs[5][k] == 1) {
+        tmp_tmax1 = s -> tmax_d;
       } else {
-        tmp_tmax1 = tmax_q;
+        tmp_tmax1 = s->tmax_q;
       }
       if ((tmom_jk/tmp_tmax1) > md->state_t[2]){
-        fprintf(fp,"\nI(2) = %d, E = %f to.. \n\n",(int)parsed_input[1][k], (e_is-e0)*AUTOEV);
-        if ((fs_idx = get_i(parsed_input[1][k])) != -1) {
+        fprintf(fp,"\nI(2) = %d, E = %f to.. \n\n",(int)s->trs[1][k], (e_is-s->e0)*AUTOEV);
+        if ((fs_idx = get_i(s,s->trs[1][k])) != -1) {
 
           l = fs_idx;
           tmp_sint                       = tmp_tint = 0;
           n_sfs                          = n_fs = 0;
           flag                           = 0;
           max_ts3                        = -1;
-          while((int)parsed_input[0][l] == (int)parsed_input[0][fs_idx]){
-            e_fs = parsed_input[3][l];
-            if (inrange((e_fs-e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
+          while((int)s->trs[0][l] == (int)s->trs[0][fs_idx]){
+            e_fs = s->trs[3][l];
+            if (inrange((e_fs-s->e0)*AUTOEV,md->state_er[5],md->state_er[6])) {
 
-              tmom_kl = parsed_input[4][l];
+              tmom_kl = s->trs[4][l];
               /* screen final state transition */
-              if (parsed_input[5][l] == 1) {
-                tmp_tmax2 = tmax_d;
+              if (s->trs[5][l] == 1) {
+                tmp_tmax2 = s -> tmax_d;
               } else {
-                tmp_tmax2 = tmax_q;
+                tmp_tmax2 = s->tmax_q;
               }
               if ((tmom_kl/tmp_tmax2) > md->state_t[3]){
                 if (flag   == 0) {
@@ -771,9 +1194,9 @@ in the calculation: \n\n" );
                   }
                 } else {
                   if (tmom_kl           >= (max_ts3 * pt)) {
-                    fprintf(fp, "  I(3)  = %d, E(3) = %f, type %d, <f> = %le ,<f>/scr = %.2e%%, <f>/tot = %.2e%% ",(int)parsed_input[1][l], (e_fs-e0)*AUTOEV,(int)parsed_input[5][l], tmom_kl, ((tmom_kl/tmp_sint)*100), (tmom_kl/tmp_tint)*100);
+                    fprintf(fp, "  I(3)  = %d, E(3) = %f, type %d, <f> = %le ,<f>/scr = %.2e%%, <f>/tot = %.2e%% ",(int)s->trs[1][l], (e_fs-s->e0)*AUTOEV,(int)s->trs[5][l], tmom_kl, ((tmom_kl/tmp_sint)*100), (tmom_kl/tmp_tint)*100);
                     if(tmom_kl == max_ts3){
-                      fprintf(fp,"<- max <f>(%d)",(int)parsed_input[0][l]);
+                      fprintf(fp,"<- max <f>(%d)",(int)s->trs[0][l]);
 
                     }
                     fprintf(fp,"\n");
@@ -789,12 +1212,12 @@ in the calculation: \n\n" );
               }
             }
             l++;
-            if (((int)parsed_input[0][l] != (int)parsed_input[0][fs_idx]) && (flag == 0)) {
+            if (((int)s->trs[0][l] != (int)s->trs[0][fs_idx]) && (flag == 0)) {
               l = fs_idx;
               flag = 1;
 
-            } else if (((int)parsed_input[0][l] != (int)parsed_input[0][fs_idx]) && (flag == 1)) {
-              fprintf(fp,"\n  summary, state %d:\n    after screeing out all states %.3f%% below the maximum intensity,\n    - %d of %d (%.2f%%) of the (3) states,\n    - %.2f%% of the total intensity for transitions from this state,\n    was screened out.\n",(int)parsed_input[0][fs_idx], md->state_t[2]*100,n_fs-n_sfs, n_fs,100-(((float)n_sfs/(float)n_fs)*100), 100-(sint_tot/tint_tot)*100);
+            } else if (((int)s->trs[0][l] != (int)s->trs[0][fs_idx]) && (flag == 1)) {
+              fprintf(fp,"\n  summary, state %d:\n    after screeing out all states %.3f%% below the maximum intensity,\n    - %d of %d (%.2f%%) of the (3) states,\n    - %.2f%% of the total intensity for transitions from this state,\n    was screened out.\n",(int)s->trs[0][fs_idx], md->state_t[2]*100,n_fs-n_sfs, n_fs,100-(((float)n_sfs/(float)n_fs)*100), 100-(sint_tot/tint_tot)*100);
               flag = 0;
             }
           }
@@ -803,7 +1226,6 @@ in the calculation: \n\n" );
     }
     k++;
   }
-
 
   fprintf(fp,"\n\nsummary, energy range [%d,%d]:\n  after screening states in this range,\n  - %d out of %d states,\n  - %.3f%% of the total intensity for all transitions from group 2 ([%d,%d]),\n  were screened out.\n", (int)md->state_er[5],(int)md->state_er[6], tot_t - tot_st, tot_t, 100-(tot_sint/tot_tint)*100, (int)md->state_er[3],(int)md->state_er[4]);
   printf( " done.\n" );
@@ -816,5 +1238,4 @@ in the calculation: \n\n" );
     exit(1);
   }
   free(log_fpstr);
-  free(idx_map);
 }

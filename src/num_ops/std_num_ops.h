@@ -1,5 +1,9 @@
 #ifndef STD_NUM_OPS_H
 #define STD_NUM_OPS_H
+#include <complex.h>
+
+double
+fabsc (double complex c1);
 
 /* function
 

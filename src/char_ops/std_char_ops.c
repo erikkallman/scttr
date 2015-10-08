@@ -50,6 +50,7 @@ concs (int n_args, ...) {
     /* get its length */
     /* add memory to the return string */
     /* use strcat to copy tmp_str to the return string */
+
   }
 
   path = malloc(slen_tot+1);
@@ -62,7 +63,7 @@ concs (int n_args, ...) {
     }
     path[l] = s[k][j];
   }
-
+  path[l] = '\0';
   free(s);
   free(slen);
 

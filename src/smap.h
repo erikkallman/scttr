@@ -15,11 +15,15 @@
 
    */
 void
-calc_smap_m (metadata md
+calc_smap_m (spec_info s
              );
 
 void
-write_log (metadata md
+calc_smap_g (spec_info s
+             );
+
+void
+write_log (spec_info s
            );
 
 #endif /* SMAP_H */

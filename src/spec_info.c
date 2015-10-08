@@ -12,10 +12,9 @@ int n_sinfo = 0;
 /* suffixes for the output and input files */
 const char * dat_sfx = ".dat";
 const char * plot_sfx = ".gp";
-const char * txt_sfx = ".txt";
+const char * log_sfx = ".txt";
 const char * bin_sfx = ".bin";
 const char * tmp_sfx = ".tmp";
-const char * log_sfx = ".tmp";
 
 /* function init_md
 
@@ -62,7 +61,7 @@ get_sinfo (char * id
   spec_info next_sinfo;
 
     /* locate the spec_info corresponding to the file name input argument */
-  while(strstr((curr_sinfo -> str_id),id) == NULL) {
+  while(strstr((curr_sinfo -> md -> inp_fn),id) == NULL) {
 
     next_sinfo = curr_sinfo -> next;
     curr_sinfo = next_sinfo;
@@ -93,7 +92,7 @@ to allocate memory for \"new_sinfo\"\n");
     exit(1);
   }
 
-  new_sinfo -> s_md = md;
+  new_sinfo -> md = md;
 
   if (n_sinfo == 0) { /* there is no root info node defined  */
     n_sinfo = 1;
@@ -110,4 +109,25 @@ to allocate memory for \"new_sinfo\"\n");
   new_sinfo -> idx = n_sinfo-1;
 
   return new_sinfo;
+}
+
+/* function free_sinfo
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+int
+free_sinfo (spec_info s) {
+
+
+
+  return EXIT_SUCCESS;
 }

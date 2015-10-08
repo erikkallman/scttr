@@ -1,25 +1,21 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
 #include "structs.h"
+int
+get_erange (spec_info s,
+            double e);
+int
+add_sym (spec_info s);
 
 int
-add_sym (double * state_er);
-
+parse_input_bin (spec_info s,
+                 char * bin_fpstr);
 int
-parse_input_bin (char * bin_fpstr
-                 );
-int
-parse_molout (char * fn_relpath,
-              char * fn_infile
-              );
+parse_molout (spec_info s,
+              char * fn_relpath,
+              char * tmp_fpstr );
 
-double
-get_efrom (int from);
-
-double
-get_eto (int to);
-
-/* function check_pi
+/* function check_trs
 
    * synopsis:
 
@@ -33,73 +29,29 @@ get_eto (int to);
 
    */
 int
-check_pi ();
-
-void
-state2s(int idx);
-
-void
-astate2s(double ** pi,
-         int idx);
-/* function pi2s
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-void
-pi2s ();
-
-void
-pi2f (char * fn);
-
-/* function get_t
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-double
-get_t (int from,
-       int to);
-int
-get_i (int from
-       );
-int
-get_pi (int from,
-        double ** pi
-       );
+check_trs (spec_info s);
 
 int
-get_il (int from
-        );
+get_i (spec_info s,
+       int from);
+int
+get_trs (int from,
+        double ** trs);
 
 int
-get_inext (int from
-       );
+get_il (spec_info s,
+        int from);
 
 int
-get_ilnext (int from
-       );
+get_inext (spec_info s,
+           int from);
+int
+get_ilnext (spec_info s,
+            int from);
 
 int
-get_pinext (double ** pi,
-           int from
-            );
+get_trsnext (double ** trs,
+           int from);
 /* function screen_states
    The screen_states function is used to reduce the number of states used
    for generating the RIXS map. Through analyzing the boltzmann distribution
@@ -140,21 +92,6 @@ get_pinext (double ** pi,
 /*                double * state_er */
 /*                ); */
 
-/* function get_es
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-double*
-get_es (int idx);
 
 /* function parse_input:
  * synopsis:
@@ -162,15 +99,15 @@ get_es (int idx);
  be it from Molcas, RACAH or other electron energy calculation programs,
  an input parsing function needs to be defined. this function will need to
  define; 1. the number of states (n_states); 2.transitions (n_trans) in found in
- the input file as well as; 3.a matrix (here called "parsed_input"), of 5 rows
+ the input file as well as; 3.a matrix (here called "trs"), of 5 rows
  and n_trans columns, where:
 
- parsed_input[0][:] : idexes of initial states for a given transition
- parsed_input[1][:] : idexes of final states for a given transition
- parsed_input[2][:] : energy eigenvalues, relative to the lowest energy ground
- state of the system, for the indexes in parsed_input[0]
- parsed_input[3][:] : -||- , for the indexes in parsed_input[1]
- parsed_input[4][:] : transition moment values for each transition extracted
+ trs[0][:] : idexes of initial states for a given transition
+ trs[1][:] : idexes of final states for a given transition
+ trs[2][:] : energy eigenvalues, relative to the lowest energy ground
+ state of the system, for the indexes in trs[0]
+ trs[3][:] : -||- , for the indexes in trs[1]
+ trs[4][:] : transition moment values for each transition extracted
  from the input
 
  this matrix and the state and transition numbers are used, at the end of the
@@ -192,10 +129,9 @@ get_es (int idx);
  */
 
 int
-parse_input_tmp (double * state_er,
+parse_input_tmp (spec_info s,
                  char * fn_tmpdata,
-                 char * bin_fpstr
-                 );
+                 char * bin_fpstr);
 
 /* function count_states
 
@@ -211,10 +147,9 @@ parse_input_tmp (double * state_er,
 
    */
 void
-count_states (double * state_er);
+count_states (spec_info s);
 
 int
-parse_input (metadata md
-             );
+parse_input (spec_info s);
 
 #endif /* PARSE_INPUT_H */

@@ -1,9 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <complex.h>
 #include <string.h>
 #include "std_num_ops.h"
 #include "sci_const.h"
+
+/* calculate the absolue value of a complex number */
+double
+fabsc ( double complex c1) {
+  double complex c1_r = creall(c1);
+  double complex c1_i = cimagl(c1);
+
+  return sqrt(c1_r*c1_r + c1_i*c1_i);
+}
 
 int
 inrange(double v,

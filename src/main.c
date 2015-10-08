@@ -8,7 +8,6 @@
 #include <errno.h>
 #include "spec_info.h"
 #include "structs.h"
-#include "state.h"
 #include "std_char_ops.h"
 #include "get_numsl.h"
 #include "smap.h"
@@ -18,8 +17,6 @@
 #include "smap_cfg.h"
 
 #define BUF_SIZE 256
-int sz_inp;
-int etype;
 
 int
 main (int argc, char * argv[]) {
@@ -32,7 +29,7 @@ main (int argc, char * argv[]) {
   int len_op   = 0;
   int len_fn   = 0;
   int out_set  = 0;
-  etype = 0;
+  int etype = 0;
 
   double * res = malloc(2*sizeof(double));
   /* arrays for storing input file name data */
@@ -290,10 +287,10 @@ main (int argc, char * argv[]) {
           free(num_buf);
           num_buf      = NULL;
 
-          if ((n_t++) > 3) {
+          if ((n_t) == 3) {
             break;
           }
-
+          n_t++;
           k = 0;
         }
       }
@@ -357,8 +354,8 @@ main (int argc, char * argv[]) {
 
   /* set the input file size */
   stat(inpath,&st);
-  sz_inp = (int)st.st_size;
-  l = j;
+  md -> sz_inp = (int)st.st_size;
+  md -> etype = etype;
 
   md -> outpath = outpath;
   md -> inpath = inpath;
@@ -370,6 +367,7 @@ main (int argc, char * argv[]) {
   md -> res = res;
   md -> fwhm = fwhm_inp;
 
+  l = j;
   s = init_sinfo(md);
 
   if (len_fn == 0) {
@@ -383,7 +381,7 @@ input file.");
     printf( "  - extracting input data ..");
     fflush(stdout);
 
-    if (parse_input(md)) {
+    if (parse_input(s)) {
       fprintf(stderr, "smap.c, main: unable to parse the input data \
 contained in %s.\n",inpath);
       printf( "program terminating due to the previous error.\n");
@@ -397,8 +395,8 @@ contained in %s.\n",inpath);
   printf( "  - data contained in the input file:\n    %s\n\n", inpath);
   printf( "  - threshold values:\n    " );
 
-  for (j=1; j<n_t; j++) {
-    printf( "%le, ", state_t[j]);
+  for (j=0; j<n_t; j++) {
+    printf( "%le, ", state_t[j+1]);
   }
   printf( "\n\n" );
 
@@ -411,15 +409,12 @@ contained in %s.\n",inpath);
   printf( "\n\n" );
   printf( " execution progress:\n\n");
 
-  calc_smap_m(md);
-  write_log(md);
+  calc_smap_g(s);
+  write_log(s);
 
-  for (j=0; j<6; j++) {
-    free(parsed_input[j]);
-  }
-  free(parsed_input);
   free(inp_sfx);
   free_md(md);
+
   free(input_sbuff);
   free(state_er);
   free(state_t);

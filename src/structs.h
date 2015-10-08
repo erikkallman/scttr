@@ -21,20 +21,24 @@ struct spec_info_s{
   int n_states; /* number of electronic states */
   int n_trans; /* number of transitions */
   int n_spec; /* number of spectra */
+  int n_tmax;/* maximum number of intermediate state transitions */
 
   int n_gfs;
   int n_is;
 
-  int * ev_idxs; /* indices of what states reside in what element of e_vals */
-  int * mom_types; /* types of momenta in the plot 1/2/3 di/quad/octo-pole */
+  int * idx_map;
+
   /* sum of the boltzmann weights of all states in the system*/
-  double ** mt; /* pointers to the maximum transition moment for the
-                     intermediate and final/ground states */
+
   double bw_sum; /* sum of all boltz  */
+  double tmax_q,tmax_d;
+  double e0; /* lowest energy eigenstate */
+  double sfac; /* scaling factor for the spectrum */
+  /* char * str_id; */ /* the input file name identifying this info node */
 
-  char * str_id; /* the input file name identifying this info node */
+  double ** trs;
 
-  metadata s_md; /* spectrum information node metadata */
+  metadata md; /* spectrum information node metadata */
 
   spec root_spec;
 
@@ -69,6 +73,9 @@ struct metadata_s{
      input, like file paths, energy ranges, and so on. */
 
   /* path to .. */
+  int sz_inp;
+  int etype;
+
   char * outpath; /* smap data file */
   char * inpath; /* plot output file */
   char * inp_fn; /* input filename */
