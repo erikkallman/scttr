@@ -17,13 +17,6 @@
 char *
 concs (int n_args, ...);
 
-size_t
-fpread(void *buffer,
-       size_t size,
-       size_t mitems,
-       size_t offset,
-       FILE *fp);
-
 int
 strscmp (const char * str1,
          const char ** str2,
@@ -45,24 +38,6 @@ strscmp (const char * str1,
 int
 isanyalpha (char * s,
             int len);
-
-/* function send_range_qmsg
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-send_range_qmsg (double * state_er,
-                 double eval
-                );
 
 /* function charinstr
 

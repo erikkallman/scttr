@@ -45,24 +45,6 @@ fwdsplice (double ** from,
            int n_dims
            );
 
-/* function cupto
-
-   * synopsis:
-   copy the content of @a1 to @a2 upto the element @upto
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-int
-cupto (double * a1,
-       double * a2,
-       int upto);
-
 /* function get_maxl
 
    * synopsis:
@@ -81,32 +63,12 @@ get_maxl (double * v,
           int n);
 
 double
-get_min (double * v,
+get_minl (double * v,
           int n);
-/* function arit_meanl
 
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-double
-arit_meanl (double * a,
-            int n_vals);
-
-double
-pyth_distl (double q,
-            double p);
-
-int power(int base,
-          int exp
-          );
+int
+power(int base,
+      int exp);
 
 double
 powerl(double base,
@@ -129,29 +91,6 @@ intinint (int * a,
           int num,
           int n_el
           );
-
-/* function getintinint
-   for a given array @a1, returns all elements of @a2 not present in a1.
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-   - allocates memory space for res, which needs to be freed up by the callee
-
-   */
-int *
-getintinint (int * a1,
-             int * a2,
-             int n
-             );
-
-double
-get_bdist (double e_val);
 
 double
 get_rbdist (double e_rel,

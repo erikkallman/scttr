@@ -6,22 +6,20 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
-#include "spec_info.h"
-#include "structs.h"
+#include "spectrum_info.h"
 #include "std_char_ops.h"
 #include "get_numsl.h"
-#include "smap.h"
+#include "calc_spec.h"
 #include "formats.h"
 #include "parse_input.h" /* for input_data array, as well as other
                             calculation-specific variables */
-#include "smap_cfg.h"
-
+#include "sctr_cfg.h"
 #define BUF_SIZE 256
 
 int
 main (int argc, char * argv[]) {
 
-  printf( "\n\n smap calculation initiated.\n\n" );
+  printf( "\n\n calc_spec calculation initiated.\n\n" );
   int j,k,l,m;                    /* iteration variables */
   int n_t;                      /* number of numbers read from input flag */
   int n_er = 0;                     /* number of numbers eigenstate energy values provided */
@@ -29,7 +27,7 @@ main (int argc, char * argv[]) {
   int len_op   = 0;
   int len_fn   = 0;
   int out_set  = 0;
-  int etype = 0;
+  int so_enrg = 0;
 
   double * res = malloc(2*sizeof(double));
   /* arrays for storing input file name data */
@@ -88,7 +86,6 @@ main (int argc, char * argv[]) {
       break;
 
     case 'i' :
-      /* printf( "processing input file: " ); */
 
       k = 0;
       /* extract the file name */
@@ -113,18 +110,14 @@ main (int argc, char * argv[]) {
 
       for (j = 3; argv[1][j] != '\0'; j++) {
         input_sbuff[j-3] = argv[1][j];
-        /* printf( "%c", input_sbuff[j-3]); */
       }
 
-      /* printf( "\n" ); */
       len_fn     = j-3;
       inpath = malloc(len_fn+1);
 
       for (j          = 0; j<len_fn; j++) {
         inpath[j] = input_sbuff[j];
-        /* printf( "%c", inpath[j]); */
       }
-      /* printf( "\n" ); */
       inpath[len_fn] = '\0';
 
       /* set the inp_sfx  */
@@ -147,7 +140,6 @@ main (int argc, char * argv[]) {
       /* extract the output path */
       for (j = 3; argv[1][j] != '\0'; j++) {
         input_sbuff[j-3] = argv[1][j];
-        /* printf( "%c", input_sbuff[j-3]); */
       }
 
       len_op = j-3;
@@ -156,7 +148,6 @@ main (int argc, char * argv[]) {
       for (j          = 0; j<len_op; j++) {
         outpath[j] = input_sbuff[j];
       }
-      /* printf( "\n" ); */
       outpath[len_op] = '\0';
       printf( "  - outpath specified  = %s\n",outpath );
       break;
@@ -167,19 +158,14 @@ main (int argc, char * argv[]) {
       for (j = 3,k=0; argv[1][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[1][j];
-        /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
-
         if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
-          /* k--; /\* we dont want the comma or null sent to atof *\/ */
+
           num_buf = malloc(k+1);
 
           for (l = 0; l<k; l++) {
             num_buf[l] = input_sbuff[l];
-            /* printf( "%c", num_buf[l]); */
           }
           num_buf[k] = '\0';
-
-          /* printf( "\n" ); */
 
           res[n_res] = atof(num_buf);
           free(num_buf);
@@ -199,19 +185,14 @@ main (int argc, char * argv[]) {
       for (j = 3,k=0; argv[1][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[1][j];
-        /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
 
         if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
-          /* k--; /\* we dont want the comma or null sent to atof *\/ */
           num_buf = malloc(k+1);
 
           for (l = 0; l<k; l++) {
             num_buf[l] = input_sbuff[l];
-            /* printf( "%c", num_buf[l]); */
           }
           num_buf[k] = '\0';
-
-          /* printf( "\n" ); */
 
           state_er[n_er] = atof(num_buf);
           free(num_buf);
@@ -233,30 +214,17 @@ main (int argc, char * argv[]) {
       for (j = 3,k=0; argv[1][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[1][j];
-        /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
-
         if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
-          /* k--; /\* we dont want the comma or null sent to atof *\/ */
           num_buf = malloc(k+1);
 
           for (l = 0; l<k; l++) {
             num_buf[l] = input_sbuff[l];
-            /* printf( "%c", num_buf[l]); */
           }
           num_buf[k] = '\0';
-
-          /* printf( "\n" ); */
 
           fwhm_inp[m++] = atof(num_buf);
           free(num_buf);
           num_buf        = NULL;
-          /* if ((n_er > 4)) { */
-          /*   /\* switch on the dipole+quadrupole flag  *\/ */
-          /* break; */
-          /* } */
-          /* if ((n_er > 8)) { */
-          /* break; */
-          /* } */
 
           k = 0;
         }
@@ -269,19 +237,14 @@ main (int argc, char * argv[]) {
       for (j = 3,k=0; argv[1][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[1][j];
-        /* if ((argv[1][j] == ',') || ((argv[1][j+1] == '\0')||(argv[1][j+1] == '-'))) { */
 
         if ((argv[1][j] == ',') || (argv[1][j+1] == '\0')) {
-          /* k--; /\* we dont want the comma or null sent to atof *\/ */
           num_buf        = malloc(k+1);
 
           for (l = 0; l<k; l++) {
             num_buf[l] = input_sbuff[l];
-            /* printf( "%c", num_buf[l]); */
           }
           num_buf[k] = '\0';
-
-          /* printf( "\n" ); */
 
           state_t[n_t] = atof(num_buf);
           free(num_buf);
@@ -300,7 +263,7 @@ main (int argc, char * argv[]) {
 
     case 'F' :
 
-      etype = 1;
+      so_enrg = 1;
       break;
 
     default :
@@ -318,7 +281,7 @@ main (int argc, char * argv[]) {
     if (getcwd(curr_dir,sizeof(curr_dir)) != NULL) {
       printf( "  - output path not specified in input, it defaults to: %s\n", curr_dir);
     } else {
-      fprintf(stderr, "smap, main.c: unable to obtain the current directory for use as default output path.  \n");
+      fprintf(stderr, "sctr, main.c: unable to obtain the current directory for use as default output path.  \n");
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
@@ -352,10 +315,9 @@ main (int argc, char * argv[]) {
     }
   }
 
-  /* set the input file size */
   stat(inpath,&st);
   md -> sz_inp = (int)st.st_size;
-  md -> etype = etype;
+  md -> so_enrg = so_enrg;
 
   md -> outpath = outpath;
   md -> inpath = inpath;
@@ -371,7 +333,7 @@ main (int argc, char * argv[]) {
   s = init_sinfo(md);
 
   if (len_fn == 0) {
-   fprintf(stderr, "\n\Error: smap.c, main: you didnt provide the path to an \
+   fprintf(stderr, "\n\Error: calc_spec.c, main: you didnt provide the path to an \
 input file.");
     printf( "program terminating due to the previous error.\n");
     exit(EXIT_FAILURE);
@@ -382,7 +344,7 @@ input file.");
     fflush(stdout);
 
     if (parse_input(s)) {
-      fprintf(stderr, "smap.c, main: unable to parse the input data \
+      fprintf(stderr, "calc_spec.c, main: unable to parse the input data \
 contained in %s.\n",inpath);
       printf( "program terminating due to the previous error.\n");
       exit(EXIT_FAILURE);
@@ -391,7 +353,7 @@ contained in %s.\n",inpath);
     }
   }
 
-  printf( "\n executing smap with the following..\n\n" );
+  printf( "\n executing sctr with the following..\n\n" );
   printf( "  - data contained in the input file:\n    %s\n\n", inpath);
   printf( "  - threshold values:\n    " );
 
@@ -409,16 +371,16 @@ contained in %s.\n",inpath);
   printf( "\n\n" );
   printf( " execution progress:\n\n");
 
-  calc_smap_g(s);
+  calc_spec(s);
   write_log(s);
 
   free(inp_sfx);
-  free_md(md);
+  free_sinfo(s);
 
   free(input_sbuff);
   free(state_er);
   free(state_t);
-  printf( "\n smap successfully executed.\n" );
+  printf( "\n sctr successfully executed.\n" );
   printf( " program terminating.\n\n" );
 
   return 0;

@@ -1,6 +1,29 @@
 #ifndef SPEC_H
 #define SPEC_H
-#include "structs.h"
+
+struct spec_s;
+typedef struct spec_s * spec;
+
+struct spec_s{
+
+  int idx;
+  int layer;
+  int n_layers;
+  int height;
+  int length;
+
+  double ** sdat; /* the actual spec data */
+
+  /* next spec for the information node */
+  spec next;
+  spec last;
+
+  /* next layer of this spec */
+  spec next_l;
+  spec last_l;
+  spec root_l;
+};
+
 
 /* function get_spec
    Searches the list of specta connected to the root spec @root_s of a given

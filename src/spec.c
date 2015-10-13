@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include "spec.h"
-#include "structs.h"
 
 spec
 get_spec (spec root_s,

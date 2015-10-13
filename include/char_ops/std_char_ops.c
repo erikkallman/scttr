@@ -133,39 +133,6 @@ isanyalpha (char * s,
 }
 
 int
-send_range_qmsg (double * state_er,
-                 double eval
-                ){
-  int j; /* counter for number of values printed */
-  int k; /* counter for number of lines of values printed */
-  int r; /* response from the query */
-
-
-  printf("\n\nWhich of the following energy ranges do you want to extend with %le\
-?\n",  eval);
-
-  for (j=2,k=1,r=1; r<state_er[0]+1; r++,j++) {
-    if (j == 2) {
-      if (r > 1) {
-        printf( "\n" );
-      }
-      printf( "%d: ",k);
-      k++;
-      j = 0;
-    }
-    printf( "%le ", state_er[r]);
-  }
-
-  printf( "\nPick one of the above indices : ");
-  if (scanf("%d",&r) == 0) {
-    fprintf(stderr, "std_char_ops.c, function send_range_qmsg: unable to query user errno = %s \n",strerror(errno));
-    printf( "program terminating due to the previous error.\n");
-  }
-
-  return r;
-}
-
-int
 charinstr (char * str,
            char c){
   int j;
@@ -234,7 +201,7 @@ satof(char * s,
 
   double v = 0;
   double pval = satopow(s, len);
-  /* printf( "==pval origin = %le, len %d\n", pval, len); */
+
   if (s[0] == '-') {
     nsign = -1;
     j = 1;
@@ -248,30 +215,20 @@ satof(char * s,
     v = v*10 + (double)(s[j] - '0');
   }
 
-  /* printf( "v.1 = %le\n", v); */
-  /* printf( "==pval pre = %le\n", pval); */
   if (s[j++] == '.') {
     /* account for all powers below the decimal */
     while(isdigit(s[j]) && (s[j] != '\0')){
-      /* printf( "char = %d\n", (s[j] - '0')); */
       v = v*10 + (double)(s[j] - '0');
-      /* printf( "val = %le\n", v); */
       pval = pval-1;
       j++;
     }
   }
-
-  /* printf( "==pval post1 = %le\n", pval); */
 
   if (pval<0) {
     pval = 1/powerl(10,-pval);
   } else {
     pval = powerl(10,pval);
   }
-
-  /* printf( "==pval post2 = %le\n", pval); */
-  /* printf( "v.2 = %le\n", v); */
-  /* printf( "v.3 = %le\n", ((double)nsign)*v*pval); */
 
   return ((double)nsign)*v*pval;
 }

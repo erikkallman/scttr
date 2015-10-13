@@ -28,16 +28,11 @@ get_numinstr (char * s,
 
   for (j=0; j<=str_len; c = s[j], j++) {
     /* check if we're still reading a number and avoid dashed lines */
-    /* if (((strchr(num_key,c) != NULL) || (isdigit(c) != 0)) \ */
     if (((charinstr(num_key,c) != 0) || (isdigit(c) != 0)) \
         && ((isalpha(last_c) == 0 ) || (last_c == 'E'))) {
 
       /* check if we're reading the right digit, else ignore the result */
       if (k == idx) {
-        /* printf( "reading @k=%d\n", k); */
-        /* printf( "string = %s\n",s ); */
-        /* printf( "char = %c\n",c ); */
-        /* printf( "\n\n\n" ); */
         buf[l++] = c;
       }
 
@@ -50,8 +45,6 @@ get_numinstr (char * s,
      read the end of a digit. */
     else if(mode == 1) {
       if (++k > idx) { /* increase the counter for read numbers */
-        /* printf( "got all chars!\n"); */
-        /* sleep(1); */
         break;
       }
       mode = bin_flip(mode); /* go back to reading non numbers */

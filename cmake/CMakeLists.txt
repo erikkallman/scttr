@@ -1,4 +1,4 @@
-# If the user specifies -DCMAKE_BUILD_TYPE on the command line, take their
+# If the user specifies -DCMAKE_BUILD_TYPE on the command line, take its
 # definition and dump it in the cache along with proper documentation,
 # otherwise set CMAKE_BUILD_TYPE to Debug prior to calling PROJECT()
 #
@@ -13,26 +13,26 @@ RelWithDebInfo MinSizeRel.")
 ENDIF()
 
 cmake_minimum_required(VERSION 2.8)
-project(smap C)
+project(sctr C)
 enable_language(C)
-set (SMAP_VERSION_MAJOR 1)
-set (SMAP_VERSION_MINOR 5)
+set (SCTR_VERSION_MAJOR 1)
+set (SCTR_VERSION_MINOR 5)
 
 set(project_root_dir "../")
 include_directories("${project_root_dir}/src")
 include_directories("${project_root_dir}/bin")
 include_directories("${project_root_dir}/include")
+include_directories("${project_root_dir}/include/char_ops")
+include_directories("${project_root_dir}/include/num_ops")
 include_directories("${project_root_dir}/src/io")
-include_directories("${project_root_dir}/src/char_ops")
-include_directories("${project_root_dir}/src/num_ops")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${project_root_dir}/bin")
 
 # configure a header file to pass some of the CMake settings
 # to the source code
 configure_file (
-   "${project_root_dir}/cmake/smap_cfg.h.in"
-   "${project_root_dir}/src/smap_cfg.h"
+   "${project_root_dir}/cmake/sctr_cfg.h.in"
+   "${project_root_dir}/src/sctr_cfg.h"
    )
 
 message(STATUS "GCC detected - Adding compiler flags")
@@ -48,24 +48,23 @@ else(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 # endif(CMAKE_COMPILER_IS_GNUC)
 
-add_executable(smap "${project_root_dir}/src/main.c")
+add_executable(sctr "${project_root_dir}/src/main.c")
 
-add_library(smap_io
-  "${project_root_dir}/src/io/parse_input.c"
-)
-
-add_library(smap_std_inc
-  "${project_root_dir}/src/num_ops/std_num_ops.c"
-  "${project_root_dir}/src/num_ops/quicksort.c"
-  "${project_root_dir}/src/char_ops/get_numsl.c"
-  "${project_root_dir}/src/char_ops/std_char_ops.c"
-  "${project_root_dir}/src/appc.c"
-  "${project_root_dir}/src/spec_info.c"
+add_library(sctr_src
+  "${project_root_dir}/src/parse_input.c"
+  "${project_root_dir}/src/transitions.c"
+  "${project_root_dir}/src/spectrum_info.c"
+  "${project_root_dir}/src/calc_spec.c"
   )
 
-add_library(smap_smap
-  "${project_root_dir}/src/smap.c"
-#  "${project_root_dir}/src/spec.c"
+add_library(sctr_include
+  "${project_root_dir}/include/dyn_array.c"
+
+  "${project_root_dir}/include/char_ops/get_numsl.c"
+  "${project_root_dir}/include/char_ops/std_char_ops.c"
+
+  "${project_root_dir}/include/num_ops/quicksort.c"
+  "${project_root_dir}/include/num_ops/std_num_ops.c"
   )
 
-target_link_libraries(smap smap_io smap_std_inc smap_smap -lm)
+target_link_libraries(sctr sctr_src sctr_include -lm)

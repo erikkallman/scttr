@@ -1,6 +1,24 @@
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
-#include "structs.h"
+#include "spectrum_info.h"
+#include "dyn_array.h"
+
+/* function init_screen
+
+   * synopsis:
+
+   * algorithm:
+
+   * input:
+
+   * output:
+
+   * side-effects:
+
+   */
+screen
+init_screen (spec_info s);
+
 int
 get_erange (spec_info s,
             double e);
