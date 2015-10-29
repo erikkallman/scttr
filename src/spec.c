@@ -1,3 +1,18 @@
+/* This file is part of Scatter. */
+
+/* Scatter is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU Lesser General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* Scatter is distributed in the hope that it will be useful, */
+/* but without any warranty; without even the implied warranty of */
+/* merchantability or fitness for a particular purpose. See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with Scatter, found in the "license" subdirectory of the root */
+/* directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -39,8 +54,8 @@ free_spec (spec s,
            int layer){
   int j;
 
-  int l = s -> length;
-  int h = s -> height;
+  int l = s_inp -> length;
+  int h = s_inp -> height;
   /* printf( "%le %d %d\n", (s->sdat)[50][50], l, h); */
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
@@ -49,17 +64,17 @@ free_spec (spec s,
   }
   free(s->sdat);
 
-  if ((layer == 1) && (s -> last != NULL)) { /* connect the adjecent spectra */
-    s -> last -> next = s -> next;
-    s -> next -> last = s -> last;
+  if ((layer == 1) && (s_inp -> last != NULL)) { /* connect the adjecent spectra */
+    s_inp -> last -> next = s_inp -> next;
+    s_inp -> next -> last = s_inp -> last;
   }
-  else if((s -> last == NULL) && (s -> next == NULL)){
+  else if((s_inp -> last == NULL) && (s_inp -> next == NULL)){
     /* the last of all spectra */
 
   }
   else { /* connect the adjecent layers */
-    s -> last_l -> next_l = s -> next_l;
-    s -> next_l -> last_l = s -> last_l;
+    s_inp -> last_l -> next_l = s_inp -> next_l;
+    s_inp -> next_l -> last_l = s_inp -> last_l;
   }
 
   free(s);
@@ -67,7 +82,7 @@ free_spec (spec s,
 }
 
 void
-free_spec_stack (spec_info inode,
+free_spec_stack (sctr_input inode,
                  spec root_s,
                  int idx){
 
@@ -79,14 +94,14 @@ free_spec_stack (spec_info inode,
   /* get the root spec of the stack on idex idx */
   spec s = get_spec(root_s, idx, 1);
 
-  n_l = s -> n_layers;
+  n_l = s_inp -> n_layers;
 
-  if (s -> n_layers > 1) {
+  if (s_inp -> n_layers > 1) {
     s = get_spec(s, idx, n_l);
   }
 
   for (j=n_l; j>0; j--) {
-    s_last = s -> last_l;
+    s_last = s_inp -> last_l;
     free_spec(s, idx, j);
     inode -> n_spec--;
     s = s_last;
@@ -118,20 +133,20 @@ append_spec_layer (spec s,
 
   /* the last layer appended to that spec */
   spec s_l;
-  s -> root_l = root_s;
+  s_inp -> root_l = root_s;
 
-  if ((s_a -> idx) != (s -> idx)) {
+  if ((s_a -> idx) != (s_inp -> idx)) {
     fprintf(stderr, "spec.c, function append_spec_layer: tried to add \
 spec of idx %d as a layer to %d, but the zero-layer spec for that index was\
- not found in the list. \n", s_a -> idx, s -> idx);
+ not found in the list. \n", s_a -> idx, s_inp -> idx);
     printf( "program terminating due to the previous error.\n");
     exit(1);
   } else {
     s_a -> root_l -> n_layers++;
     s_l = get_last_layer(s_a);
     s_l -> next_l = s;
-    s -> last = s_l;
-    s -> next = NULL;
+    s_inp -> last = s_l;
+    s_inp -> next = NULL;
   }
 }
 
@@ -144,13 +159,13 @@ append_spec (spec s,
   spec s_a = get_spec(root_s, s->idx,0);
 
   s_a -> next = s;
-  s -> last = s_a;
-  s -> next = NULL;
+  s_inp -> last = s_a;
+  s_inp -> next = NULL;
 
 }
 
 void
-init_spec (spec_info inode,
+init_spec (sctr_input inode,
            double ** s_data,
            int s_idx,
            int ly,
@@ -204,7 +219,7 @@ to allocate memory for \"new_spec\"\n");
 }
 
 void
-specs2s (spec_info inode) {
+specs2s (sctr_input inode) {
 
   printf( "\n  -printing the content of the spec list for the inode \
 to file %s:\n", inode -> str_id);

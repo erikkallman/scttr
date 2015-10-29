@@ -1,3 +1,19 @@
+/* This file is part of Scatter. */
+
+/* Scatter is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU Lesser General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* Scatter is distributed in the hope that it will be useful, */
+/* but without any warranty; without even the implied warranty of */
+/* merchantability or fitness for a particular purpose. See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with Scatter, found in the "license" subdirectory of the root */
+/* directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>. */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -11,13 +27,13 @@
 #include "sci_const.h"
 #include "std_num_ops.h" /* power */
 #include "std_char_ops.h" /* power */
-#include "spectrum_info.h"
+#include "sctr_input.h"
 
 void
-calc_spec (spec_info s
+calc_spec (sctr_input s_inp
              ) {
 
-  metadata md = s -> md;
+  metadata md = s_inp -> md;
 
   char * dat_fpstr = concs(3,md->outpath,md->inp_fn,dat_sfx);
   char * plot_fpstr = concs(3,md->outpath,md-> inp_fn,plot_sfx);
@@ -51,10 +67,10 @@ calc_spec (spec_info s
    otherwise clutter the rixsmap loop */
   int n_sfs = s->scr->is2fs->n_el;
   int is_pos;
-  int * is2fs = s -> scr -> is2fs -> a;
-  int * gs2is = s -> scr -> gs2is -> a;
-  int * is_idxs = s -> scr -> is_idxs -> a;
-  int * ii_start = s -> scr -> ii_start -> a;
+  int * is2fs = s_inp -> scr -> is2fs -> a;
+  int * gs2is = s_inp -> scr -> gs2is -> a;
+  int * is_idxs = s_inp -> scr -> is_idxs -> a;
+  int * ii_start = s_inp -> scr -> ii_start -> a;
 
   double rmax = -0.1;
 
@@ -70,11 +86,11 @@ calc_spec (spec_info s
   /* .. energy transfer (y-axis)*/
   double ediff_y,tmom_if;
 
-  double emin_x = s -> scr -> emin_x;
-  double emax_x = s -> scr -> emax_x;
+  double emin_x = s_inp -> scr -> emin_x;
+  double emax_x = s_inp -> scr -> emax_x;
 
-  double emin_y = s -> scr -> emin_y;
-  double emax_y = s -> scr -> emax_y;
+  double emin_y = s_inp -> scr -> emin_y;
+  double emax_y = s_inp -> scr -> emax_y;
 
   double de_x,de_y,fwhm_in,fwhm_tr;
 
@@ -299,11 +315,11 @@ to allocate memory for \"omega_y[%d]\"\n",j);
 }
 
 void
-write_log (spec_info s
+write_log (sctr_input s_inp
            ) {
 
   int j,k,l; /* looping variables */
-  metadata md = s -> md;
+  metadata md = s_inp -> md;
 
   char * log_fpstr = concs(3,md->outpath,md->inp_fn,log_sfx);
   printf( "  - writing parameter log to file: %s ..",log_fpstr);
@@ -450,7 +466,7 @@ in the calculation: \n\n" );
           tmom_jk = s->trs[4][k];
           /* screen intermediate transition */
           if (s->trs[5][k] == 1) {
-            tmp_tmax1 = s -> tmax_d;
+            tmp_tmax1 = s_inp -> tmax_d;
           } else {
             tmp_tmax1 = s->tmax_q;
           }
@@ -529,7 +545,7 @@ in the calculation: \n\n" );
       tmom_jk     = s->trs[4][k];
       /* screen intermediate transition */
       if (s->trs[5][k] == 1) {
-        tmp_tmax1 = s -> tmax_d;
+        tmp_tmax1 = s_inp -> tmax_d;
       } else {
         tmp_tmax1 = s->tmax_q;
       }
@@ -549,7 +565,7 @@ in the calculation: \n\n" );
               tmom_kl = s->trs[4][l];
               /* screen final state transition */
               if (s->trs[5][l] == 1) {
-                tmp_tmax2 = s -> tmax_d;
+                tmp_tmax2 = s_inp -> tmax_d;
               } else {
                 tmp_tmax2 = s->tmax_q;
               }

@@ -1,3 +1,18 @@
+/* This file is part of Scatter. */
+
+/* Scatter is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU Lesser General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* Scatter is distributed in the hope that it will be useful, */
+/* but without any warranty; without even the implied warranty of */
+/* merchantability or fitness for a particular purpose. See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with Scatter, found in the "license" subdirectory of the root */
+/* directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,7 +21,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
-#include "spectrum_info.h"
+#include "sctr_input.h"
 #include "std_char_ops.h"
 #include "get_numsl.h"
 #include "calc_spec.h"
@@ -50,19 +65,17 @@ main (int argc, char * argv[]) {
   double * fwhm_inp = malloc(2*sizeof(double));
 
   metadata md = init_md();
-  spec_info s;
+  sctr_input s_inp;
 
   /* set default values for the parameter arrays */
   fwhm_inp[0] = 0.5;
   fwhm_inp[1] = 0.5;
 
-  state_t[0] = 3;
-  for (j=1; j<4; j++) {
-    state_t[j] = 0.001;
-  }
-  n_t = 3;
+  n_t = 2;
   state_t[0] = n_t;
-
+  state_t[1] = 0.01; /* by default, keep 99% of the total
+                       intensity */
+  state_t[2] = state_t[1]*0.0001;
   res[0] = 0.05;
   res[1] = 0.05;
 
@@ -258,7 +271,13 @@ main (int argc, char * argv[]) {
         }
       }
 
+      state_t[1] = 1 - state_t[1]/100;
+      if (n_t == 1) {
+        state_t[2] = state_t[1]*state_t[2];
+      }
+
       state_t[0] = n_t;
+
       break;
 
     case 'F' :
@@ -330,7 +349,7 @@ main (int argc, char * argv[]) {
   md -> fwhm = fwhm_inp;
 
   l = j;
-  s = init_sinfo(md);
+  s = init_inp(md);
 
   if (len_fn == 0) {
    fprintf(stderr, "\n\Error: calc_spec.c, main: you didnt provide the path to an \
@@ -355,11 +374,12 @@ contained in %s.\n",inpath);
 
   printf( "\n executing sctr with the following..\n\n" );
   printf( "  - data contained in the input file:\n    %s\n\n", inpath);
-  printf( "  - threshold values:\n    " );
+  printf( "  - intensity and ground state boltzmann weight threshold values respectively:\n    " );
 
   for (j=0; j<n_t; j++) {
     printf( "%le, ", state_t[j+1]);
   }
+
   printf( "\n\n" );
 
   printf( "  - state energy intervals values:\n    " );
@@ -372,10 +392,10 @@ contained in %s.\n",inpath);
   printf( " execution progress:\n\n");
 
   calc_spec(s);
-  write_log(s);
+  /* write_log(s); */
 
   free(inp_sfx);
-  free_sinfo(s);
+  free_inp(s);
 
   free(input_sbuff);
   free(state_er);

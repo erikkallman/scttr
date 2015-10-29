@@ -1,3 +1,18 @@
+/* This file is part of Scatter. */
+
+/* Scatter is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU Lesser General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* Scatter is distributed in the hope that it will be useful, */
+/* but without any warranty; without even the implied warranty of */
+/* merchantability or fitness for a particular purpose. See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with Scatter, found in the "license" subdirectory of the root */
+/* directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -10,7 +25,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "dyn_array.h"
-#include "spectrum_info.h"
+#include "sctr_input.h"
 #include "quicksort.h"
 #include "std_char_ops.h"
 #include "std_num_ops.h"
@@ -20,6 +35,7 @@
 #include "sci_const.h"
 #include "transitions.h"
 
+<<<<<<< HEAD
 <<<<<<< HEAD:src/io/parse_input.c
 int
 get_erange (spec_info s,
@@ -306,8 +322,10 @@ for pointe rs in \"input_data\"\n");
 =======
 >>>>>>> f71c42e... new screening algorithm ready for cleaning and testing:src/parse_input.c
 
+=======
+>>>>>>> 8555cb4... splitting the eval_trs function
 int
-parse_input_bin (spec_info s,
+parse_input_bin (sctr_input s_inp,
                  char * bin_fpstr
                  ) {
   printf( "\n      processing binary file corresponding to the provided input file ..");
@@ -326,9 +344,9 @@ parse_input_bin (spec_info s,
   }
 
   pi_xdim = 6;
-  s -> n_trans = pi_ydim;
+  s_inp -> n_trans = pi_ydim;
 
-  if((s -> trs = malloc(pi_xdim*sizeof(double*))) == NULL ){
+  if((s_inp -> trs = malloc(pi_xdim*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_bin, malloc: failed to allocate memory for\
  \"input_data\"\n");
     printf( "program terminating due to the previous error.\n");
@@ -336,7 +354,7 @@ parse_input_bin (spec_info s,
   }
 
   for (j=0; j<pi_xdim; j++) {
-    if((s -> trs[j] = malloc((pi_ydim+1)*sizeof(double))) == NULL ){
+    if((s_inp -> trs[j] = malloc((pi_ydim+1)*sizeof(double))) == NULL ){
       fprintf(stderr, "parse_input_bin, malloc: failed to allocate memory \
 for pointers in \"input_data\"\n");
       printf( "program terminating due to the previous error.\n");
@@ -345,7 +363,7 @@ for pointers in \"input_data\"\n");
   }
 
   for (j=0; j<6; j++) {
-    if (fread(s -> trs[j], sizeof(double), s -> n_trans, fp_bin) != s -> n_trans) {
+    if (fread(s_inp -> trs[j], sizeof(double), s_inp -> n_trans, fp_bin) != s_inp -> n_trans) {
       fprintf(stderr, "parse_input.c, function parse_input_bin: unable to read the PI matrix\n");
       printf( "program terminating due to the previous error.\n");
       fclose(fp_bin);
@@ -353,15 +371,15 @@ for pointers in \"input_data\"\n");
     }
   }
 
-  s -> e0 = s->trs[2][j];
+  s_inp -> e0 = s_inp->trs[2][j];
 
   for (j=0; j<pi_ydim; j++) {
-    if (s -> trs[2][j] < s->e0) {
-      s -> e0 = s -> trs[2][j];
+    if (s_inp -> trs[2][j] < s_inp->e0) {
+      s_inp -> e0 = s_inp -> trs[2][j];
     }
   }
 
-  s -> trs[0][pi_ydim] = -1;
+  s_inp -> trs[0][pi_ydim] = -1;
 
   if (fclose(fp_bin) != 0) {
     fprintf(stderr, "parse_input.c, function parse_input_bin: unable to close file:\n%s\n", bin_fpstr);
@@ -373,7 +391,7 @@ for pointers in \"input_data\"\n");
 }
 
 int
-parse_molout (spec_info s,
+parse_molout (sctr_input s_inp,
               char * fn_relpath,
               char * tmp_fpstr
               ) {
@@ -394,7 +412,7 @@ parse_molout (spec_info s,
   char * s3 = NULL;
 
   char * str_buf = malloc(BUF_SIZE*5);
-  if (s->md->so_enrg == 0) {
+  if (s_inp->md->so_enrg == 0) {
 
     /* read spin-orbit data */
     s1 = malloc(35);
@@ -405,7 +423,7 @@ parse_molout (spec_info s,
     s2 = "Dipole transition strengths (SO states)";
     s3 = "Quadrupole transition strengths (SO states)";
   }
-  else if(s->md->so_enrg == 1){
+  else if(s_inp->md->so_enrg == 1){
 
     /* read spin-orbit free data */
     s1 = malloc(19);
@@ -437,7 +455,7 @@ parse_molout (spec_info s,
   /* read the Molcas input file */
   for (j=0; ((c = fgetc(fp_relpath)) != EOF) && (n_match != 3); j++, k++) {
     if (j % 100000 == 0) {
-      printf( "        %.2f%%\r", (((float)(j*sizeof(char))/(float)s->md->sz_inp)*100));
+      printf( "        %.2f%%\r", (((float)(j*sizeof(char))/(float)s_inp->md->sz_inp)*100));
     }
 
     str_buf[k]                        = (char)c;
@@ -501,7 +519,7 @@ parse_molout (spec_info s,
 }
 
 int
-parse_input_tmp (spec_info s,
+parse_input_tmp (sctr_input s_inp,
                  char * fn_tmpdata,
                  char * bin_fpstr
                  ) {
@@ -522,7 +540,7 @@ parse_input_tmp (spec_info s,
   int * trs_types;
   int *     idxs_eigval;
   int * proc_idx;
-  double * state_er = s->md->state_er;
+  double * state_er = s_inp->md->state_er;
   double tmp_idx = 0;
   double maxr    = get_maxl(state_er,state_er[0]);
   double from_state_en, to_state_en, tmp_state_en;
@@ -547,7 +565,7 @@ parse_input_tmp (spec_info s,
   char * s2 = NULL;
   char * s3 = NULL;
 
-  if (s->md->so_enrg == 0) {
+  if (s_inp->md->so_enrg == 0) {
 
     /* read spin-orbit data */
 
@@ -555,7 +573,7 @@ parse_input_tmp (spec_info s,
     s2 = "Dipole transition strengths (SO states)";
     s3 = "Quadrupole transition strengths (SO states)";
   }
-  else if(s->md->so_enrg == 1){
+  else if(s_inp->md->so_enrg == 1){
 
     s1 = "SPIN-FREE ENERGIES";
     s2 = "Dipole transition strengths";
@@ -688,13 +706,13 @@ parse_input_tmp (spec_info s,
             /* sort the states in energy */
             quicksort(e_eigval,idxs_eigval,0,n_states-1,n_states);
 
-            s -> e0 = e_eigval[0];
+            s_inp -> e0 = e_eigval[0];
             /* adjust n_states so that it accounts for states not to be read
              due to being outside of the input range */
             m = 0;
 
             for (k=0; k<n_states; k++) {
-              if ((e_eigval[k]-s->e0)*AUTOEV < maxr) {
+              if ((e_eigval[k]-s_inp->e0)*AUTOEV < maxr) {
                 m++;
               }
             }
@@ -710,8 +728,8 @@ parse_input_tmp (spec_info s,
           to_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[0][n_trans]),n_states);
 
           if ((((int)to_state_en != -1) && ((int)from_state_en != -1))
-              && (((to_state_en-s->e0)*AUTOEV < maxr) &&   \
-              ((from_state_en-s->e0)*AUTOEV < maxr)))
+              && (((to_state_en-s_inp->e0)*AUTOEV < maxr) &&   \
+              ((from_state_en-s_inp->e0)*AUTOEV < maxr)))
             {
               n_trans++;
             }
@@ -735,7 +753,7 @@ parse_input_tmp (spec_info s,
     exit(1);
   }
 
-  if((s->trs = malloc(6*sizeof(double*))) == NULL ){
+  if((s_inp->trs = malloc(6*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"input_data\"\n");
     printf( "program terminating due to the previous error.\n");
@@ -743,14 +761,14 @@ parse_input_tmp (spec_info s,
   }
 
   for (j=0; j<6; j++) {
-    if((s->trs[j] = malloc((n_trans+1)*sizeof(double))) == NULL ){
+    if((s_inp->trs[j] = malloc((n_trans+1)*sizeof(double))) == NULL ){
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
 for pointers in \"input_data\"\n");
       printf( "program terminating due to the previous error.\n");
       exit(1);
     }
   }
-  s->trs[0][n_trans] = -1; /* end of list */
+  s_inp->trs[0][n_trans] = -1; /* end of list */
 
   if((trs_buf = malloc(6*sizeof(double*))) == NULL ){
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
@@ -791,8 +809,8 @@ for pointers in \"input_data\"\n");
       from_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[0][j+l]),n_states);
       to_state_en = get_wi(e_eigval,idxs_eigval,(int)(trans_idxs[1][j+l]),n_states);
 
-      if (inrange((to_state_en-s->e0)*AUTOEV,state_er[3],state_er[4]) &&
-           (inrange((from_state_en-s->e0)*AUTOEV,state_er[5],state_er[6])) &&
+      if (inrange((to_state_en-s_inp->e0)*AUTOEV,state_er[3],state_er[4]) &&
+           (inrange((from_state_en-s_inp->e0)*AUTOEV,state_er[5],state_er[6])) &&
           (((int)state_er[1] != (int)state_er[5]) && ((int)state_er[2] != (int)state_er[6]))
           ) {
 
@@ -819,29 +837,29 @@ for pointers in \"input_data\"\n");
     }
     if (idx_from != last_i) {
 
-      tmp_idx2 = get_inext(s,last_i);
+      tmp_idx2 = get_inext(s_inp,last_i);
       /* we have read all transitions for a state */
       /* check if the last_i has already been processed */
       if (intinint(proc_idx,last_i,n_proc) == -1) {
         m = l;
         while ((int)trs_buf[0][m-l] != idx_from) {
 
-          s->trs[0][m] = trs_buf[0][m-l];
-          s->trs[1][m] = trs_buf[1][m-l];
-          s->trs[2][m] = trs_buf[2][m-l];
-          s->trs[3][m] = trs_buf[3][m-l];
-          s->trs[4][m] = trs_buf[4][m-l];
-          s->trs[5][m] = trs_buf[5][m-l];
+          s_inp->trs[0][m] = trs_buf[0][m-l];
+          s_inp->trs[1][m] = trs_buf[1][m-l];
+          s_inp->trs[2][m] = trs_buf[2][m-l];
+          s_inp->trs[3][m] = trs_buf[3][m-l];
+          s_inp->trs[4][m] = trs_buf[4][m-l];
+          s_inp->trs[5][m] = trs_buf[5][m-l];
 
           m++;
         }
 
-        s->trs[0][m] = -1;
+        s_inp->trs[0][m] = -1;
         proc_idx[n_proc++] = last_i;
       }
       else{
-        tmp_idx2 = get_inext(s,last_i);
-        fwdsplice(trs_buf,s->trs,tmp_idx2,l,j,6);
+        tmp_idx2 = get_inext(s_inp,last_i);
+        fwdsplice(trs_buf,s_inp->trs,tmp_idx2,l,j,6);
         fflush(stdout);
       }
       l += j;
@@ -853,8 +871,8 @@ for pointers in \"input_data\"\n");
     last_i = idx_from;
   }
 
-  s->trs[0][l] = -1;
-  s -> n_trans = l;
+  s_inp->trs[0][l] = -1;
+  s_inp -> n_trans = l;
   printf( "          100%%\r");
 
   if (fclose(fp_tmpdata) != 0) {
@@ -891,7 +909,7 @@ for pointers in \"input_data\"\n");
 }
 
 int
-parse_input (spec_info s
+parse_input (sctr_input s_inp
              ){
   int j;
   int rc;                       /* return code */
@@ -899,7 +917,7 @@ parse_input (spec_info s
   FILE * fp_tmp;
   FILE * fp_bin;
 
-  metadata md = s -> md;
+  metadata md = s_inp -> md;
 
   char * bin_fpstr = concs(3,md->outpath,md->inp_fn,bin_sfx);
   char * tmp_fpstr = concs(3,md->outpath,md->inp_fn,tmp_sfx);
@@ -911,14 +929,14 @@ parse_input (spec_info s
 
     /* process the binary file instead */
     fclose(fp_bin);
-    parse_input_bin(s,bin_fpstr);
+    parse_input_bin(s_inp,bin_fpstr);
   }
   else {
 
     if (strcmp(format,MOLCAS_FORMAT) <= 0) {
 
       /* reduce the molcas output to a temp file */
-      parse_molout(s,inpath, tmp_fpstr );
+      parse_molout(s_inp,inpath, tmp_fpstr );
 
       fp_tmp = fopen(inpath,"r");
       if (fp_tmp == NULL) {
@@ -928,18 +946,18 @@ parse_input (spec_info s
         fclose(fp_tmp);
         exit(1);
       } else {
-        parse_input_tmp(s, tmp_fpstr, bin_fpstr);
+        parse_input_tmp(s_inp, tmp_fpstr, bin_fpstr);
       }
     }
     else {
       /* the tmp file path was provided in the input */
-      parse_input_tmp(s, inpath, bin_fpstr);
+      parse_input_tmp(s_inp, inpath, bin_fpstr);
     }
     if ((md->state_er[1] == md->state_er[5]) &&
         (md->state_er[2] == md->state_er[6])){
 
-      count_states(s);
-      add_sym(s);
+      count_states(s_inp);
+      add_sym(s_inp);
     }
 
     /* the only way the parse_input_tmp function can get called is if there is if
@@ -952,7 +970,7 @@ the binary file used to store the PI matrix: %s\n", bin_fpstr);
       exit(1);
     }
 
-    fwrite((const void*)&(s->n_trans), sizeof(int), 1, fp_bin);
+    fwrite((const void*)&(s_inp->n_trans), sizeof(int), 1, fp_bin);
     fflush(fp_bin);
     fclose(fp_bin);
 
@@ -964,7 +982,7 @@ the binary file used to store the PI matrix: %s\n", bin_fpstr);
     }
 
     for (j=0; j<6; j++) {
-      if (fwrite(s->trs[j], sizeof(double), s->n_trans, fp_bin) != s->n_trans) {
+      if (fwrite(s_inp->trs[j], sizeof(double), s_inp->n_trans, fp_bin) != s_inp->n_trans) {
         fprintf(stderr, "parse_input.c, function parse_input_bin: unable to \
 write the PI matrix\n");
         printf( "program terminating due to the previous error.\n");
@@ -982,7 +1000,7 @@ files:\n%s\n", bin_fpstr);
     }
   }
 
-  if ((rc = eval_trs_mult(s)) != 0) {
+  if ((rc = eval_trs(s_inp)) != 0) {
 
     fprintf(stderr, "\n\nparse_input.c, function eval_trs: input matrix \
 integrity check failure.\n");

@@ -1,3 +1,19 @@
+# This file is part of Scatter.
+
+# Scatter is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# Scatter is distributed in the hope that it will be useful,
+# but without any warranty; without even the implied warranty of
+# merchantability or fitness for a particular purpose. See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Scatter, found in the "license" subdirectory of the root
+# directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>.
+
 # If the user specifies -DCMAKE_BUILD_TYPE on the command line, take its
 # definition and dump it in the cache along with proper documentation,
 # otherwise set CMAKE_BUILD_TYPE to Debug prior to calling PROJECT()
@@ -53,7 +69,7 @@ add_executable(sctr "${project_root_dir}/src/main.c")
 add_library(sctr_src
   "${project_root_dir}/src/parse_input.c"
   "${project_root_dir}/src/transitions.c"
-  "${project_root_dir}/src/spectrum_info.c"
+  "${project_root_dir}/src/sctr_input.c"
   "${project_root_dir}/src/calc_spec.c"
   )
 

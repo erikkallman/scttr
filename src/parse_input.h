@@ -1,35 +1,34 @@
+/* This file is part of Scatter. */
+
+/* Scatter is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU Lesser General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* Scatter is distributed in the hope that it will be useful, */
+/* but without any warranty; without even the implied warranty of */
+/* merchantability or fitness for a particular purpose. See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with Scatter, found in the "license" subdirectory of the root */
+/* directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>. */
 #ifndef PARSE_INPUT_H
 #define PARSE_INPUT_H
-#include "spectrum_info.h"
+#include "sctr_input.h"
 #include "dyn_array.h"
 
-/* function init_screen
-
-   * synopsis:
-
-   * algorithm:
-
-   * input:
-
-   * output:
-
-   * side-effects:
-
-   */
-screen
-init_screen (spec_info s);
-
 int
-get_erange (spec_info s,
+get_erange (sctr_input s_inp,
             double e);
 int
-add_sym (spec_info s);
+add_sym (sctr_input s_inp);
 
 int
-parse_input_bin (spec_info s,
+parse_input_bin (sctr_input s_inp,
                  char * bin_fpstr);
 int
-parse_molout (spec_info s,
+parse_molout (sctr_input s_inp,
               char * fn_relpath,
               char * tmp_fpstr );
 
@@ -47,24 +46,24 @@ parse_molout (spec_info s,
 
    */
 int
-check_trs (spec_info s);
+check_trs (sctr_input s_inp);
 
 int
-get_i (spec_info s,
+get_i (sctr_input s_inp,
        int from);
 int
 get_trs (int from,
         double ** trs);
 
 int
-get_il (spec_info s,
+get_il (sctr_input s_inp,
         int from);
 
 int
-get_inext (spec_info s,
+get_inext (sctr_input s_inp,
            int from);
 int
-get_ilnext (spec_info s,
+get_ilnext (sctr_input s_inp,
             int from);
 
 int
@@ -147,7 +146,7 @@ get_trsnext (double ** trs,
  */
 
 int
-parse_input_tmp (spec_info s,
+parse_input_tmp (sctr_input s_inp,
                  char * fn_tmpdata,
                  char * bin_fpstr);
 
@@ -165,9 +164,9 @@ parse_input_tmp (spec_info s,
 
    */
 void
-count_states (spec_info s);
+count_states (sctr_input s_inp);
 
 int
-parse_input (spec_info s);
+parse_input (sctr_input s_inp);
 
 #endif /* PARSE_INPUT_H */
