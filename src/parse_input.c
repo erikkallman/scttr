@@ -36,6 +36,7 @@
 #include "transitions.h"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 <<<<<<< HEAD:src/io/parse_input.c
 int
 get_erange (spec_info s,
@@ -322,6 +323,8 @@ for pointe rs in \"input_data\"\n");
 =======
 >>>>>>> f71c42e... new screening algorithm ready for cleaning and testing:src/parse_input.c
 
+=======
+>>>>>>> 8555cb4... splitting the eval_trs function
 =======
 >>>>>>> 8555cb4... splitting the eval_trs function
 int
