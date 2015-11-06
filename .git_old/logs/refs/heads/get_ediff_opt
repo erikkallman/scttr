@@ -1,3 +1,0 @@
-0000000000000000000000000000000000000000 4aeaea6a2cf54b86880dbba3599d163585521bdc vurma <erik.kallman@gmail.com> 1431080100 +0200	branch: Created from HEAD
-4aeaea6a2cf54b86880dbba3599d163585521bdc 519577a73399d8e7eb1f9521050facbf5c31bb0c vurma <erik.kallman@gmail.com> 1431080117 +0200	commit: compare the opts!
-519577a73399d8e7eb1f9521050facbf5c31bb0c 6d819882a496ad4d5e7d499c04029a55d1505a64 vurma <erik.kallman@gmail.com> 1431083893 +0200	commit: vurma: final commit of the branch. the get_ediff optimizations have been debugged and tested, providing a ~75% decrease in the number of instructions executed

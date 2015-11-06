@@ -1,3 +1,0 @@
-0000000000000000000000000000000000000000 c813a05a6950c1c462241dbe5b14991072956901 vurma <erik.kallman@gmail.com> 1428504029 +0200	branch: Created from HEAD
-c813a05a6950c1c462241dbe5b14991072956901 ad0e556faba5c5b7f6e04ca330b450dbf800b056 vurma <erik.kallman@gmail.com> 1428504104 +0200	commit: vurma: all details of the bug this branch is set to fix can be found in the TODO scheduled for 2015-04-08 'For some reason...'
-ad0e556faba5c5b7f6e04ca330b450dbf800b056 3c27a71ee1bdc0302f10a177c99b35606e556b98 vurma <erik.kallman@gmail.com> 1429188034 +0200	commit: the indexing problem was fixed, and the correct ground states are now added to the screened data

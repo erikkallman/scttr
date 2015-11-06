@@ -1,0 +1,81 @@
+/* This file is part of the scttr program. */
+
+/* scttr is free software: you can redistribute it and/or modify */
+/* it under the terms of the GNU Lesser General Public License as published by */
+/* the Free Software Foundation, either version 3 of the License, or */
+/* (at your option) any later version. */
+
+/* scttr is distributed in the hope that it will be useful, */
+/* but without any warranty; without even the implied warranty of */
+/* merchantability or fitness for a particular purpose. See the */
+/* GNU General Public License for more details. */
+
+/* You should have received a copy of the GNU General Public License */
+/* along with scttr, found in the "license" subdirectory of the root */
+/* directory of the scttr program. */
+/* If not, see <http://www.gnu.org/licenses/>. */
+/**
+ * @file mainpage.dox
+ * @mainpage
+ *
+ * @author Erik Källman
+ * @date November 2015
+ *
+ * @section intro Introduction
+ * The Scttr program is a Free and Open Source Software (FOSS) alternative to calculating resonant inelastic X-ray scattering spectra from results obtainable from standard quantum chemical software. Its input is a simple interface that reads energy eigenvalues and transition moments from either a binary or text file, and uses that information to calculate the experimentally observed spectrum obtained from performing resonant inelastic x-ray scattering (RIXS) experiments. As of currently (version 1.55), the program does this without taking destructive interference between scattering channels into account, as can be see in how the Kramers-Heisenberg formula is used in the program (see M. Lundberg et. al. 2013 for an example of how it is used and defined mathematically, and the calc_spec() function for the implementation). To do this, the user is provided with a well, documented command line interface giving the user a variety of options (spectral resolution, transition screening parameters etc.) to optimize the calculation time for a given input file.
+ *
+ * @section supp Platform support and dependencies
+ * Currently only Linux systems are supported (tested and developed on ubuntu 12.04), where compilation and documentation generation requires:
+ *- GCC of version > @p 4 (http://gcc.gnu.org/)
+ *- CMake of version >= 3.0.2 (http://www.cmake.org/)
+ *- Doxygen > 1.7 (http://www.doxygen.org/)
+ *- Gnuplot of version > 4 (http://www.gnuplot.info/)
+ *
+ * @section Compilation
+ * CMake builds the makefile subsequently used to generate the binary for the program. Build options currently limited to building a "Release" type binary (the default), or a "Debug" type binary. These options are chosen through the @p DCMAKE_BUILD_TYPE parameter, which is provided by the user from command line:
+ * <hr>
+ * cmake . -DCMAKE_BUILD_TYPE=Release
+ * <hr>
+ * or ..
+ * <hr>
+ * cmake . -DCMAKE_BUILD_TYPE=Debug
+ * <hr>
+ * These flags modify what flags are provided to the GCC compiler (the only compiler currently supported). The Debug option provides GCC with flags used to generate a binary suitable for debugging the program with Valgrind (see http://valgrind.org/) or the The Gnu Project Debugger (GDB, see https://www.gnu.org/software/gdb/), while the Release option compiles the program with @p o3 optimization (see the GCC manual for details https://gcc.gnu.org/).
+ * @section use Usage
+ *
+ * @subsection start Getting Started
+ * The test directory contains an example input file for a simple model system: Fe[II] in an octahedral field of point charges of 2 eV, 3Å away from the atomic center. It was calculated in the Molcas program (see http://www.molcas.org/). This file provides all the information needed by Scttr to generate a full RIXS spectrum: transitions between a set of ground, intermediate and final states; the energy eigenvalues of the states, along with the moments (pure quadrupole in this case) of the transitions between them.
+ *
+ * To obtain the RIXS spectrum for this system, execute Scttr by providing the following input flags:
+ *
+ * <hr>
+ * ./sctr -i ../test/fe2p_1s3d.log -e 0,60,7000,7500,0,60 -f 1.0,0.4 -o ../output/fe2p_1s3d/
+ * <hr>
+ *
+ * This should generate a set of files in the @p ../output/fe2p_1s3d/ directory:
+
+ * - fe2p_1s3d.bin: (a binary file containing the data in the @p trs variable (see the inp_node struct for details), and the number of transitions (@p n_trans, also a member of the inp_node struct)  found in the input file (stored in first byte of the binary).
+ * - fe2p_1s3d.tmp: the tmp file generated from the fe2p_1s3d.log input file.
+ * - fe2p_1s3d.dat: the data file containing the spetrum matrix calculated by the program.
+ * - fe2p_1s3d.gp: the plot script for the .dat file.
+ * The .gp file can be provided as input to the Gnuplot program, which, in turn will generate a file "fe2p_1s3d.png" in the same directory, which contains the RIXS spectrum.
+ *
+ * @subsection cli Command Line Interface
+ * By providing a range of different flags, the user can specify the details of the execution of the program. In the list below, those marked with @p [r] are required for the program to execute, while those marked with @p [d] have default values that will be used in case the user does not provide them, and unmarked flags are used in special cases only.
+ *- e[r]: the energy intervals (provided in eV) used by the program to classify a given energy state to either being a ground (G), intermediate (I), or final state(F). Example G in [0,50] eV, I in [7000,7500], and F in [30,60] should be provided as "-e 0,50,7000,7500,30,60".
+ *- f[d]: the full-width half-maxima of the gaussians used to broaden the spectrum in x and y dimension, and defaults to 0.5 and 0.5 respectively. Example: "-f 0.2,0,5"
+ *- F used specifically for reading the spin-orbit free energies in the molcas output (see the parse_molout() function for more details). Example "-F"
+ *- h help flag, directing the user to this section of the documentation. Example: "-h"
+ *- i[r]: used to provide an input file to the program by stating its path. Example: "-i /path/to/file"
+ *- o[r]: used to specify the output directory to the program by stating its path. Example: "-o /path/to/file/"
+ *- r[d]: defines the spectral resolution in x and y dimension in electron volt, and defaults to 0.05, 0.05 respectively. Example: "-r 0.1,0.1".
+ *- t[d]: threshold values used in the screening of the transitions found in the input file (see the set_spec() function for details). The first value defines the percentage of the total intensity in the plot that should be retained after screening. For example, "98" tells the program to screen out, starting from the least intense, as many of the transitions as possible, as long as 98% of the total intensity is retained. The second value defines how small of a Boltzmann weight should be accepted for a given ground state to be kept after screening. The first of the values (t1) defaults to 99, and the second (t2) defaults to 0.0001*t1 regardless if t1 is set to its default value or not. Example: "-t 0.5,0.0001".
+ *
+ * @section dev Development
+ * @subsection cont Want to contribute?
+ * If contributing to Scttr program, follow the present coding standard (https://www.kernel.org/doc/Documentation/CodingStyle) and read the documentation for each function you are interacting with to find out how to use it. Interface documentation can be found in the header files (.h) in the source code, and any documentation that is specific to the implementation of a given function is found in the (.c) source file. The program makes extensive use of the C struct to group data into easily accesible and understandable variables. Read through the "_s.h" suffixed files to get an understanding of how to use them.
+ * @subsection back Background
+ * The Scttr program was once a small and unstructured piece of code managed by the Bazaar (http://bazaar.canonical.com/en/) version control system, compiled with a simplistic make script and had little support for debugging with modern tools such as Valgrind or GDB. As a project for the Software Development Toolbox, provided in December of 2014 by the Swedish e-Science Education, the program eventually reached its current state. The code was completely restructured, and most parts of it rewritten for the sake of modularity. More extensive debugging and error messageing was implemented for all parts of the program. Furthermore CMake replaced the old make file building "system", Doxygen (see http://www.doxygen.org) is now used to generate documentation, and git replaced the outdated use of the Bazaar program. A three-branch model for revision control has been employed, where one release, one master and one development branch are developed in parallel. All release and development branches are merged back to the master branch to keep it up to date and minimize master branch merge conflicts. The linux kernel coding standard (with the minor modification of using two-character indentation) has been enforced throughout the entire code base.
+ *
+ *
+ */

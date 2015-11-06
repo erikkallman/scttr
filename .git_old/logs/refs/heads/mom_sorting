@@ -1,2 +1,0 @@
-0000000000000000000000000000000000000000 6d819882a496ad4d5e7d499c04029a55d1505a64 vurma <erik.kallman@gmail.com> 1431084073 +0200	branch: Created from HEAD
-6d819882a496ad4d5e7d499c04029a55d1505a64 2eab3c2168b3639e9b3e3e635da037cff69d0a02 vurma <erik.kallman@gmail.com> 1431356550 +0200	commit: vurma:the set_ttype function is now debugged and will work regardless of how many transition moment types that are included.

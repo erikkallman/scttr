@@ -1,4 +1,3 @@
-
 cmake/*
 !cmake/CMakeLists.txt
 !cmake/smap_cfg.h.in
@@ -6,6 +5,9 @@ output/*
 test/*
 !test/fe2p_1s3d.log
 !test/fe2p_2p1s.log
+doc/*
+!doc/Doxyfile
+!doc/mainpage.h
 
 # Compiled source #
 ###################

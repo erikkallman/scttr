@@ -1,2 +1,0 @@
-0000000000000000000000000000000000000000 90a8464940dfdd8deac341812fdda6d9007ba262 vurma <erik.kallman@gmail.com> 1429609869 +0200	branch: Created from HEAD
-90a8464940dfdd8deac341812fdda6d9007ba262 8e1a38044ca1fd46993fd61cf5ed594c45385112 vurma <erik.kallman@gmail.com> 1429624087 +0200	commit: vurma: corrected file and variable names to be more descriptive. moved code from pare_input to estate.c and info_node.c to make the parse_input file less cluttered.

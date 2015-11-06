@@ -1,2 +1,0 @@
-0000000000000000000000000000000000000000 fa8e7a10a424f78cdd8d567114173981e342d6dc vurma <erik.kallman@gmail.com> 1424099185 +0100	branch: Created from HEAD
-fa8e7a10a424f78cdd8d567114173981e342d6dc 35b214f7f86d9f1da96dfa53ea41661a490e397b vurma <erik.kallman@gmail.com> 1424170062 +0100	commit: vurma: sort_states now correctly extracts the right initial state indices depending on them being within a certain value of the boltzmann weight. Proceeding with adding functionality to screen for intermediate states.

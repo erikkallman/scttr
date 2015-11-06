@@ -1,2 +1,0 @@
-0000000000000000000000000000000000000000 17edb529e00cc9b16eaa867a6256c648e4c60260 vurma <erik.kallman@gmail.com> 1426499411 +0100	branch: Created from HEAD
-17edb529e00cc9b16eaa867a6256c648e4c60260 46a5da08b29f4e111e9793e82d681e70377f4460 vurma <erik.kallman@gmail.com> 1426512742 +0100	commit: vurma: testing a k_means algorithm depending on relative energies, which should provide the same result as one with absolute energies.

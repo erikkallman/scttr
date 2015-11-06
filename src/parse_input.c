@@ -1,18 +1,19 @@
-/* This file is part of Scatter. */
+/* This file is part of the scttr program. */
 
-/* Scatter is free software: you can redistribute it and/or modify */
+/* scttr is free software: you can redistribute it and/or modify */
 /* it under the terms of the GNU Lesser General Public License as published by */
 /* the Free Software Foundation, either version 3 of the License, or */
 /* (at your option) any later version. */
 
-/* Scatter is distributed in the hope that it will be useful, */
+/* scttr is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
 /* GNU General Public License for more details. */
 
 /* You should have received a copy of the GNU General Public License */
-/* along with Scatter, found in the "license" subdirectory of the root */
-/* directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>. */
+/* along with scttr, found in the "license" subdirectory of the root */
+/* directory of the scttr program. */
+/* If not, see <http://www.gnu.org/licenses/>. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -25,15 +26,17 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "dyn_array.h"
-#include "sctr_input.h"
-#include "quicksort.h"
+#include "scttr_input.h"
+#include "iquicks.h"
 #include "std_char_ops.h"
 #include "std_num_ops.h"
-#include "get_numsl.h"
+#include "get_nums.h"
 #include "parse_input.h"
 #include "formats.h"
 #include "sci_const.h"
 #include "transitions.h"
+#include "metadata_s.h"
+#include "spectrum.h"
 
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -328,93 +331,90 @@ for pointe rs in \"input_data\"\n");
 =======
 >>>>>>> 8555cb4... splitting the eval_trs function
 int
-parse_input_bin (sctr_input s_inp,
-                 char * bin_fpstr
-                 ) {
-  printf( "\n      processing binary file corresponding to the provided input file ..");
+parse_input_bin (scttr_input s_inp,char *bin_fpstr)
+{
+  printf("\n      processing binary file corresponding to the provided input file ..");
   fflush(stdout);
   int j; /* looping variables */
 
   int pi_xdim,pi_ydim;
 
   /* test writing to binary */
-  FILE * fp_bin = fopen(bin_fpstr,"rb");
+  FILE *fp_bin = fopen(bin_fpstr,"rb");
 
   if ( fread(&pi_ydim, sizeof(int),1,fp_bin) != 1) {
     fprintf(stderr, "parse_input.c, parse_input_bin: unable to read pi_ydim from binary output file \n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   pi_xdim = 6;
-  s_inp -> n_trans = pi_ydim;
+  s_inp->n_trans = pi_ydim;
 
-  if((s_inp -> trs = malloc(pi_xdim*sizeof(double*))) == NULL ){
+  if((s_inp->trs = malloc(pi_xdim*sizeof(double *))) == NULL ) {
     fprintf(stderr, "parse_input_bin, malloc: failed to allocate memory for\
  \"input_data\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j=0; j<pi_xdim; j++) {
-    if((s_inp -> trs[j] = malloc((pi_ydim+1)*sizeof(double))) == NULL ){
+    if((s_inp->trs[j] = malloc((pi_ydim+1)*sizeof(double))) == NULL ) {
       fprintf(stderr, "parse_input_bin, malloc: failed to allocate memory \
 for pointers in \"input_data\"\n");
-      printf( "program terminating due to the previous error.\n");
+      printf("program terminating due to the previous error.\n");
       exit(1);
     }
   }
 
   for (j=0; j<6; j++) {
-    if (fread(s_inp -> trs[j], sizeof(double), s_inp -> n_trans, fp_bin) != s_inp -> n_trans) {
+    if (fread(s_inp->trs[j], sizeof(double), s_inp->n_trans, fp_bin) != s_inp->n_trans) {
       fprintf(stderr, "parse_input.c, function parse_input_bin: unable to read the PI matrix\n");
-      printf( "program terminating due to the previous error.\n");
+      printf("program terminating due to the previous error.\n");
       fclose(fp_bin);
       exit(1);
     }
   }
 
-  s_inp -> e0 = s_inp->trs[2][j];
+  s_inp->e0 = s_inp->trs[2][j];
 
   for (j=0; j<pi_ydim; j++) {
-    if (s_inp -> trs[2][j] < s_inp->e0) {
-      s_inp -> e0 = s_inp -> trs[2][j];
+    if (s_inp->trs[2][j] < s_inp->e0) {
+      s_inp->e0 = s_inp->trs[2][j];
     }
   }
 
-  s_inp -> trs[0][pi_ydim] = -1;
+  s_inp->trs[0][pi_ydim] = -1;
 
   if (fclose(fp_bin) != 0) {
     fprintf(stderr, "parse_input.c, function parse_input_bin: unable to close file:\n%s\n", bin_fpstr);
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
-  printf( " done\n");
+  printf(" done\n");
   return 1;
 }
 
 int
-parse_molout (sctr_input s_inp,
-              char * fn_relpath,
-              char * tmp_fpstr
-              ) {
-  printf( "\n      parsing the molcas .log file .. \n");
+parse_molout (scttr_input s_inp,char *fn_relpath,char *tmp_fpstr)
+{
+  printf("\n      parsing the molcas .log file .. \n");
   int j,k,l,m; /* control loop variables */
   int mode; /* string matching mode flag */
   int string_flag = 0;
   int n_match = 0;
 
-  FILE * fp_tmpdata;
-  FILE * fp_relpath;
+  FILE *fp_tmpdata;
+  FILE *fp_relpath;
 
   int c; /* ntemporary char for storing input file characters */
   /* we are looking for four strings in the output file: one at the beginning
      of each data block, and one at the end. */
-  char * s1 = NULL;
-  char * s2 = NULL;
-  char * s3 = NULL;
+  char *s1 = NULL;
+  char *s2 = NULL;
+  char *s3 = NULL;
 
-  char * str_buf = malloc(BUF_SIZE*5);
+  char *str_buf = malloc(BUF_SIZE*5);
   if (s_inp->md->so_enrg == 0) {
 
     /* read spin-orbit data */
@@ -426,7 +426,7 @@ parse_molout (sctr_input s_inp,
     s2 = "Dipole transition strengths (SO states)";
     s3 = "Quadrupole transition strengths (SO states)";
   }
-  else if(s_inp->md->so_enrg == 1){
+  else if(s_inp->md->so_enrg == 1) {
 
     /* read spin-orbit free data */
     s1 = malloc(19);
@@ -438,16 +438,16 @@ parse_molout (sctr_input s_inp,
     s3 = "Quadrupole transition strengths:";
   }
 
-  const char * lookup_str[3] = {s1,s2,s3};
+  const char *lookup_str[3] = {s1,s2,s3};
 
   if((fp_relpath = fopen(fn_relpath, "r")) == NULL) {
     fprintf(stderr,"parse_input: unable to open the input file %s.\n",fn_relpath);
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
   if((fp_tmpdata = fopen(tmp_fpstr, "w+")) == NULL) {
     fprintf(stderr,"parse_input: unable to open the output file %s.\n",tmp_fpstr);
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
@@ -458,7 +458,7 @@ parse_molout (sctr_input s_inp,
   /* read the Molcas input file */
   for (j=0; ((c = fgetc(fp_relpath)) != EOF) && (n_match != 3); j++, k++) {
     if (j % 100000 == 0) {
-      printf( "        %.2f%%\r", (((float)(j*sizeof(char))/(float)s_inp->md->sz_inp)*100));
+      printf("        %.2f%%\r", (((float)(j*sizeof(char))/(float)s_inp->md->sz_inp)*100));
     }
 
     str_buf[k]                        = (char)c;
@@ -471,12 +471,12 @@ parse_molout (sctr_input s_inp,
         /* check so that the string that was read only contains numbers */
         if ((isanyalpha(str_buf,k) == 0) &&
             (isdashes(str_buf,k)   == 0) &&
-            (isempty(str_buf,k)    == 0)){
+            (isempty(str_buf,k)    == 0)) {
 
           if (string_flag == 0) {
 
             /* we are now reading numbers. accept no strings */
-            string_flag =  bin_flip(string_flag);
+            string_flag =  BIN_FLIP(string_flag);
           }
 
           for (m = 0; m<=k; m++) {
@@ -485,12 +485,12 @@ parse_molout (sctr_input s_inp,
         }
         /* if we find a flag while string_flag ==1 and mode ==1, we jhave
            read beyond the table */
-        else if(string_flag == 1){
-          string_flag = bin_flip(string_flag);
+        else if(string_flag == 1) {
+          string_flag = BIN_FLIP(string_flag);
 
           /* something was read that was not a number flip back
              to searching for new line matches */
-          mode    = bin_flip(mode);
+          mode    = BIN_FLIP(mode);
 
           n_match++;
 
@@ -504,12 +504,12 @@ parse_molout (sctr_input s_inp,
         /* we found the first substring, the data we're looking for is
            inside the coming table of numbers of text. switch to mode 1.*/
         fprintf(fp_tmpdata,"%s\n",lookup_str[l]);
-        mode    = bin_flip(mode);
+        mode    = BIN_FLIP(mode);
       }
       k = 0;
     }
   }
-  printf( "          100%%\r" );
+  printf("          100%%\r");
   if ((fclose(fp_tmpdata) != 0) &&\
       (fclose(fp_relpath) != 0)) {
     fprintf(stderr, "parse_input.c, function parse_molout: unable to close files:\n%s\n%s\n", tmp_fpstr,fn_relpath);
@@ -517,16 +517,14 @@ parse_molout (sctr_input s_inp,
     exit(1);
   }
   free(str_buf);
-  printf( "\n      done. \n");
+  printf("\n      done. \n");
   return 1;
 }
 
 int
-parse_input_tmp (sctr_input s_inp,
-                 char * fn_tmpdata,
-                 char * bin_fpstr
-                 ) {
-  printf( "\n      parsing the tmp file .. \n");
+parse_input_tmp (scttr_input s_inp,char *fn_tmpdata,char *bin_fpstr)
+{
+  printf("\n      parsing the tmp file .. \n");
   int j,k,l,m,j_test; /* control loop variables */
   int idx_from;
   int idx_to;
@@ -538,35 +536,35 @@ parse_input_tmp (sctr_input s_inp,
 
   int trs_type;
 
-  int * num_idxs1;
-  int * num_idxs2;
-  int * trs_types;
-  int *     idxs_eigval;
-  int * proc_idx;
-  double * state_er = s_inp->md->state_er;
+  int *num_idxs1;
+  int *num_idxs2;
+  int *trs_types;
+  int *idxs_eigval;
+  int *proc_idx;
+  double *state_er = s_inp->md->state_er;
   double tmp_idx = 0;
   double maxr    = get_maxl(state_er,state_er[0]);
   double from_state_en, to_state_en, tmp_state_en;
 
-  double *  e_eigval;
-  double *  t_mom;
+  double *e_eigval;
+  double *t_mom;
 
-  double ** trs_buf;
-  double ** trans_idxs;
+  double **trs_buf;
+  double **trans_idxs;
 
   /* variables used later to approximate the amount of input data */
   int sz_tmp;
   struct stat st = {0};
 
-  FILE * fp_tmpdata;
+  FILE *fp_tmpdata;
 
   int c; /* temporary char for storing input file characters */
   /* we are looking for four strings in the output file: one at the beginning
      of each data block, and one at the end. */
-  char * str_buf = malloc(BUF_SIZE*5);
-  char * s1 = NULL;
-  char * s2 = NULL;
-  char * s3 = NULL;
+  char *str_buf = malloc(BUF_SIZE*5);
+  char *s1 = NULL;
+  char *s2 = NULL;
+  char *s3 = NULL;
 
   if (s_inp->md->so_enrg == 0) {
 
@@ -576,7 +574,7 @@ parse_input_tmp (sctr_input s_inp,
     s2 = "Dipole transition strengths (SO states)";
     s3 = "Quadrupole transition strengths (SO states)";
   }
-  else if(s_inp->md->so_enrg == 1){
+  else if(s_inp->md->so_enrg == 1) {
 
     s1 = "SPIN-FREE ENERGIES";
     s2 = "Dipole transition strengths";
@@ -584,7 +582,7 @@ parse_input_tmp (sctr_input s_inp,
   }
 
   /* create a pointer to the three data block beginners s1,s3, */
-  const char * lookup_str[3] = {s1,s2,s3};
+  const char *lookup_str[3] = {s1,s2,s3};
 
   stat(fn_tmpdata,&st);
   sz_tmp = (int)st.st_size; /* file size in bytes */
@@ -593,7 +591,7 @@ parse_input_tmp (sctr_input s_inp,
   /* open the input file */
   if((fp_tmpdata = fopen(fn_tmpdata, "r")) == NULL) {
     fprintf(stderr,"parse_input: unable to open the input file %s.\n",fn_tmpdata);
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
@@ -601,22 +599,22 @@ parse_input_tmp (sctr_input s_inp,
   l = 0; /* index for lookup string */
 
   /* storage for the energy eigenvalues */
-  if((e_eigval = malloc(sz_tmp*sizeof(double))) == NULL ){
+  if((e_eigval = malloc(sz_tmp*sizeof(double))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
-  if((trs_types = malloc(sz_tmp*sizeof(double))) == NULL ){
+  if((trs_types = malloc(sz_tmp*sizeof(double))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
-  if((idxs_eigval = malloc(sz_tmp*sizeof(int))) == NULL ){
+  if((idxs_eigval = malloc(sz_tmp*sizeof(int))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"idxs_eigval\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
@@ -624,41 +622,41 @@ parse_input_tmp (sctr_input s_inp,
     idxs_eigval[j] = -1;
   }
   /* storage for the transition moments */
-  if((t_mom = malloc(sz_tmp*sizeof(double))) == NULL ){
+  if((t_mom = malloc(sz_tmp*sizeof(double))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
     /* storage for the transition indexes, column 1 is from a state
      column 2 is to state index */
-  if((trans_idxs = malloc(2*sizeof(double*))) == NULL ){
+  if((trans_idxs = malloc(2*sizeof(double *))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j=0; j<2; j++) {
-    if((trans_idxs[j] = malloc(sz_tmp*sizeof(double))) == NULL ){
+    if((trans_idxs[j] = malloc(sz_tmp*sizeof(double))) == NULL ) {
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
-      printf( "program terminating due to the previous error.\n");
+      printf("program terminating due to the previous error.\n");
       exit(1);
     }
   }
 
-  if((num_idxs1 = malloc(2*sizeof(int))) == NULL ){
+  if((num_idxs1 = malloc(2*sizeof(int))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
-  if((num_idxs2 = malloc(3*sizeof(int))) == NULL ){
+  if((num_idxs2 = malloc(3*sizeof(int))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"e_eigval\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
@@ -695,7 +693,7 @@ parse_input_tmp (sctr_input s_inp,
         if ((j == 0) && (isempty(str_buf,l) != 1)) {
 
           /* extract energy eigenvalues and state indexes */
-          get_numsl(str_buf,num_idxs1,l,n_idxs1,&tmp_idx,&e_eigval[n_states]);
+          get_nums(str_buf,num_idxs1,l,n_idxs1,&tmp_idx,&e_eigval[n_states]);
           if ((fabs(e_eigval[n_states]-e_eigval[0])*AUTOEV) \
               < maxr) {
             idxs_eigval[(int)tmp_idx-1] = n_states+1;
@@ -707,9 +705,9 @@ parse_input_tmp (sctr_input s_inp,
           if (n_trans == 0) { /* pre-process the eigenvalues */
 
             /* sort the states in energy */
-            quicksort(e_eigval,idxs_eigval,0,n_states-1,n_states);
+            iquicks(e_eigval,idxs_eigval,0,n_states-1,n_states);
 
-            s_inp -> e0 = e_eigval[0];
+            s_inp->e0 = e_eigval[0];
             /* adjust n_states so that it accounts for states not to be read
              due to being outside of the input range */
             m = 0;
@@ -722,7 +720,7 @@ parse_input_tmp (sctr_input s_inp,
             n_states = m;
           }
           /* extract transition moments and transition indexes */
-          get_numsl(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][n_trans],\
+          get_nums(str_buf,num_idxs2,l,n_idxs2,&trans_idxs[0][n_trans],\
                     &trans_idxs[1][n_trans],&t_mom[n_trans]);
           trs_types[n_trans] = trs_type;
 
@@ -749,42 +747,42 @@ parse_input_tmp (sctr_input s_inp,
   /* allocate space for the "parsed input matrix" that will be filled with data
      in the remaining sections of this function */
 
-  if((proc_idx = malloc(n_states*sizeof(int))) == NULL ){
+  if((proc_idx = malloc(n_states*sizeof(int))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"proc_idx\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
-  if((s_inp->trs = malloc(6*sizeof(double*))) == NULL ){
+  if((s_inp->trs = malloc(6*sizeof(double *))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"input_data\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j=0; j<6; j++) {
-    if((s_inp->trs[j] = malloc((n_trans+1)*sizeof(double))) == NULL ){
+    if((s_inp->trs[j] = malloc((n_trans+1)*sizeof(double))) == NULL ) {
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
 for pointers in \"input_data\"\n");
-      printf( "program terminating due to the previous error.\n");
+      printf("program terminating due to the previous error.\n");
       exit(1);
     }
   }
   s_inp->trs[0][n_trans] = -1; /* end of list */
 
-  if((trs_buf = malloc(6*sizeof(double*))) == NULL ){
+  if((trs_buf = malloc(6*sizeof(double *))) == NULL ) {
     fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for\
  \"input_data\"\n");
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j=0; j<6; j++) {
-    if((trs_buf[j] = malloc((n_trans+1)*sizeof(double))) == NULL ){
+    if((trs_buf[j] = malloc((n_trans+1)*sizeof(double))) == NULL ) {
       fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory \
 for pointers in \"input_data\"\n");
-      printf( "program terminating due to the previous error.\n");
+      printf("program terminating due to the previous error.\n");
       exit(1);
     }
   }
@@ -800,7 +798,7 @@ for pointers in \"input_data\"\n");
 
   while (l<n_trans-1) {
     if (l % 1 == 0) {
-      printf( "        %.2f%%\r", (((float)l/(float)n_trans)*100));
+      printf("        %.2f%%\r", (((float)l/(float)n_trans)*100));
     }
     if ((j+l) == (n_trans)) {
       /* dont read beyond the last value in PI */
@@ -875,8 +873,8 @@ for pointers in \"input_data\"\n");
   }
 
   s_inp->trs[0][l] = -1;
-  s_inp -> n_trans = l;
-  printf( "          100%%\r");
+  s_inp->n_trans = l;
+  printf("          100%%\r");
 
   if (fclose(fp_tmpdata) != 0) {
     fprintf(stderr, "parse_input.c, function parse_input_tmp: unable to close file:\n%s\n", fn_tmpdata);
@@ -906,26 +904,26 @@ for pointers in \"input_data\"\n");
 
   free(str_buf);
 
-  printf( "\n      done.\n");
+  printf("\n      done.\n");
   return EXIT_SUCCESS;
 
 }
 
 int
-parse_input (sctr_input s_inp
-             ){
+parse_input (scttr_input s_inp)
+{
   int j;
   int rc;                       /* return code */
 
-  FILE * fp_tmp;
-  FILE * fp_bin;
+  FILE *fp_tmp;
+  FILE *fp_bin;
 
-  metadata md = s_inp -> md;
+  metadata md = s_inp->md;
 
-  char * bin_fpstr = concs(3,md->outpath,md->inp_fn,bin_sfx);
-  char * tmp_fpstr = concs(3,md->outpath,md->inp_fn,tmp_sfx);
-  char * format = md->inp_sfx;
-  char * inpath = md -> inpath;
+  char *bin_fpstr = concs(3,md->outpath,md->inp_fn,bin_sfx);
+  char *tmp_fpstr = concs(3,md->outpath,md->inp_fn,tmp_sfx);
+  char *format = md->inp_sfx;
+  char *inpath = md->inpath;
 
   fp_bin = fopen(bin_fpstr,"r");
   if (fp_bin != NULL) {
@@ -945,7 +943,7 @@ parse_input (sctr_input s_inp
       if (fp_tmp == NULL) {
         fprintf(stderr, "parse_input.c, function parse_input: unable to locate\
  file %s for processing.\n",inpath);
-        printf( "program terminating due to the previous error.\n");
+        printf("program terminating due to the previous error.\n");
         fclose(fp_tmp);
         exit(1);
       } else {
@@ -957,7 +955,7 @@ parse_input (sctr_input s_inp
       parse_input_tmp(s_inp, inpath, bin_fpstr);
     }
     if ((md->state_er[1] == md->state_er[5]) &&
-        (md->state_er[2] == md->state_er[6])){
+        (md->state_er[2] == md->state_er[6])) {
 
       count_states(s_inp);
       add_sym(s_inp);
@@ -969,7 +967,7 @@ parse_input (sctr_input s_inp
     if ((fp_bin = fopen(bin_fpstr,"wb")) == NULL) {
       fprintf(stderr, "parse_input.c, function parse_input_bin: unable to open\
 the binary file used to store the PI matrix: %s\n", bin_fpstr);
-      printf( "program terminating due to the previous error.\n");
+      printf("program terminating due to the previous error.\n");
       exit(1);
     }
 
@@ -980,7 +978,7 @@ the binary file used to store the PI matrix: %s\n", bin_fpstr);
     if ((fp_bin = fopen(bin_fpstr,"ab")) == NULL) {
       fprintf(stderr, "parse_input.c, function parse_input_bin: unable to open\
 the binary file used to store the PI matrix: %s\n", bin_fpstr);
-      printf( "program terminating due to the previous error.\n");
+      printf("program terminating due to the previous error.\n");
       exit(1);
     }
 
@@ -988,14 +986,14 @@ the binary file used to store the PI matrix: %s\n", bin_fpstr);
       if (fwrite(s_inp->trs[j], sizeof(double), s_inp->n_trans, fp_bin) != s_inp->n_trans) {
         fprintf(stderr, "parse_input.c, function parse_input_bin: unable to \
 write the PI matrix\n");
-        printf( "program terminating due to the previous error.\n");
+        printf("program terminating due to the previous error.\n");
         fclose(fp_bin);
         exit(1);
       }
       fflush(fp_bin);
     }
 
-    if (fclose(fp_bin) != 0){
+    if (fclose(fp_bin) != 0) {
       fprintf(stderr, "parse_input.c, function parse_input_tmp: unable to close\
 files:\n%s\n", bin_fpstr);
       printf("program terminating due to the previous error.\n");
@@ -1003,19 +1001,19 @@ files:\n%s\n", bin_fpstr);
     }
   }
 
-  if ((rc = eval_trs(s_inp)) != 0) {
+  if ((rc = set_root_spec(s_inp)) != 0) {
 
-    fprintf(stderr, "\n\nparse_input.c, function eval_trs: input matrix \
+    fprintf(stderr, "\n\nparse_input.c, function set_root_spec: input matrix \
 integrity check failure.\n");
 
     if (rc == -1) {
       fprintf(stderr, "\nthe get_i function was unable to obtain the element index for some states.\n");
     }
-    else if(rc >= 0){
+    else if(rc >= 0) {
       fprintf(stderr, "\nstate %d occured multiple times in the input matrix. \
 Symmetric transitions were erronously added, most likely a failure in the fwdsplice function.\n",rc);
     }
-    printf( "program terminating due to the previous error.\n");
+    printf("program terminating due to the previous error.\n");
     exit(EXIT_FAILURE);
   }
 
