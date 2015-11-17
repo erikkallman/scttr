@@ -1,3 +1,4 @@
+/* Copyright (C) 2015 Erik Källman */
 /* This file is part of the scttr program. */
 
 /* scttr is free software: you can redistribute it and/or modify */
@@ -37,6 +38,8 @@
 #include "inp_node_s.h"
 #include "metadata_s.h"
 #include "transitions.h"
+#include "scttr_cfg.h"
+
 /**
    * @file scttr_io.c
    * @author Erik Källman
@@ -59,7 +62,7 @@ init_md ()
 {
   struct metadata *new_md;
 
-  if((new_md = malloc(sizeof(struct metadata *))) == NULL ) {
+  if((new_md = malloc(sizeof(struct metadata))) == NULL ) {
     fprintf(stderr, "\n\nscttr_io.c: function init_md, malloc: failed to allocate memory for \"new_md\"\n");
     printf("program terminating due to the previous error.\n\n");
     exit(1);
@@ -108,7 +111,7 @@ init_inp (struct metadata *md)
 
   struct inp_node *new_inp;
 
-  if((new_inp = malloc(sizeof(struct inp_node_s*))) == NULL ) {
+  if((new_inp = malloc(sizeof(struct inp_node))) == NULL ) {
     fprintf(stderr, "\n\nscttr_io.c: function init_inp, malloc: failed to allocate memory for \"new_inp\"\n");
     printf("program terminating due to the previous error.\n\n");
     exit(1);
@@ -138,8 +141,10 @@ free_inp (struct inp_node *inp)
 {
   int j;
 
-  inp -> last -> next = inp -> next;
-  inp -> next -> last = inp -> last;
+  if (n_inp > 1) {
+    inp -> last -> next = inp -> next;
+    inp -> next -> last = inp -> last;
+  }
 
   for (j = 0; j < 6; j++) {
     free(inp -> trs[j]);
@@ -902,8 +907,9 @@ write_plotscript (struct inp_node *inp,
                            inp -> md -> inp_fn, plot_sfx);
 
   /* open the placeholder file */
-  if((fp_plot_in = fopen("../src/plot_template", "r"))==NULL) {
-    fprintf(stderr, "\n\nscttr_io.c, function write_plotscript: unable to open the output file ../src/plot_template.\n");
+  if((fp_plot_in = fopen(PLOT_TEMPLATE_PTH, "r"))==NULL) {
+    fprintf(stderr, "\n\nscttr_io.c, function write_plotscript: unable to open the output file %s.\n"
+            ,PLOT_TEMPLATE_PTH);
     printf("program terminating due to the previous error.\n\n");
     exit(1);
   }

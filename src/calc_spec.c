@@ -1,3 +1,4 @@
+/* Copyright (C) 2015 Erik Källman */
 /* This file is part of the scttr program. */
 
 /* scttr is free software: you can redistribute it and/or modify */

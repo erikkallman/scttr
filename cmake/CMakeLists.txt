@@ -22,11 +22,13 @@
 cmake_minimum_required(VERSION 2.8)
 project(scttr C)
 enable_language(C)
-set (SCTTR_VERSION_MAJOR 1)
-set (SCTTR_VERSION_MINOR 5)
+
+set (SCTTR_VERSION_MAJOR 0)
+set (SCTTR_VERSION_MINOR 3)
+set (TEMPLATE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../src/plot_template")
 
 if ( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
-  message( FATAL_ERROR "As CMake is currently configured in-source builds not allowed. In order to build Scttr, create and/or enter the directory where you want the program to be installed, then run CMake from there. You may need to remove the CMakeCache.txt file if CMake has been ran in the directory previously without being deleted." )
+  message( "In-source builds are allowed but not recommended. In order to build Scttr, create and/or enter the directory where you want the program to be installed, then run CMake from there. You may need to remove the CMakeCache.txt file if CMake has been ran in the directory previously without being deleted." )
 endif()
 
 IF(DEFINED CMAKE_BUILD_TYPE)
@@ -38,6 +40,42 @@ ELSE()
 options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release
 RelWithDebInfo MinSizeRel.")
 ENDIF()
+
+find_program (GIT "git")
+mark_as_advanced(FORCE GIT)
+
+message ("Detecting scttr version from git repository:")
+set (SCTTR_GIT_REPO "${PROJECT_SOURCE_DIR}/../.git")
+set (PLOT_TEMPLATE_PTH "${PROJECT_SOURCE_DIR}/../src/plot_template")
+if (EXISTS ${GIT} AND EXISTS ${SCTTR_GIT_REPO})
+        # always set the HEAD as a source for configuring
+        configure_file ("${SCTTR_GIT_REPO}/HEAD" git-head COPYONLY)
+        # if it is a ref to a named branch, include the branch ref too
+        file (READ "${SCTTR_GIT_REPO}/HEAD" HEAD_STRING)
+        string (STRIP "${HEAD_STRING}" HEAD_STRING)
+        string (REPLACE "ref: " "" HEAD_REF "${HEAD_STRING}")
+        if (EXISTS "${SCTTR_GIT_REPO}/${HEAD_REF}")
+          configure_file ("${SCTTR_GIT_REPO}/${HEAD_REF}" git-head-ref COPYONLY)
+        endif ()
+        # now, get the actual version from the git describe tool
+        execute_process (
+                COMMAND ${GIT} "describe" "--always" "--dirty" "--match" "v*"
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                OUTPUT_VARIABLE SCTTR_VERSION
+                ERROR_VARIABLE GIT_DESCRIBE_ERROR
+                RESULT_VARIABLE GIT_DESCRIBE_RC
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                )
+        if (GIT_DESCRIBE_RC)
+                message (FATAL_ERROR "Failed to run git: ${GIT_DESCRIBE_ERROR}")
+        endif ()
+else ()
+        set (SCTTR_VERSION "unknown")
+endif ()
+
+message ("-- SCTTR_VERSION: ${SCTTR_VERSION}")
+configure_file (${PROJECT_SOURCE_DIR}/scttr_cfg.h.in ${PROJECT_SOURCE_DIR}/../src/scttr_cfg.h)
+configure_file (${PROJECT_SOURCE_DIR}/mainpage.h.in ${PROJECT_SOURCE_DIR}/../doc/mainpage.h)
 
 set(project_root_dir "../")
 include_directories("${project_root_dir}/src")
@@ -51,6 +89,7 @@ include_directories("${project_root_dir}/libs/num_ops")
 configure_file (
    "${project_root_dir}/cmake/scttr_cfg.h.in"
    "${project_root_dir}/src/scttr_cfg.h"
+   @ONLY
    )
 
 message(STATUS "Adding compiler flags")
@@ -58,13 +97,17 @@ message(STATUS "Adding compiler flags")
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../doc/doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doxyfile.in @ONLY)
+  configure_file(${PROJECT_SOURCE_DIR}/doxyfile.h.in ${CMAKE_CURRENT_BINARY_DIR}/doxyfile.in @ONLY)
+  configure_file(${PROJECT_SOURCE_DIR}/mainpage.h.in ${CMAKE_CURRENT_BINARY_DIR}/mainpage.h @ONLY)
   message(STATUS "Creating documentation inside the build directory with Doxygen.")
   add_custom_target(doc
     ALL
-    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doxyfile.in
+    ${DOXYGEN_EXECUTABLE}
+    ${CMAKE_CURRENT_BINARY_DIR}/doxyfile.in
+    ${CMAKE_CURRENT_BINARY_DIR}/mainpage.h
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
+  message ("${CMAKE_CURRENT_BINARY_DIR}/")
 endif(DOXYGEN_FOUND)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

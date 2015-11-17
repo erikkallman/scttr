@@ -1,3 +1,4 @@
+/* Copyright (C) 2015 Erik Källman */
 /* This file is part of the scttr program. */
 
 /* scttr is free software: you can redistribute it and/or modify */
@@ -36,10 +37,8 @@ get_erange (struct inp_node *inp,double e)
     }
   }
 
-  fprintf(stderr, "state of energy %le %le is not inside any of the energy ranges provided in the input\n"
-          ,e, inp -> e0);
-  printf("program terminating due to the previous error.\n");
-  exit(EXIT_FAILURE);
+  return -1;
+
 }
 
 int
@@ -254,12 +253,14 @@ add_sym (struct inp_node *inp)
   int nt_el = inp -> n_trans;
   int sz_buf = inp -> n_tmax;
 
-  /* in the worst case, there is an elastic transition from every intermediate state, to every final state. */
-  long int sz_el = ((inp -> n_trans * inp -> n_gfs) * 2) + 1;
+  /* in the worst case, there is an elastic transition from every intermediate state, to every final state, in addition to the transitions already present. */
+  /* long int sz_el = ((inp -> n_trans * inp -> n_gfs) * 2) + 1; */
+  /* long int sz_el = ((inp -> n_is * inp -> n_gfs) * 2) + inp -> n_trans + 1; */
+  long int sz_el = (inp -> n_trans * 2) + 1;
 
-  if (nt_el > sz_el) {
-    fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= sz_el = %ld.\n"
-            , nt_el, sz_el);
+  if (nt_el > (int)sz_el) {
+    fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= sz_el = %d.\n"
+            , nt_el, (int)(sz_el));
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
@@ -298,8 +299,8 @@ add_sym (struct inp_node *inp)
 
   for (j=0; j < 6; j++) {
     if((trs_el[j] = malloc((sz_el + 1) * sizeof(double))) == NULL ) {
-      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for pointers in \"trs_el[%d]\"\n"
-              ,j);
+      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for pointers in \"trs_el[%d]\". sz_el = %d\n"
+              ,j, (int)sz_el);
       printf("program terminating due to the previous error.\n");
       exit(1);
     }

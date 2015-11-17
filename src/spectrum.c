@@ -1,3 +1,4 @@
+/* Copyright (C) 2015 Erik Källman */
 /* This file is part of the scttr program. */
 
 /* scttr is free software: you can redistribute it and/or modify */
@@ -47,7 +48,7 @@ struct spectrum *
 init_spec (struct inp_node *inp, int cap, int inc)
 {
 
-  struct spectrum *spec = malloc(sizeof(struct spectrum*));
+  struct spectrum *spec = malloc(sizeof(struct spectrum));
 
   spec -> emin_x = (inp -> md -> state_er[4] - 2) / AUTOEV;
   spec -> emax_x = (inp -> md -> state_er[3] + 2) / AUTOEV;
@@ -74,7 +75,7 @@ set_root_spec (struct inp_node *inp)
   int j,k,l;
 
   int last_i, curr_i;
-
+  int r1, r2;
   int is_num = 0;
   int is_idx = 0;
   int n_is_tmp;
@@ -130,8 +131,13 @@ set_root_spec (struct inp_node *inp)
 
     /* make sure the transition is not taking place between states
        in the same energy range interval */
-    if (get_erange(inp, inp -> trs[2][j])
-        != get_erange(inp, inp -> trs[3][j])) {
+    r1 = get_erange(inp, inp -> trs[2][j]);
+    r2 = get_erange(inp, inp -> trs[3][j]);
+
+    if ((r1 != -1) && (r2 != -1)
+      && (get_erange(inp, inp -> trs[2][j])
+            != get_erange(inp, inp -> trs[3][j]))) {
+
       if ((int)inp -> trs[5][j] == 1) {
         if (inp -> trs[4][j] > inp -> tmax_d) {
           inp -> tmax_d = inp -> trs[4][j];
@@ -265,7 +271,7 @@ set_spec (struct inp_node *inp)
 
   int * r_gi = root_spec -> gs2is -> a;
   int * r_fi = root_spec -> is2fs -> a;
-  int * r_ii = r_ii;
+  int * r_ii = root_spec -> is_idxs -> a;
 
   double int_thrsh = inp -> md -> state_t[1];
 
@@ -401,7 +407,7 @@ add_spec (struct inp_node *inp, struct spectrum *spec)
 
   struct spectrum *tmp_spec;
 
-  if ((int)sizeof(spec) != (int)sizeof(struct spectrum)) {
+  if ((int)sizeof(spec) != (int)sizeof(struct spectrum *)) {
     fprintf(stderr, "\n\ninp_node.c, add_spec: variable struct spectrum * provided by callee is not initialized (sizeof(spec) = %d != %d = sizeof(struct struct spectrum)).\n"
             , (int)sizeof(spec), (int)sizeof(struct spectrum));
     printf("program terminating due to the previous error.\n");
