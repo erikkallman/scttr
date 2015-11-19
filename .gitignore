@@ -1,6 +1,5 @@
 cmake/*
 !cmake/CMakeLists.txt
-!cmake/smap_cfg.h.in
 output/*
 test/*
 !test/fe2p_1s3d.log
