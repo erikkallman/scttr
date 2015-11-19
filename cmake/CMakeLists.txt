@@ -1,3 +1,4 @@
+# Copyright (C) 2015 Erik Källman
 # This file is part of scttr.
 
 # scttr is free software: you can redistribute it and/or modify
@@ -41,12 +42,15 @@ options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release
 RelWithDebInfo MinSizeRel.")
 ENDIF()
 
-find_program (GIT "git")
-mark_as_advanced(FORCE GIT)
+set (PLOT_TEMPLATE_PTH "${PROJECT_SOURCE_DIR}/../src/plot_template")
 
 message ("Detecting scttr version from git repository:")
 set (SCTTR_GIT_REPO "${PROJECT_SOURCE_DIR}/../.git")
-set (PLOT_TEMPLATE_PTH "${PROJECT_SOURCE_DIR}/../src/plot_template")
+
+
+find_program (GIT "git")
+mark_as_advanced(FORCE GIT)
+
 if (EXISTS ${GIT} AND EXISTS ${SCTTR_GIT_REPO})
         # always set the HEAD as a source for configuring
         configure_file ("${SCTTR_GIT_REPO}/HEAD" git-head COPYONLY)
@@ -74,11 +78,14 @@ else ()
 endif ()
 
 message ("-- SCTTR_VERSION: ${SCTTR_VERSION}")
-configure_file (${PROJECT_SOURCE_DIR}/scttr_cfg.h.in ${PROJECT_SOURCE_DIR}/../src/scttr_cfg.h)
-configure_file (${PROJECT_SOURCE_DIR}/mainpage.h.in ${PROJECT_SOURCE_DIR}/../doc/mainpage.h)
+configure_file (${PROJECT_SOURCE_DIR}/scttr_cfg.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/scttr_cfg.h)
+configure_file (${PROJECT_SOURCE_DIR}/mainpage.h.in ${CMAKE_CURRENT_BINARY_DIR}/doc/mainpage.h)
+configure_file(${PROJECT_SOURCE_DIR}/doxyfile.h.in ${CMAKE_CURRENT_BINARY_DIR}/doc/doxyfile.in @ONLY)
+
 
 set(project_root_dir "../")
 include_directories("${project_root_dir}/src")
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/include")
 include_directories("${project_root_dir}/bin")
 include_directories("${project_root_dir}/libs")
 include_directories("${project_root_dir}/libs/char_ops")
@@ -86,28 +93,26 @@ include_directories("${project_root_dir}/libs/num_ops")
 
 # configure a header file to pass some of the CMake settings
 # to the source code
-configure_file (
-   "${project_root_dir}/cmake/scttr_cfg.h.in"
-   "${project_root_dir}/src/scttr_cfg.h"
-   @ONLY
-   )
+# configure_file (
+#    "${project_root_dir}/cmake/scttr_cfg.h.in"
+#    "${project_root_dir}/include/scttr_cfg.h"
+#    @ONLY
+#    )
 
 message(STATUS "Adding compiler flags")
 
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-  configure_file(${PROJECT_SOURCE_DIR}/doxyfile.h.in ${CMAKE_CURRENT_BINARY_DIR}/doxyfile.in @ONLY)
-  configure_file(${PROJECT_SOURCE_DIR}/mainpage.h.in ${CMAKE_CURRENT_BINARY_DIR}/mainpage.h @ONLY)
   message(STATUS "Creating documentation inside the build directory with Doxygen.")
   add_custom_target(doc
     ALL
     ${DOXYGEN_EXECUTABLE}
-    ${CMAKE_CURRENT_BINARY_DIR}/doxyfile.in
-    ${CMAKE_CURRENT_BINARY_DIR}/mainpage.h
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}/doc/doxyfile.in
+    ${CMAKE_CURRENT_BINARY_DIR}/doc/mainpage.h
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/
     )
-  message ("${CMAKE_CURRENT_BINARY_DIR}/")
+
 endif(DOXYGEN_FOUND)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
