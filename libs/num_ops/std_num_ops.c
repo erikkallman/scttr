@@ -1,19 +1,28 @@
-/* This file is part of std num ops. */
+/* Copyright (C) 2015 Erik Källman */
+/* This file is part of std_num_ops. */
 
-/* std num ops is free software: you can redistribute it and/or modify */
+/* std_num_ops is free software: you can redistribute it and/or modify */
 /* it under the terms of the GNU Lesser General Public License as published by */
 /* the Free Software Foundation, either version 3 of the License, or */
 /* (at your option) any later version. */
 
-/* std num ops is distributed in the hope that it will be useful, */
+/* std_num_ops is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
 /* GNU General Public License for more details. */
 
 /* You should have received a copy of the GNU General Public License */
-/* along with std num ops, found in the "license" subdirectory of the root */
-/* directory of any program using the std num ops library. */
+/* along with std_num_ops, found in the "license" subdirectory of the root */
+/* directory of any program using the std_num_ops library. */
 /*   If not, see <http://www.gnu.org/licenses/>. */
+/**
+   * @file std_num_ops.c
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains implementations of functions
+   * used in the std_num_ops library to perform various standard numberical
+   * operations.
+   */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -22,7 +31,6 @@
 #include "std_num_ops.h"
 #include "sci_const.h"
 
-/* calculate the absolue value of a complex number */
 double
 fabsc (double complex c1)
 {
@@ -167,9 +175,9 @@ intinint (int *a, int num, int n_el)
 }
 
 double
-get_rbdist (double e_rel, double e_val)
+get_boltzw (double e_val)
 {
-  return exp((- (e_val - e_rel) * (double)AUTOEV) / ((8.6173324e-05) * TEXP));
+  return exp(-e_val / ((8.6173324e-05) * TEXP));
 }
 
 double

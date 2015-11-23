@@ -1,19 +1,27 @@
-/* This file is part of get nums. */
+/* Copyright (C) 2015 Erik Källman */
+/* This file is part of get_nums. */
 
-/* Get nums is free software: you can redistribute it and/or modify */
+/* get_nums is free software: you can redistribute it and/or modify */
 /* it under the terms of the GNU Lesser General Public License as published by */
 /* the Free Software Foundation, either version 3 of the License, or */
 /* (at your option) any later version. */
 
-/* get nums is distributed in the hope that it will be useful, */
+/* get_nums is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
 /* GNU General Public License for more details. */
 
 /* You should have received a copy of the GNU General Public License */
-/* along with get nums, found in the "license" subdirectory of the root */
-/* directory of any program using the get nums library.*/
+/* along with get_nums, found in the "license" subdirectory of the root */
+/* directory of any program using the get_nums library.*/
 /*   If not, see <http://www.gnu.org/licenses/>. */
+/**
+   * @file get_nums.c
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains implementations of functions
+   * used to extract numbers from strings.
+   */
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -67,8 +75,6 @@ get_numinstr (char *s, char *buf, int idx, int str_len)
   return l;
 }
 
-/* get_nums (char *str,int *idxs_out, /\* idexes of numbers in string that we want *\/ */
-/*            int str_len, /\* length of the string in str *\/ */
 int
 get_nums (char *str, int *idxs_out, int str_len, int n_idxs, ...)
 {
@@ -99,5 +105,5 @@ get_nums (char *str, int *idxs_out, int str_len, int n_idxs, ...)
   free(num_buf);
 
   va_end(argv);
-  return 0;
+  return 1;
 }

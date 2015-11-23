@@ -15,6 +15,12 @@
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
+/**
+   * @file spectrum.c
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains all functions defined for the spectrum struct.
+   */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -34,7 +40,7 @@ get_spec (struct inp_node *inp, int idx)
   while ((spec -> idx ) != idx) {
     spec = spec -> next_spec;
     if (spec == NULL) {
-      fprintf(stderr, "sectrum.c, function get_spec: spectrum of index %d not found in list.\n"
+      fprintf(stderr, "spectrum.c, function get_spec: spectrum of index %d not found in list.\n"
               ,idx);
       printf("program terminating due to the previous error.\n");
       exit(EXIT_FAILURE);
@@ -72,9 +78,8 @@ int
 set_root_spec (struct inp_node *inp)
 {
 
-  int j,k,l;
+  int j, k, l;
 
-  int last_i, curr_i;
   int r1, r2;
   int is_num = 0;
   int is_idx = 0;
@@ -97,14 +102,14 @@ set_root_spec (struct inp_node *inp)
   inp -> n_states = 0;
 
   if((proc_st = malloc(inp -> n_trans * sizeof(double))) == NULL ) {
-    fprintf(stderr, "parse_input.c, malloc: failed to allocate memory for \"proc_st\"\n");
+    fprintf(stderr, "spectrum.c, function set_root_spec: failed to allocate memory for \"proc_st\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
-  if((inp -> idx_map = malloc((inp -> n_trans + 1) *
-                                sizeof(int))) == NULL ) {
-    fprintf(stderr, "parse_input.c, malloc: failed to allocate memory for \"inp->idx_map\"\n");
+  if((inp -> idx_map = malloc((inp -> n_trans + 1)
+                              *  sizeof(int))) == NULL ) {
+    fprintf(stderr, "spectrum.c, function set_root_spec: failed to allocate memory for \"inp->idx_map\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
@@ -119,15 +124,11 @@ set_root_spec (struct inp_node *inp)
   printf("      input matrix integrity check and initial screening ..");
   fflush(stdout);
   /* check so that every state in PI can be reached with the get_i function */
-  last_i = -2;
-  curr_i = 0;
   j = 0;
 
   inp -> tmax_d = inp -> tmax_q = -1;
 
   while((int)inp->trs[0][j] != -1) {
-
-    curr_i = (int)inp->trs[0][j];
 
     /* make sure the transition is not taking place between states
        in the same energy range interval */
@@ -148,13 +149,6 @@ set_root_spec (struct inp_node *inp)
           inp -> tmax_q = inp -> trs[4][j];
         }
       }
-    }
-
-    if (curr_i != last_i) {
-      if (curr_i != (int)inp -> trs[0][get_i(inp, curr_i)]) {
-        return -1;
-      }
-      inp -> idx_map[curr_i - 1] = j;
     }
 
     e_fs = inp -> trs[3][j];
@@ -181,10 +175,10 @@ set_root_spec (struct inp_node *inp)
         n_is_tmp = root_spec -> gs2is -> n_el;
         while((int)inp -> trs[0][k] != -1) {
           e_gs = inp -> trs[2][k];
-          bw = get_rbdist(inp -> e0, e_gs);
+          bw = get_boltzw((e_gs - inp -> e0) * (double)AUTOEV);
           if ((((int)inp -> trs[1][k]) == is_num)
-              && inrange((e_gs - inp -> e0) * AUTOEV,
-                         inp -> md -> state_er[1]
+              && inrange((e_gs - inp -> e0) * AUTOEV
+                         , inp -> md -> state_er[1]
                          , inp -> md -> state_er[2])
               && (bw > bw_thrsh)
               ) {
@@ -196,12 +190,13 @@ set_root_spec (struct inp_node *inp)
           k++;
         }
         if (n_is_tmp == root_spec -> gs2is -> n_el) {
+
           /* no gs2is transitions found for that is2fs transition */
           root_spec -> is2fs -> n_el--;
         }
         else{
-          /* gs2is transitions were added */
 
+          /* gs2is transitions were added */
           da_append(root_spec -> is_idxs, -1);
           da_append(root_spec -> ii_start, wh);
 
@@ -221,23 +216,21 @@ set_root_spec (struct inp_node *inp)
             }
           }
         }
-        da_append(root_spec -> ii_start,l);
+        da_append(root_spec -> ii_start, l);
         while(root_spec -> is_idxs -> a[l++] != -1)
           nt++;
       }
     }
-    last_i = (int)inp -> trs[0][j];
     j++;
   }
+
   root_spec -> n_st = nt;
-
   add_spec(inp, root_spec);
-
   inp -> n_states = n_proc;
 
   if ((root_spec -> is2fs -> n_el == 0)
       || (root_spec -> gs2is -> n_el == 0)){
-    fprintf(stderr, "calc_root_root_spec.c, : no intermediate or final states states were found in the energy range you provided. (spec -> is2fs -> n_el = %d, root_spec -> gs2is -> n_el = %d)\n"
+    fprintf(stderr, "spectrum.c, function set_root_spec: no intermediate or final states states were found in the energy range you provided. (spec -> is2fs -> n_el = %d, root_spec -> gs2is -> n_el = %d)\n"
             ,root_spec -> is2fs -> n_el,root_spec -> gs2is -> n_el);
     printf("program terminating due to the previous error.\n");
     exit(EXIT_FAILURE);
@@ -246,7 +239,7 @@ set_root_spec (struct inp_node *inp)
   printf(" done.\n");
   free(proc_st);
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
@@ -284,14 +277,14 @@ set_spec (struct inp_node *inp)
 
   for (j = 0; j < 2; j++) {
     if((int_dist[j] = malloc(nt * sizeof(double))) == NULL ) {
-      fprintf(stderr, "transitions.c:function set_spec, malloc: failed to allocate memory for \"int_dist[%d]\"\n"
+      fprintf(stderr, "spectrum.c, function set_spec: failed to allocate memory for \"int_dist[%d]\"\n"
               ,j);
       printf("program terminating due to the previous error.\n");
       exit(1);
     }
     if((tmp_evals[j] = malloc(root_spec -> is2fs -> n_el * sizeof(double)))
        == NULL ) {
-      fprintf(stderr, "transitions.c:function set_spec, malloc: failed to allocate memory for \"tmp_evals[%d]\"\n"
+      fprintf(stderr, "spectrum.c, function set_spec: failed to allocate memory for \"tmp_evals[%d]\"\n"
               ,j);
       printf("program terminating due to the previous error.\n");
       exit(1);
@@ -307,8 +300,7 @@ set_spec (struct inp_node *inp)
     for (k = is_pos; ((is_idx = r_ii[k]) != -1); k++) {
 
       tmom_gi = inp -> trs[4][r_gi[is_idx]];
-      bw = get_rbdist(inp -> e0,inp
-                      -> trs[2][r_gi[is_idx]]);
+      bw = get_boltzw((inp -> trs[2][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV);
       int_dist[0][l] = l;
 
       int_dist[1][l] = tmom_if * tmom_gi * bw;
@@ -398,7 +390,7 @@ set_spec (struct inp_node *inp)
   free(tmp_evals[1]);
   free(tmp_evals);
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
@@ -408,7 +400,7 @@ add_spec (struct inp_node *inp, struct spectrum *spec)
   struct spectrum *tmp_spec;
 
   if ((int)sizeof(spec) != (int)sizeof(struct spectrum *)) {
-    fprintf(stderr, "\n\ninp_node.c, add_spec: variable struct spectrum * provided by callee is not initialized (sizeof(spec) = %d != %d = sizeof(struct struct spectrum)).\n"
+    fprintf(stderr, "\n\nspectrum.c, function add_spec: variable struct spectrum * provided by callee is not initialized (sizeof(spec) = %d != %d = sizeof(struct struct spectrum)).\n"
             , (int)sizeof(spec), (int)sizeof(struct spectrum));
     printf("program terminating due to the previous error.\n");
     exit(EXIT_FAILURE);
@@ -431,13 +423,15 @@ add_spec (struct inp_node *inp, struct spectrum *spec)
     tmp_spec -> next_spec = spec;
   }
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
 free_spec (struct spectrum *spec)
 {
   int j;
+  struct spectrum *ls = spec -> last_spec;
+
   free(spec -> is2fs);
   free(spec -> is_idxs);
   free(spec -> gs2is);
@@ -451,16 +445,25 @@ free_spec (struct spectrum *spec)
   free(spec -> s_mat);
   free(spec -> omega_x);
   free(spec -> omega_y);
+
+  /* maintain the structure of the list of spectra */
+  if (spec -> idx > 1) {
+    ls -> next_spec = spec -> next_spec;
+  }
+  if (spec -> next_spec != NULL) {
+    spec -> next_spec -> last_spec = ls;
+  }
+
   free(spec);
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
 free_all_specs (struct inp_node *inp)
 {
 
-  struct spectrum *spec = inp -> root_spec;
+  struct spectrum *spec = inp -> root_spec -> next_spec;
   struct spectrum *last_spec;
 
   while (spec != NULL) {
@@ -469,5 +472,5 @@ free_all_specs (struct inp_node *inp)
     free_spec(last_spec);
   }
 
-  return EXIT_SUCCESS;
+  return 1;
 }

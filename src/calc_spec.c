@@ -92,40 +92,40 @@ calc_spec (struct inp_node *inp)
   spec -> n_ely = (int)((emax_y - emin_y) / de_y);
 
   if((spec -> omega_x = malloc(spec -> n_elx * sizeof(double *))) == NULL ) {
-    fprintf(stderr, "calc_spec.c:function calc_spec, malloc: failed to allocate memory for \"spec -> omega_x\"\n");
+    fprintf(stderr, "calc_spec.c, function calc_spec: failed to allocate memory for \"spec -> omega_x\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   if((spec -> omega_y = malloc(spec -> n_elx * sizeof(double *))) == NULL ) {
-    fprintf(stderr, "calc_spec.c:function calc_spec, malloc: failed to allocate memory for \"spec -> omega_y\"\n");
+    fprintf(stderr, "calc_spec.c, function calc_spec: failed to allocate memory for \"spec -> omega_y\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   if((spec -> s_mat = malloc(spec -> n_elx * sizeof(double *))) == NULL ) {
-    fprintf(stderr, "calc_spec.c:function calc_spec, malloc: failed to allocate memory for \"s_mat\"\n");
+    fprintf(stderr, "calc_spec.c, function calc_spec: failed to allocate memory for \"s_mat\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j=0; j<spec -> n_elx; j++) {
     if((spec -> s_mat[j] = malloc(spec -> n_ely * sizeof(double))) == NULL ) {
-      fprintf(stderr, "calc_spec.c:function calc_spec, malloc: failed to allocate memory for \"spec -> s_mat[%d]\"\n"
+      fprintf(stderr, "calc_spec.c, function calc_spec: failed to allocate memory for \"spec -> s_mat[%d]\"\n"
               , j);
       printf("program terminating due to the previous error.\n");
       exit(1);
     }
 
     if((spec -> omega_x[j] = malloc(spec -> n_ely * sizeof(double))) == NULL ) {
-      fprintf(stderr, "calc_spec.c:function calc_spec, malloc: failed to allocate memory for \"spec -> omega_x[%d]\"\n"
+      fprintf(stderr, "calc_spec.c, function calc_spec: failed to allocate memory for \"spec -> omega_x[%d]\"\n"
               , j);
       printf("program terminating due to the previous error.\n");
       exit(1);
     }
 
     if((spec -> omega_y[j] = malloc(spec -> n_ely * sizeof(double))) == NULL ) {
-      fprintf(stderr, "calc_spec.c:function calc_spec, malloc: failed to allocate memory for \"spec -> omega_y[%d]\"\n"
+      fprintf(stderr, "calc_spec.c, function calc_spec: failed to allocate memory for \"spec -> omega_y[%d]\"\n"
               , j);
       printf("program terminating due to the previous error.\n");
       exit(1);
@@ -163,7 +163,8 @@ calc_spec (struct inp_node *inp)
           de_gi = inp -> trs[3][gs2is[is_idx]] - inp
             -> trs[2][gs2is[is_idx]];
 
-          bw = get_rbdist(inp -> e0,inp -> trs[2][gs2is[is_idx]]);
+          bw = get_boltzw((inp -> trs[2][gs2is[is_idx]]
+                           - inp -> e0) * (double)AUTOEV);
 
           ediff_x = spec -> omega_x[x][y] - de_gi;
           ediff_y = spec -> omega_y[x][y] - de_gi - de_if;
@@ -193,5 +194,5 @@ calc_spec (struct inp_node *inp)
 
   printf(" done.\n");
   spec -> sfac = spec -> sfac;
-  return EXIT_SUCCESS;
+  return 1;
 }

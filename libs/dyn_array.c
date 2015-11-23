@@ -1,19 +1,27 @@
-/* This file is part of dyn array, the dynamic array library.*/
+/* Copyright (C) 2015 Erik Källman */
+/* This file is part of dyn_array, the dynamic array library.*/
 
-/* Dyn array is free software: you can redistribute it and/or modify */
+/* dyn_array is free software: you can redistribute it and/or modify */
 /* it under the terms of the GNU Lesser General Public License as published by */
 /* the Free Software Foundation, either version 3 of the License, or */
 /* (at your option) any later version. */
 
-/* dyn array is distributed in the hope that it will be useful, */
+/* dyn_array is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
 /* GNU General Public License for more details. */
 
 /* You should have received a copy of the GNU General Public License */
-/* along with dyn array, found in the "license" subdirectory of the root */
-/* directory of any program using the dyn array library.*/
+/* along with dyn_array, found in the "license" subdirectory of the root */
+/* directory of any program using the dyn_array library.*/
 /* If not, see <http://www.gnu.org/licenses/>. */
+/**
+   * @file dyn_array.c
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains implementation of all functions in the dyn_array
+   * library.
+   */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

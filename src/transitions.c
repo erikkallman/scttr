@@ -15,6 +15,13 @@
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
+/**
+   * @file transitions.c
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains the implementation of all functions defined for
+   * the @p trs variable in the input node struct (see @p inp_node).
+   */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -25,7 +32,7 @@
 #include "inp_node_s.h"
 
 int
-get_erange (struct inp_node *inp,double e)
+get_erange (struct inp_node *inp, double e)
 {
   int j;
 
@@ -42,32 +49,13 @@ get_erange (struct inp_node *inp,double e)
 }
 
 int
-get_i (struct inp_node *inp, int from)
-{
-
-  int last_i = (int)inp -> trs[0][0];
-  int j = 0;
-
-  while (last_i != -1) {
-
-    if ((int)inp -> trs[0][j] == from) {
-      return j;
-    }
-    j++;
-    last_i = (int)inp -> trs[0][j];
-  }
-
-  return -1;
-}
-
-int
 get_trs (int from, double **trs)
 {
 
   int last_i = (int)trs[0][0];
   int j = 0;
-  while (last_i != -1) {
 
+  while (last_i != -1) {
     if ((int)trs[0][j] == from) {
       return j;
     }
@@ -79,72 +67,7 @@ get_trs (int from, double **trs)
 }
 
 int
-get_il (struct inp_node *inp, int from)
-{
-
-  if (from > inp -> n_states) {
-    return -1;
-  } else {
-    return inp -> idx_map[from - 1];
-  }
-}
-
-int
-get_inext (struct inp_node *inp, int from)
-{
-
-  int j = 0;
-
-  while ((int)inp -> trs[0][j] != -1) {
-    if ((int)inp -> trs[0][j] == from) {
-      break;
-    }
-    j++;
-  }
-
-  if ((int)inp -> trs[0][j] != from) {
-
-    return (int)inp -> trs[0][j];
-  }
-
-  while((int)inp -> trs[0][j] == from) {
-    j++;
-  }
-
-  return j;
-
-}
-
-int
-get_ilnext (struct inp_node *inp, int from)
-{
-  int j = 0;
-
-  if (from > inp -> n_states) {
-    return -1;
-  }
-
-  if ((j = get_il(inp, from)) == -1) {
-    return -1;
-  }
-
-  if ((int)inp -> trs[0][j] != from) {
-
-    return (int)inp -> trs[0][j];
-  }
-
-  while((int)inp -> trs[0][j] != -1) {
-    if ((int)inp -> trs[0][j] != from) {
-      return j;
-    }
-    j++;
-  }
-
-  return -1;
-}
-
-int
-get_trsnext (double **trs, int from)
+get_inext (double **trs, int from)
 {
 
   int j = 0;
@@ -166,6 +89,7 @@ get_trsnext (double **trs, int from)
 
   return j;
 }
+
 
 void
 count_states (struct inp_node *inp)
@@ -241,25 +165,24 @@ count_states (struct inp_node *inp)
 }
 
 int
-add_sym (struct inp_node *inp)
+add_eltrans (struct inp_node *inp)
 {
 
   printf("      adding elastic transitions ..\n");
 
-  int j,k,l;
-  int n_proc,nb;
-  int tmp_idx,next_to;
+  int j, k, l;
+  int n_proc, nb;
+  int tmp_idx, next_to;
   int last_i;
   int nt_el = inp -> n_trans;
   int sz_buf = inp -> n_tmax;
 
-  /* in the worst case, there is an elastic transition from every intermediate state, to every final state, in addition to the transitions already present. */
-  /* long int sz_el = ((inp -> n_trans * inp -> n_gfs) * 2) + 1; */
-  /* long int sz_el = ((inp -> n_is * inp -> n_gfs) * 2) + inp -> n_trans + 1; */
+  /* in the worst case, the number of transitions are doubled when adding
+     elastic transitions to the trs matrix */
   long int sz_el = (inp -> n_trans * 2) + 1;
 
   if (nt_el > (int)sz_el) {
-    fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el = %d >= sz_el = %d.\n"
+    fprintf(stderr, "parse_input.c, function add_eltrans: input buffer writing outside its memory. nt_el = %d >= sz_el = %d.\n"
             , nt_el, (int)(sz_el));
     printf("program terminating due to the previous error.\n");
     exit(1);
@@ -268,23 +191,25 @@ add_sym (struct inp_node *inp)
   double e0 = inp -> e0;
   double *state_er = inp -> md -> state_er;
 
-  /* all sym transitions handled so far */
+  /* an array to keep track of which states that have had their
+   elastic transitions accounted for */
   int *proc_st;
 
   double **trs_buf;
 
-  /* transition matrix with enough space to acommodate the sym transitions */
+  /* transition matrix with enough space to acommodate the elastic
+     transitions */
   double **trs_el;
 
   if((trs_buf = malloc(6 * sizeof(double *))) == NULL ) {
-    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"trs_buf\"\n");
+    fprintf(stderr, "transitions.c, function add_eltrans: failed to allocate memory for \"trs_buf\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j = 0; j < 6; j++) {
-    if((trs_buf[j] = malloc(sz_buf*sizeof(double))) == NULL ) {
-      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for pointers in \"trs_buf[%d]\"\n"
+    if((trs_buf[j] = malloc(sz_buf * sizeof(double))) == NULL ) {
+      fprintf(stderr, "transitions.c, function add_eltrans: failed to allocate memory for pointers in \"trs_buf[%d]\"\n"
               ,j);
       printf("program terminating due to the previous error.\n");
       exit(1);
@@ -292,14 +217,14 @@ add_sym (struct inp_node *inp)
   }
 
   if((trs_el = malloc(6 * sizeof(double *))) == NULL ) {
-    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate me mory for \"trs_el\"\n");
+    fprintf(stderr, "transitions.c, function add_eltrans: failed to allocate me mory for \"trs_el\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j=0; j < 6; j++) {
     if((trs_el[j] = malloc((sz_el + 1) * sizeof(double))) == NULL ) {
-      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for pointers in \"trs_el[%d]\". sz_el = %d\n"
+      fprintf(stderr, "transitions.c, function add_eltrans: failed to allocate memory for pointers in \"trs_el[%d]\". sz_el = %d\n"
               ,j, (int)sz_el);
       printf("program terminating due to the previous error.\n");
       exit(1);
@@ -307,7 +232,7 @@ add_sym (struct inp_node *inp)
   }
 
   if((proc_st = malloc(inp -> n_trans * sizeof(int))) == NULL ) {
-    fprintf(stderr, "parse_input.c , function add_sym, malloc: failed to allocate memory for \"proc_st\"\n");
+    fprintf(stderr, "transitions.c , function add_eltrans, malloc: failed to allocate memory for \"proc_st\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
@@ -323,7 +248,7 @@ add_sym (struct inp_node *inp)
     next_to = (int)inp -> trs[0][l];
   }
 
-  trs_el[0][l] = inp->trs[0][l] = -1;
+  trs_el[0][l] = inp -> trs[0][l] = -1;
 
   j = nb = n_proc = 0;
   while ((int)inp -> trs[0][j] > 0) {
@@ -337,10 +262,9 @@ add_sym (struct inp_node *inp)
 
       next_to = (int)inp -> trs[1][j];
 
-      /* found a "to" state that has not had its sym transitions
+      /* found a "to" state that has not had its elastic transitions
        added yet. loop over the trs matrix and check if there are transitions
-       fromn other states that need to be taken into account. */
-
+       from other states that need to be taken into account as well. */
       nb = 0;
       l = j;
       while ((int)inp -> trs[0][l] != -1) {
@@ -373,24 +297,18 @@ add_sym (struct inp_node *inp)
           l++;
         }
       }
-
-      /* append the data to the trs matrix */
-      fflush(stdout);
-
       if ((nt_el + nb + 1) > sz_el) {
-      fprintf(stderr, "parse_input.c, function add_sym: input buffer writing outside its memory. nt_el+nb+1 = %d >= sz_el = %ld.\n"
+      fprintf(stderr, "transitions.c, function add_eltrans: input buffer writing outside its memory. nt_el+nb+1 = %d >= sz_el = %ld.\n"
               ,nt_el+nb+1,sz_el);
         printf("program terminating due to the previous error.\n");
         exit(1);
       }
 
-      /* if the from state cant be found in trs, just store the data in the last available place in trs_el */
-
+      /* if the from state cant be found in trs, just store the data in the last
+         available place in trs_el */
       /* otherwise use the fwdsplice function to add it to trs_el */
       if (get_trs(next_to, trs_el) == -1) {
-
         for (k = 0; k < nb; nt_el++, k++) {
-
           trs_el[0][nt_el] = trs_buf[0][k];
           trs_el[1][nt_el] = trs_buf[1][k];
           trs_el[2][nt_el] = trs_buf[2][k];
@@ -399,10 +317,9 @@ add_sym (struct inp_node *inp)
           trs_el[5][nt_el] = trs_buf[5][k];
         }
         trs_el[0][nt_el + 1] = -1;
-
       }
       else {
-        tmp_idx = get_trsnext(trs_el, next_to);
+        tmp_idx = get_inext(trs_el, next_to);
         fwdsplice(trs_buf, trs_el, tmp_idx, nt_el, nb, 6);
         trs_el[0][nt_el + nb + 1] = -1;
         nt_el += nb;
@@ -422,14 +339,14 @@ add_sym (struct inp_node *inp)
 
   /* allocate new space for trs, now that we know the total size */
   if((inp -> trs = malloc(6*sizeof(double *))) == NULL ) {
-    fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for \"input_data\"\n");
+    fprintf(stderr, "transitions.c, function add_eltrans: failed to allocate memory for \"input_data\"\n");
     printf("program terminating due to the previous error.\n");
     exit(1);
   }
 
   for (j = 0; j < 6; j++) {
     if((inp -> trs[j] = malloc((nt_el + 1) * sizeof(double))) == NULL ) {
-      fprintf(stderr, "parse_input_molcas, malloc: failed to allocate memory for pointe rs in \"input_data\"\n");
+      fprintf(stderr, "transitions.c, function add_eltrans: failed to allocate memory for pointe rs in \"input_data\"\n");
       printf("program terminating due to the previous error.\n");
       exit(1);
     }

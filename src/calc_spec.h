@@ -26,6 +26,7 @@
 #ifndef CALC_SPEC_H
 #define CALC_SPEC_H
 #include "inp_node_s.h"
+
 /**
    * @brief This function uses the data contained in a given spectrum attached
    * to the @p inp provided as argument, and the @p trs variable to define a
@@ -33,19 +34,20 @@
    *
    * To calculate the spectrum, stored in the @p s_mat variable of the spectrum
    * struct, the reduced Kramers-Heisenberg formula (M. Lundberg et. al. 2013)
-   * is used.
+   * pis used.
    * Suitable functions are used to broaden the intensities summed in
    * each matrix element of the @p s_mat matrix.
    * Variables with either and @p _x or @p _y suffix refers to properties of
    * the excitiation and energy transfer axis respectively.
    *
    * @param inp the input node containing the data from which a spectrum matrix will be calculated
-   * @returns EXIT_SUCCESS if successful, otherwise EXIT_FAILURE
+   * @returns 1 if successful.
    * @note side-effects: defines and initializes the following variables of a
    * spectrum struct: @p omega_x, @p omega_y, @p s_mat, @p sfac.
    * See the spectrum struct for more information.
    * @note the calculated spectrum matrix is not normalized in this function.
-   * This is done in the write_spec() function.
+   * This is done in the write_spec() function. Exits with EXIT_FAILURE upon
+   * failed memory allocation.
    */
 int
 calc_spec (struct inp_node *inp);

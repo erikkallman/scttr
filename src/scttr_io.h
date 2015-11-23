@@ -48,8 +48,9 @@ init_md ();
 
 /**
    * @brief Frees up the memory previously allocated for a given metadata struct.
-   * @param md, the metadata struct to have its memory freed.
-   * @returns EXIT_SUCCESS if successful, otherwise EXIT_FAILURE.
+   * @param md the metadata struct to have its memory freed.
+   * @returns 1 if successful.
+   * @note side effects: exits with EXIT_FAILURE upon failed memory allocation.
    */
 int
 free_md (struct metadata *md);
@@ -81,7 +82,8 @@ init_inp (struct metadata *md);
    * @brief Frees up the memory previously allocated for a given input node
    * struct, while keeping the linked list structure intact.
    * @param md the metadata struct to have its memory freed.
-   * @returns @p EXIT_SUCCESS if successful, otherwise @p EXIT_FAILURE.
+   * @returns @p 1 if successful.
+   * @note side effects: exits with EXIT_FAILURE upon failed memory allocation.
    */
 int
 free_inp (struct inp_node *inp);
@@ -96,7 +98,7 @@ free_inp (struct inp_node *inp);
    * and @p n_trans.
    *
    * @param inp
-   * @returns @p EXIT_SUCCESS if successful, otherwise @p EXIT_FAILURE.
+   * @returns @p 1 if successful.
    * @note side effects: defines and initializes variable of @p inp: @p n_trans, trs, e0.
    * @note If developing an interface to handle output files from program.
    * currently not supported, the bin format used in scttr is a good target.
@@ -120,7 +122,8 @@ parse_input_bin (struct inp_node *inp, char *bin_fpstr);
    * @param inp input node corresponding to the input file at @p fn_relpath.
    * @param fn_relpath path to Molcas output file (the input file to scttr).
    * @param tmp_fpstr path to where scttr writes the .tmp file.
-   * @returns @p EXIT_SUCCESS if successful, otherwise @p EXIT_FAILURE.
+   * @returns @p 1 if successful.
+   * @note side effects: exits with EXIT_FAILURE upon failed memory allocation.
    */
 int
 parse_molout (struct inp_node *inp, char *fn_relpath, char *tmp_fpstr);
@@ -133,12 +136,13 @@ parse_molout (struct inp_node *inp, char *fn_relpath, char *tmp_fpstr);
    *
    * @param inp the input node struct in which to store the read data.
    * @param fn_tmpdata path the to the tmp file previously generated.
-   * @returns @p EXIT_SUCCESS if successful, otherwise @p EXIT_FAILURE.
+   * @returns 1 if successful.
    * @note the function allocates temporary data buffers whos memory is defined
    * from the size of the input file, assuming the shortest line in the file
    * is 34 characters long. Should the program terminate due to memory
    * allocation problems inside this function, a tmp file that is too large
    * could be the reason.
+   * @note side effects: exits with EXIT_FAILURE upon failed memory allocation.
    */
 int
 parse_input_tmp (struct inp_node *inp, char *fn_tmpdata);
@@ -160,7 +164,8 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata);
    *
    * @param inp the input node in which the @p trs variable and the root
    * spectrum node will be stored.
-   * @returns @p EXIT_SUCCESS if successful, otherwise @p EXIT_FAILURE.
+   * @returns @p 1 if successful.
+   * @note side effects: exits with EXIT_FAILURE upon failed memory allocation.
    */
 int
 parse_input (struct inp_node *inp);
@@ -174,7 +179,8 @@ parse_input (struct inp_node *inp);
    * @param inp the input node containing the strings required for the function
    * to write the spectrum to the correct output path.
    * @param spec the spectrum struct whos s_mat data is to be written to file.
-   * @returns @p EXIT_SUCCESS if successful, otherwise @p EXIT_FAILURE.
+   * @returns @p 1 if successful.
+   * @note side effects: exits with EXIT_FAILURE upon failed write.
    */
 
 int
@@ -194,7 +200,8 @@ write_spec (struct inp_node *inp,
    * to write the plot script to the correct output path.
    * @param spec the spectrum struct containing data needed by the program.
    * to generate the right energy ranges in the plot, etc.
-   * @returns @p EXIT_SUCCESS if successful, otherwise @p EXIT_FAILURE.
+   * @returns @p 1 if successful.
+   * @note side effects: exits with EXIT_FAILURE upon failed write.
    */
 int
 write_plotscript (struct inp_node *inp,

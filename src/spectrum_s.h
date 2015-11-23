@@ -15,7 +15,12 @@
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
-
+/**
+   * @file spectrum_s.h
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains the implementation of the spectrum struct.
+   */
 #ifndef SPECTRUM_S_H
 #define SPECTRUM_S_H
 #include "dyn_array.h"

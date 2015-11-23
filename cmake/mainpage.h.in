@@ -31,6 +31,7 @@
  *- CMake of version >= 3.0.2 (http://www.cmake.org/)
  *- Doxygen > 1.7 (http://www.doxygen.org/)
  *- Gnuplot of version > 4 (http://www.gnuplot.info/)
+ *- Graphviz (for the dot tool) of version > 2 (http://www.graphviz.org/)
  *
  * @section Compilation
  * CMake builds the makefile subsequently used to generate the binary for the program. Build options currently limited to building a "Release" type binary (the default), or a "Debug" type binary. These options are chosen through the @p DCMAKE_BUILD_TYPE parameter, which is provided by the user from command line:

@@ -15,6 +15,13 @@
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
+/**
+   * @file scttr_io.c
+   * @author Erik Källman
+   * @date November 2015
+   * @brief Defines all functions that relate directly to the manipulation or
+   * storage of user i/o.
+   */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -40,13 +47,6 @@
 #include "transitions.h"
 #include "scttr_cfg.h"
 
-/**
-   * @file scttr_io.c
-   * @author Erik Källman
-   * @date November 2015
-   * @brief Defines all functions that relate directly to the manipulation or
-   * storage of user i/o.
-   */
 struct inp_node *root_inp;
 int n_inp = 0;
 
@@ -63,7 +63,7 @@ init_md ()
   struct metadata *new_md;
 
   if((new_md = malloc(sizeof(struct metadata))) == NULL ) {
-    fprintf(stderr, "\n\nscttr_io.c: function init_md, malloc: failed to allocate memory for \"new_md\"\n");
+    fprintf(stderr, "\n\nscttr_io.c, function init_md: failed to allocate memory for \"new_md\"\n");
     printf("program terminating due to the previous error.\n\n");
     exit(1);
   }
@@ -78,7 +78,7 @@ free_md (struct metadata *md)
   free(md -> inpath);
   free(md -> inp_fn);
   free(md);
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 struct inp_node *
@@ -112,7 +112,7 @@ init_inp (struct metadata *md)
   struct inp_node *new_inp;
 
   if((new_inp = malloc(sizeof(struct inp_node))) == NULL ) {
-    fprintf(stderr, "\n\nscttr_io.c: function init_inp, malloc: failed to allocate memory for \"new_inp\"\n");
+    fprintf(stderr, "\n\nscttr_io.c, function init_inp: failed to allocate memory for \"new_inp\"\n");
     printf("program terminating due to the previous error.\n\n");
     exit(1);
   }
@@ -156,7 +156,7 @@ free_inp (struct inp_node *inp)
   free_all_specs(inp);
   free(inp);
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
@@ -662,7 +662,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
     }
     if (idx_from != last_i) {
 
-      tmp_idx2 = get_inext(inp, last_i);
+      tmp_idx2 = get_inext(inp -> trs, last_i);
       /* we have read all transitions for a state */
       /* check if the last_i has already been processed */
       if (intinint(proc_idx, last_i, n_proc) == -1) {
@@ -685,7 +685,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
       }
       else{
 
-        tmp_idx2 = get_inext(inp, last_i);
+        tmp_idx2 = get_inext(inp -> trs, last_i);
         fwdsplice(trs_buf, inp -> trs, tmp_idx2, l, j, 6);
         fflush(stdout);
       }
@@ -730,7 +730,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
   free(str_buf);
 
   printf("\n      done.\n");
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
@@ -786,7 +786,7 @@ parse_input (struct inp_node *inp)
         && (md -> state_er[2] == md -> state_er[6])) {
 
       count_states(inp);
-      add_sym(inp);
+      add_eltrans(inp);
     }
 
     /* the only way the parse_input_tmp function can get called is if there is if
@@ -832,10 +832,7 @@ parse_input (struct inp_node *inp)
 
     fprintf(stderr, "\n\nscttr_io.c, function parse_input: set_root_spec() returned non-zero integer.\n");
 
-    if (rc == -1) {
-      fprintf(stderr, "\nthe get_i function was unable to obtain the element index for some states.\n");
-    }
-    else if(rc >= 0) {
+    if(rc >= 0) {
       fprintf(stderr, "\nstate %d occured multiple times in the input matrix. Symmetric transitions were erronously added, most likely a failure in the fwdsplice function.\n"
               ,rc);
     }
@@ -846,7 +843,7 @@ parse_input (struct inp_node *inp)
   free(bin_fpstr);
   free(tmp_fpstr);
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
@@ -887,7 +884,7 @@ write_spec (struct inp_node *inp,
   }
 
   free(dat_fpstr);
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
@@ -961,5 +958,5 @@ write_plotscript (struct inp_node *inp,
 
   free(line);
   free(plot_fpstr);
-  return EXIT_SUCCESS;
+  return 1;
 }

@@ -15,12 +15,19 @@
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
-
+/**
+   * @file metadata_s.h
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains the implementation of the metadata struct.
+   */
 #ifndef METADATA_S_H
 #define METADATA_S_H
 
 /**
-   * @brief All data provided from the user input (like file paths, energy ranges, and so on), besides the input file, is stored in the metadata struct.
+   * @brief All data provided from the user input (like file paths, energy
+   * ranges, and so on), besides the input file, is stored in the metadata struct.
+   * This data is then used throughout the program, mostly for i/o purposes.
    */
 struct metadata
 {

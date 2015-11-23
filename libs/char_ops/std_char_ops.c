@@ -1,19 +1,28 @@
-/* This file is part of std char ops. */
+/* Copyright (C) 2015 Erik Källman */
+/* This file is part of std_char_ops. */
 
-/* std char ops is free software: you can redistribute it and/or modify */
+/* std_char_ops is free software: you can redistribute it and/or modify */
 /* it under the terms of the GNU Lesser General Public License as published by */
 /* the Free Software Foundation, either version 3 of the License, or */
 /* (at your option) any later version. */
 
-/* std char ops is distributed in the hope that it will be useful, */
+/* std_char_ops is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
 /* GNU General Public License for more details. */
 
 /* You should have received a copy of the GNU General Public License */
-/* along with std char ops, found in the "license" subdirectory of the root */
-/* directory of any program using the std char ops library.*/
+/* along with std_char_ops, found in the "license" subdirectory of the root */
+/* directory of any program using the std_char_ops library.*/
 /*   If not, see <http://www.gnu.org/licenses/>. */
+/**
+   * @file std_char_ops.c
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains the implementation of the functions in the
+   * std_char_opt library. It cointains some handy functions for manipulating
+   * strings.
+   */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,9 +33,9 @@
 #include "std_num_ops.h"
 #include "std_char_ops.h"
 
-/* check if both x and y are dashes */
-#define ISDDASH(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0)
-#define MAX_POWERL 100000
+
+#define ISDDASH(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0) /**< check if both x and y are dash characters */
+#define MAX_POWERL 100000 /**< the maximally allowed power of a number */
 
 char *
 concs (int n_args, ...) {
@@ -69,17 +78,6 @@ concs (int n_args, ...) {
   va_end(argv);
 
   return path;
-}
-
-size_t
-fpread(void *buffer, size_t size, size_t mitems,
-       size_t offset, FILE *fp)
-{
-
-     if (fseek(fp, offset, SEEK_SET) != 0)
-         return 0;
-
-     return fread(buffer, size, mitems, fp);
 }
 
 int
@@ -157,9 +155,10 @@ satopow(char *s, int len)
   /* check so that we're not trying to store a number that is larger than
      what can be contained in a double */
   if (p > MAX_POWERL) {
-    fprintf(stderr, "std_char_ops.c, function satof: attempted to store a number of power greater than what can be held in a double (MAX_POWERL = %d < power = %d).\n",MAX_POWERL, p);
+    fprintf(stderr, "std_char_ops.c, function satof: attempted to store a number of power greater than what can be held in a double (MAX_POWERL = %d < power = %d).\n"
+            ,MAX_POWERL, p);
     printf( "program terminating due to the previous error.\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   while((p--) > 0)

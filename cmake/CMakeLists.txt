@@ -1,4 +1,4 @@
-# Copyright (C) 2015 Erik Källman
+# Copyright (C) 2015 Erik Källman, Steven Vancoillie (git version extraction)
 # This file is part of scttr.
 
 # scttr is free software: you can redistribute it and/or modify
@@ -49,6 +49,14 @@ set (SCTTR_GIT_REPO "${PROJECT_SOURCE_DIR}/../.git")
 
 
 find_program (GIT "git")
+find_program (DOT dot)
+
+if(EXISTS ${DOT})
+  set (DOT_EXISTS "YES")
+else ()
+  set (DOT_EXISTS "NO")
+endif ()
+
 mark_as_advanced(FORCE GIT)
 
 if (EXISTS ${GIT} AND EXISTS ${SCTTR_GIT_REPO})
@@ -80,7 +88,7 @@ endif ()
 message ("-- SCTTR_VERSION: ${SCTTR_VERSION}")
 configure_file (${PROJECT_SOURCE_DIR}/scttr_cfg.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/scttr_cfg.h)
 configure_file (${PROJECT_SOURCE_DIR}/mainpage.h.in ${CMAKE_CURRENT_BINARY_DIR}/doc/mainpage.h)
-configure_file(${PROJECT_SOURCE_DIR}/doxyfile.h.in ${CMAKE_CURRENT_BINARY_DIR}/doc/doxyfile.in @ONLY)
+configure_file(${PROJECT_SOURCE_DIR}/doxyfile.h.in ${CMAKE_CURRENT_BINARY_DIR}/doc/doxyfile.in)
 
 
 set(project_root_dir "../")

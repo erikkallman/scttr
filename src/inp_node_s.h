@@ -13,6 +13,13 @@
 /* You should have received a copy of the GNU General Public License */
 /* along with Scatter, found in the "license" subdirectory of the root */
 /* directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>. */
+/**
+   * @file inp_node_s.h
+   * @author Erik Källman
+   * @date November 2015
+   * @brief This file contains the implementation of the inp_node (input node)
+   * struct.
+   */
 #ifndef SCTTR_INPUT_S_H
 #define SCTTR_INPUT_S_H
 #include "metadata_s.h"
