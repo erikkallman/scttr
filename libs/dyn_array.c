@@ -42,7 +42,7 @@ da_extend (da src)
   src -> a = a_dest;
   src -> cap = src -> cap+src -> inc;
 
-  return(EXIT_SUCCESS);
+  return 1;
 }
 
 int
@@ -61,7 +61,7 @@ da_shrink (da src)
   free(src->a);
   src-> a = a_dest;
 
-  return(EXIT_SUCCESS);
+  return 1;
 }
 
 /* delete element by shifting all below it up one step */
@@ -83,7 +83,7 @@ da_del_us (da ar, int el)
 
   ar -> n_el--;
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
@@ -96,7 +96,7 @@ da_set (da ar, int el, int val)
 
   ar -> a[el] = val;
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
@@ -110,7 +110,7 @@ da_append (da ar, int val)
   ar -> a[ar -> n_el] = val;
   ar -> n_el++;
 
-  return EXIT_SUCCESS;
+  return 1;
 }
 
 int
