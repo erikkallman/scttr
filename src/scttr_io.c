@@ -153,6 +153,7 @@ free_inp (struct inp_node *inp)
   free(inp -> trs);
   free(inp -> idx_map);
   free_md(inp -> md);
+
   free_all_specs(inp);
   free(inp);
 
@@ -743,11 +744,17 @@ parse_input (struct inp_node *inp)
   FILE *fp_bin;
 
   struct metadata *md = inp -> md;
-
-  char *bin_fpstr = concs(3,md -> outpath,md -> inp_fn, bin_sfx);
+  char *bin_fpstr;
   char *tmp_fpstr = concs(3,md -> outpath,md -> inp_fn, tmp_sfx);
   char *format = md -> inp_sfx;
   char *inpath = md -> inpath;
+
+  /* did the user provide a binary file as input? */
+  if (strcmp(format, bin_sfx) <= 0) {
+    bin_fpstr = concs(1,md -> inpath);
+  } else {
+    bin_fpstr =  concs(3,md -> outpath,md -> inp_fn, bin_sfx);
+  }
 
   fp_bin = fopen(bin_fpstr, "r");
   if (fp_bin != NULL) {
@@ -843,7 +850,7 @@ parse_input (struct inp_node *inp)
   free(bin_fpstr);
   free(tmp_fpstr);
 
-  return 1;
+  return 0;
 }
 
 int

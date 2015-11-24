@@ -51,16 +51,18 @@
  * To obtain the RIXS spectrum for this system, execute Scttr by providing the following input flags:
  *
  * <hr>
- * ./sctr -i ../test/fe2p_1s3d.log -e 0,60,7000,7500,0,60 -f 1.0,0.4 -o ../output/fe2p_1s3d/
+ * ./sctr -i ../test/Fe1s3d.bin -e 0,60,7000,7500,0,60 -f 1.25,0.4 -o ./fe2p_1s3d/
  * <hr>
  *
- * This should generate a set of files in the @p ../output/fe2p_1s3d/ directory:
+ * This should generate a set of files in the @p ../fe2p_1s3d/ directory:
 
- * - fe2p_1s3d.bin: (a binary file containing the data in the @p trs variable (see the inp_node struct for details), and the number of transitions (@p n_trans, also a member of the inp_node struct)  found in the input file (stored in first byte of the binary).
- * - fe2p_1s3d.tmp: the tmp file generated from the fe2p_1s3d.log input file.
  * - fe2p_1s3d.dat: the data file containing the spetrum matrix calculated by the program.
  * - fe2p_1s3d.gp: the plot script for the .dat file.
  * The .gp file can be provided as input to the Gnuplot program, which, in turn will generate a file "fe2p_1s3d.png" in the same directory, which contains the RIXS spectrum.
+ *
+ * If called with a .log file from Molcas, instead of a binary file, the following files would also be generated, along with the ones mentioned above:
+  * - fe2p_1s3d.bin: (a binary file containing the data in the @p trs variable (see the inp_node struct for details), and the number of transitions (@p n_trans, also a member of the inp_node struct)  found in the input file (stored in first byte of the binary).
+ * - fe2p_1s3d.tmp: the tmp file generated from the fe2p_1s3d.log input file.
  *
  * @subsection cli Command Line Interface
  * By providing a range of different flags, the user can specify the details of the execution of the program. In the list below, those marked with @p [r] are required for the program to execute, while those marked with @p [d] have default values that will be used in case the user does not provide them, and unmarked flags are used in special cases only.

@@ -239,7 +239,7 @@ set_root_spec (struct inp_node *inp)
   printf(" done.\n");
   free(proc_st);
 
-  return 1;
+  return 0;
 }
 
 int
@@ -431,7 +431,6 @@ free_spec (struct spectrum *spec)
 {
   int j;
   struct spectrum *ls = spec -> last_spec;
-
   free(spec -> is2fs);
   free(spec -> is_idxs);
   free(spec -> gs2is);
@@ -442,12 +441,14 @@ free_spec (struct spectrum *spec)
     free(spec -> omega_y[j]);
     free(spec -> s_mat[j]);
   }
-  free(spec -> s_mat);
-  free(spec -> omega_x);
-  free(spec -> omega_y);
 
+  if (spec -> s_mat != NULL) {
+    free(spec -> s_mat);
+    free(spec -> omega_x);
+    free(spec -> omega_y);
+  }
   /* maintain the structure of the list of spectra */
-  if (spec -> idx > 1) {
+  if (spec -> last_spec != NULL)  {
     ls -> next_spec = spec -> next_spec;
   }
   if (spec -> next_spec != NULL) {
@@ -463,13 +464,13 @@ int
 free_all_specs (struct inp_node *inp)
 {
 
-  struct spectrum *spec = inp -> root_spec -> next_spec;
-  struct spectrum *last_spec;
+  struct spectrum *spec;
+  struct spectrum *ns = inp -> root_spec;
 
-  while (spec != NULL) {
-    last_spec = spec;
-    spec = spec -> next_spec;
-    free_spec(last_spec);
+  while (ns != NULL) {
+    spec = ns;
+    ns = spec -> next_spec;
+    free_spec(spec);
   }
 
   return 1;
