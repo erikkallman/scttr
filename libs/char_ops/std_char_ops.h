@@ -107,7 +107,6 @@ satof(char *s, int len);
    * number even if its in scientific notation.
    *
    * @param s The string containing the number to be extracted and converted.
-   * @param len The length of the string @p s, in characters.
    * @returns The value of the scientifically notated number, extracted from @å s.
    */
 double
@@ -117,6 +116,7 @@ sci_atof(char *s);
    * @brief Check if the string @p s contains only dashes.
    *
    * @param s The string to check for dashes.
+   * @param len The length of the string @p s, in characters.
    * @returns 1 if at least one double dash is found, otherwise 0, if none
    are found.
    */

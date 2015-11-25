@@ -58,8 +58,8 @@ free_md (struct metadata *md);
 /**
    * @brief Using the root input node, this function loops of the linked list
    * of input nodes until it finds the one with the right @p id.
-   * @param id the charater defining the unique string identifying this input
-   node in the linked list of nodes.
+   * @param idx defines the unique string identifying this input
+   * node in the linked list of nodes.
    * @returns curr_inp a pointer to the input node with an input file name
    * corresponding to @p id.
    */
@@ -69,7 +69,7 @@ get_inp (char *idx);
 /**
    * @brief Allocates memory for a new inp_node struct and appends it to the
    * list of input nodes, connected to the global root_spec node.
-   * @param metadata md, the metadata used to initialize the input node.
+   * @param md the metadata used to initialize the input node.
    * @returns @p new_inp the newly allocated inp_node struct.
    * @warning Without an associated metadata struct having been defined prior
    * to the initialization of the input node, most of the functions in the
@@ -81,7 +81,7 @@ init_inp (struct metadata *md);
 /**
    * @brief Frees up the memory previously allocated for a given input node
    * struct, while keeping the linked list structure intact.
-   * @param md the metadata struct to have its memory freed.
+   * @param inp the inp_node struct to have its memory freed.
    * @returns @p 1 if successful.
    * @note side effects: exits with EXIT_FAILURE upon failed memory allocation.
    */

@@ -113,7 +113,7 @@ add_spec (struct inp_node *inp, struct spectrum * spec);
 /**
    * @brief Frees up the memory previously allocated for a given spectrum
    * struct, while keeping the linked list structure intact.
-   * @param md the metadata struct to have its memory freed.
+   * @param spec the spectrum struct to have its memory freed.
    * @returns 1 if successful.
    * @note side effects: exits with @p EXIT_FAILURE upon failed @p malloc call.
    */
@@ -124,7 +124,8 @@ free_spec (struct spectrum * spec);
 /**
    * @brief Frees up the memory for all previously added spectra for a given input
    * input node struct, while keeping the linked list structure intact.
-   * @param spec the spectrum struct to have its memory freed.
+   * @param inp the input node struct to have the memory for its entire linked
+   * list of spectrum structs freed.
    * @returns 1 if successful.
    * @note exits with @p EXIT_FAILURE upon failed malloc call.
    */

@@ -66,6 +66,7 @@ init_spec (struct inp_node *inp, int cap, int inc)
   spec -> gs2is = da_init(cap, inc);
   spec -> ii_start = da_init(cap, inc);
   spec -> n_st = 0;
+  spec -> s_mat = NULL;
   spec -> next_spec = NULL;
   spec -> last_spec = NULL;
   spec -> idx = 0;
@@ -436,17 +437,19 @@ free_spec (struct spectrum *spec)
   free(spec -> gs2is);
   free(spec -> ii_start);
 
-  for (j = 0; j < spec -> n_elx; j++) {
-    free(spec -> omega_x[j]);
-    free(spec -> omega_y[j]);
-    free(spec -> s_mat[j]);
-  }
 
-  if (spec -> s_mat != NULL) {
+
+  if (spec -> idx > 1) {
+    for (j = 0; j < spec -> n_elx; j++) {
+      free(spec -> omega_x[j]);
+      free(spec -> omega_y[j]);
+      free(spec -> s_mat[j]);
+    }
     free(spec -> s_mat);
     free(spec -> omega_x);
     free(spec -> omega_y);
   }
+
   /* maintain the structure of the list of spectra */
   if (spec -> last_spec != NULL)  {
     ls -> next_spec = spec -> next_spec;

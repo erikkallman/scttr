@@ -125,11 +125,12 @@ endif(DOXYGEN_FOUND)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Building debug-type makefiles")
-  set(CMAKE_C_FLAGS "-g -o0 -Wextra -pedantic -D_GNU_SOURCE -std=c89")
-else(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(CMAKE_C_FLAGS "-pg -o0 -Wextra -D_GNU_SOURCE -std=c89")
+
+else(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Building release-type makefiles")
   set(CMAKE_C_FLAGS "-Wall -o3 -D_GNU_SOURCE -std=c89")
-endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+endif()
 
 add_executable(scttr "${project_root_dir}/src/main.c")
 

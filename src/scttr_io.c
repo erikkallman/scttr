@@ -195,7 +195,7 @@ parse_input_bin (struct inp_node *inp, char *bin_fpstr)
   }
 
   for (j = 0; j < 6; j++) {
-    if (fread(inp -> trs[j], sizeof(double), inp -> n_trans, fp_bin)
+    if ((int)fread(inp -> trs[j], sizeof(double), inp -> n_trans, fp_bin)
         != inp -> n_trans) {
       fprintf(stderr, "\n\nscttr_io.c, function parse_input_bin: unable to read the PI matrix\n");
       printf("program terminating due to the previous error.\n\n");
@@ -818,7 +818,7 @@ parse_input (struct inp_node *inp)
     }
 
     for (j = 0; j < 6; j++) {
-      if (fwrite(inp -> trs[j], sizeof(double), inp -> n_trans, fp_bin) != inp -> n_trans) {
+      if ((int)fwrite(inp -> trs[j], sizeof(double), inp -> n_trans, fp_bin) != inp -> n_trans) {
         fprintf(stderr, "\n\nscttr_io.c, function parse_input: function parse_input_bin: unable to write the trs matrix\n");
         printf("program terminating due to the previous error.\n\n");
         fclose(fp_bin);

@@ -40,7 +40,7 @@ fabsc (double complex c1);
    *
    * @param v The value to be checked if in [r1,r2]
    * @param r1 Lower bound of the range [r1,r2]
-   * @param f2 Upper bound of the range [r1,r2]
+   * @param r2 Upper bound of the range [r1,r2]
    * @returns 1 if @p is in [r1,r2], otherwise 0.
    */
 int

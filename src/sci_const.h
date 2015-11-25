@@ -25,13 +25,12 @@
 #ifndef CONST_H
 #define CONST_H
 
-#define AUTOJ 4.3597482e-18 /* atomic units to joule */
-#define BCONST 1.380648813e-23 /* Boltzmann constant in J K^-1 */
-#define ECHARGE 1.60217733e-19 /* electron charge */
-#define AUTOEV 27.2113961317877 /* atomic units to eV conversion factor */
-/* #define AUTOEV AUTOJ/ECHARGE /\* atomic units to eV conversion factor *\/  */
-#define TEXP 298.15 /* experimental ambient temperature */
-#define TTOEV 8.617385e-05 /* temperature to eV conversion factor */
+#define AUTOJ 4.3597482e-18 /**< Atomic units to joule. */
+#define BCONST 1.380648813e-23 /**< Boltzmann constant in J K^-1. */
+#define ECHARGE 1.60217733e-19 /**< Elementary charge of the electron. */
+#define AUTOEV 27.2113961317877 /**< Atomic units to eV conversion factor. */
+#define TEXP 298.15 /**< Experimental ambient temperature (Kelvin). */
+#define TTOEV 8.617385e-05 /**< Temperature to eV conversion factor.*/
 #define PI 3.14159265359
-#define CTOK 273.15
+#define CTOK 273.15 /**< Conversion factor for temperature in degrees Celcius to Kelvin. */
 #endif /* CONST_H */

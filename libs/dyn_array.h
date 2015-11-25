@@ -24,8 +24,8 @@
    */
 #ifndef DYN_ARRAY_H
 #define DYN_ARRAY_H
-#define DEFAULT_CAP 10
-#define DEFAULT_INC 10
+#define DEFAULT_CAP 10 /**< The default capacity for a newly initialized dynamic array. */
+#define DEFAULT_INC 10 /**< The default increment in number of elements. */
 
 struct da_s;
 typedef struct da_s *da;
@@ -42,9 +42,9 @@ typedef struct da_s *da;
    * but is easily improvable.
    */
 struct da_s {
-  int n_el; /* Number of elements containing data in the array. */
-  int cap; /* Data capacity in number of elements. */
-  int inc; /* Increment upon extension. */
+  int n_el; /**< Number of elements containing data in the array. */
+  int cap; /**< Data capacity in number of elements. */
+  int inc; /**< Increment upon extension. */
   int *a; /**< The array containing the data. */
 };
 
@@ -67,6 +67,7 @@ da_extend (da src);
    * @returns 1 if successful.
    * @note Side effect: decreases the capacity of @p src, and redefines @p inc
    (see the documentation for the da_s struct).
+   * @returns 1 if successful.
    */
 int
 da_shrink (da src);
@@ -78,6 +79,7 @@ da_shrink (da src);
    * @param ar The dynamic array from which the element at @p el is to be
    * deleted.
    * @param el The index of the element to be deleted.
+   * @returns 1 if successful.
    */
 int
 da_del_us (da ar, int el);
@@ -99,6 +101,7 @@ da_set (da ar, int el, int val);
    *
    * @param ar The array to @p val will be appended
    * @param val The value to be appended to @p ar.
+   * @returns 1 if successful.
    * @note Side effect: if trying to append outside the range of @p ar, the
    * da_extend() function is called prior to appending the value @p val
    */
@@ -118,9 +121,9 @@ int
 da_get (da a, int el);
 
 /**
-   * @brief Get the last value in the array @p a.
+   * @brief Get the last value in the array @p a4.
    *
-   * @param a The array from which to get the last value.
+   * @param ar The array from which to get the last value.
    * @returns The value in @p ar, at the last element.
    * @note Exits with @p EXIT_FAILURE if trying to get a value from an empty
    * array.
