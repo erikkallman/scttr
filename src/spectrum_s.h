@@ -9,9 +9,9 @@
 /* scttr is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
@@ -62,7 +62,13 @@ struct spectrum
 
   int idx; /**< index of this spectrum in the linked list of spectra */
   int n_st; /**< number of transitions kept after screening */
-  int n_elx, n_ely; /**< number of elements in x and y direction */
+  int n_elx, n_ely; /**< Number of elements in x and y (row and column) direction of the calculated spectrum matrix. */
+
+  /* variables used to initialize the partitioned spectrum matrix, passed to
+     each thread in the calculation. */
+  int prsz; /**< Partitioned row size in number of elements */
+  int npr; /**< Number of partitioned rows for each row in the spectrum matrix.  */
+  int npr_tot; /**< Total number of partitioned rows */
 
   double emin_x, emax_x; /**< maximum and minimum energies in the range of
                             final states */
@@ -75,6 +81,8 @@ struct spectrum
   double **omega_y; /**< energy range in x dimension */
   double **s_mat; /**< the matrix containing the calculated spectrum,
                    resulting from calling the calc_spec() function */
+
+  double ** trs_red; /**< The transition matrix reduced to the optimal size for the current cache architecture. */
 
   da is2fs; /**< index of a transition from intermediate to final state */
   da gs2is; /**< index of a transition from ground to intermediate state */

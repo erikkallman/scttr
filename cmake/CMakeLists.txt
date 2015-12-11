@@ -9,9 +9,9 @@
 # scttr is distributed in the hope that it will be useful,
 # but without any warranty; without even the implied warranty of
 # merchantability or fitness for a particular purpose. See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with scttr, found in the "license" subdirectory of the root
 # directory of the scttr program. If not, see <http://www.gnu.org/licenses/>.
 
@@ -27,6 +27,7 @@ enable_language(C)
 set (SCTTR_VERSION_MAJOR 0)
 set (SCTTR_VERSION_MINOR 3)
 set (TEMPLATE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../src/plot_template")
+set (COMPILER_TYPE 1) # A flag to let the program know what compiler was used in the build. Add an index and description to this comment for newly supported compilers. 1 = GCC, 2 = Intel
 
 if ( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
   message( "In-source builds are allowed but not recommended. In order to build Scttr, create and/or enter the directory where you want the program to be installed, then run CMake from there. You may need to remove the CMakeCache.txt file if CMake has been ran in the directory previously without being deleted." )
@@ -98,16 +99,7 @@ include_directories("${project_root_dir}/bin")
 include_directories("${project_root_dir}/libs")
 include_directories("${project_root_dir}/libs/char_ops")
 include_directories("${project_root_dir}/libs/num_ops")
-
-# configure a header file to pass some of the CMake settings
-# to the source code
-# configure_file (
-#    "${project_root_dir}/cmake/scttr_cfg.h.in"
-#    "${project_root_dir}/include/scttr_cfg.h"
-#    @ONLY
-#    )
-
-message(STATUS "Adding compiler flags")
+include_directories("${project_root_dir}/libs/libcpuid")
 
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)
@@ -123,13 +115,20 @@ if(DOXYGEN_FOUND)
 
 endif(DOXYGEN_FOUND)
 
+# check for openmp support
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Building debug-type makefiles")
-  set(CMAKE_C_FLAGS "-pg -o0 -Wextra -D_GNU_SOURCE -std=c89")
+  set(CMAKE_C_FLAGS "-pg -fopenmp -o0 -Wall -D_GNU_SOURCE -std=gnu89")
 
 else(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Building release-type makefiles")
-  set(CMAKE_C_FLAGS "-Wall -o3 -D_GNU_SOURCE -std=c89")
+  set(CMAKE_C_FLAGS "-Wall -fopenmp -o3 -D_GNU_SOURCE -std=gnu89")
 endif()
 
 add_executable(scttr "${project_root_dir}/src/main.c")
@@ -141,7 +140,7 @@ add_library(scttr_src
   "${project_root_dir}/src/spectrum.c"
   )
 
-add_library(scttr_libs
+add_library(scttr_std_libs
   "${project_root_dir}/libs/dyn_array.c"
   "${project_root_dir}/libs/char_ops/get_nums.c"
   "${project_root_dir}/libs/char_ops/std_char_ops.c"
@@ -149,4 +148,18 @@ add_library(scttr_libs
   "${project_root_dir}/libs/num_ops/std_num_ops.c"
   )
 
-target_link_libraries(scttr scttr_src scttr_libs -lm)
+add_library(lib_cache_opt
+  "${project_root_dir}/libs/cache_opt.c"
+  )
+
+add_library(lib_cpu_opt
+  "${project_root_dir}/libs/cpu_opt.c"
+  "${project_root_dir}/libs/libcpuid/libcpuid.c"
+  "${project_root_dir}/libs/libcpuid/libcpuid_util.c"
+  "${project_root_dir}/libs/libcpuid/asm-bits.c"
+  "${project_root_dir}/libs/libcpuid/recog_intel.c"
+  "${project_root_dir}/libs/libcpuid/recog_amd.c"
+  )
+
+target_link_libraries(scttr scttr_src scttr_std_libs lib_cache_opt
+  lib_cpu_opt -lm)

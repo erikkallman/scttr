@@ -9,9 +9,9 @@
 /* scttr is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
-#include <string.h>
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -857,6 +856,65 @@ int
 write_spec (struct inp_node *inp,
             struct spectrum *spec)
 {
+  int j, k, x, y;
+
+  FILE *fp_smat_out;
+  char *dat_fpstr = concs(3, inp -> md -> outpath,
+                          inp -> md -> inp_fn, dat_sfx);
+
+  if((fp_smat_out = fopen(dat_fpstr, "w"))==NULL) {
+    fprintf(stderr, "\n\nscttr_io.c, function write_spec: unable to open the output file %s.\n"
+            , dat_fpstr);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  printf("  - writing RIXS map to file: %s ..", dat_fpstr);
+  /* for (x = 0; x < spec -> n_elx; x++) { */
+  /*   for (y = 0; y < spec -> n_ely; y++) { */
+  /*     spec -> s_mat[x][y] = spec -> s_mat[x][y] / spec -> sfac; */
+  /*     fprintf(fp_smat_out,"%le %le %le\n", (spec -> omega_x[x][y]) * AUTOEV, spec -> omega_y[x][y] */
+  /*             * AUTOEV, spec -> s_mat[x][y]); */
+  /*     fflush(fp_smat_out); */
+  /*   } */
+  /*   fprintf(fp_smat_out,"\n"); */
+  /*   fflush(fp_smat_out); */
+  /* } */
+
+  for (j = 0, x = 0, y = 0; x < spec -> n_elx/* j < spec -> npr_tot */; j++) {
+    for (k = 0; (k < spec -> prsz) && (x < spec -> n_elx); k++, y++) {
+      fprintf(fp_smat_out,"%le %le %le\n", (spec -> omega_x[x][y])
+              * AUTOEV, spec -> omega_y[x][y] * AUTOEV,
+              spec -> s_mat[j][k] / spec -> sfac);
+      fflush(fp_smat_out);
+      if (y == spec -> n_ely-1) {
+        /* we have traversed one row in the spectrum */
+        /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+        /* exit(1); */
+        x++;
+        y = 0;
+        fprintf(fp_smat_out,"\n");
+        fflush(fp_smat_out);
+      }
+    }
+  }
+
+  printf(" done.\n");
+  if (fclose(fp_smat_out) != 0) {
+    fprintf(stderr, "\n\nscttr_io.c, function write_spec:: unable to close some of the files:\n%s\n",
+            dat_fpstr);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  free(dat_fpstr);
+  return 1;
+}
+
+int
+write_spec_old (struct inp_node *inp,
+            struct spectrum *spec)
+{
   int x, y;
 
   FILE *fp_smat_out;
@@ -893,6 +951,7 @@ write_spec (struct inp_node *inp,
   free(dat_fpstr);
   return 1;
 }
+
 
 int
 write_plotscript (struct inp_node *inp,

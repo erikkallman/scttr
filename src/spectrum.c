@@ -9,9 +9,9 @@
 /* scttr is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
@@ -327,7 +327,6 @@ set_spec (struct inp_node *inp)
       break;
     }
   }
-
   iquicks_d(int_dist[0], int_dist[1], j, nt - 1, nt);
 
   /* finally, generate the new screen by only including those states that were not screened out above */
@@ -356,7 +355,6 @@ set_spec (struct inp_node *inp)
           da_append(spec -> is_idxs, spec -> gs2is -> n_el);
           da_append(spec -> gs2is, r_gi[is_idx]);
         }
-        spec -> n_st++;
         m++; /* start looking for the next state in int_dist */
         if (m == nt) {
           break;
@@ -425,6 +423,93 @@ add_spec (struct inp_node *inp, struct spectrum *spec)
   }
 
   return 1;
+}
+
+int
+set_trs_red (struct inp_node *inp, int spec_idx)
+{
+
+  struct spectrum *spec = get_spec(inp, spec_idx);
+
+  if (spec -> is2fs -> n_el == 0) {
+    fprintf(stderr, "spectrum.c, function set_trs_red: the provided spectrum has not had its spectrum indexing arrays defined. check your function call sequence and read the documentation on how to use the functions set_spec() and set_trs_red().\n");
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int j, k, l;
+
+  int is_idx, is_pos;
+  int n_el = 0;
+  /* create local copies and pointers to variables whos name would
+     otherwise clutter the code loop */
+  int n_sfs = spec -> is2fs -> n_el;
+  int *is2fs = spec -> is2fs -> a;
+  int *gs2is = spec -> gs2is -> a;
+  int *is_idxs = spec -> is_idxs -> a;
+  int *ii_start = spec -> ii_start -> a;
+
+  double **tr;
+
+  /* figure out size of tr */
+  for (n_el = 0, j = 0; j < n_sfs; j++) {
+
+    is_pos = ii_start[j];
+    is_idx = is_idxs[j];
+    /* printf("%le \n", inp -> trs[4][is2fs[j]]); */
+    for (n_el++, k = is_pos; ((is_idx = is_idxs[k]) != -1); k++,n_el++) {    /* printf("  %le\n", inp -> trs[4][gs2is[is_idx]]); */}
+  }
+  /* printf("\n\n" ); */
+  if((tr = malloc((n_el+1) * sizeof(double*))) == NULL ) {
+    fprintf(stderr, "spectrum.c, function set_trs_red: failed to allocate memory for \"tr\"\n");
+    printf("program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (j = 0; j < n_el+1; j++) {
+    if((tr[j] = malloc(4 * sizeof(double))) == NULL ) {
+      fprintf(stderr, "spectrum.c, function set_trs_red: failed to allocate memory for \"tr[%d]\"\n"
+              , j);
+      printf("program terminating due to the previous error.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  spec -> n_st = n_el;
+
+  for (l = 0, k = 0, j = 0; j < n_sfs; j++) {
+    /* printf("%d %d %d %d\n", j, l, n_sfs, spec -> n_st); */
+    /*       fflush(stdout); */
+
+    tr[l][0] = inp -> trs[0][is2fs[j]];
+    tr[l][1] = inp -> trs[1][is2fs[j]];
+    tr[l][2] = inp -> trs[3][is2fs[j]] - inp -> trs[2][is2fs[j]];
+    tr[l][3] = inp -> trs[4][is2fs[j]];
+    /* printf("%le \n", tr[l][3]); */
+    is_pos = ii_start[j];
+    is_idx = is_idxs[j];
+
+    for (l++, k = is_pos; ((is_idx = is_idxs[k]) != -1); k++, l++) {
+      /* printf("%d %d %d %d %le\n", is_idx, gs2is[is_idx], gs2is[is_idx], inp -> n_trans, inp -> trs[2][gs2is[is_idx]]); */
+      /* fflush(stdout); */
+      tr[l][0] = get_boltzw((inp -> trs[2][gs2is[is_idx]]
+                       - inp -> e0) * (double)AUTOEV);
+      tr[l][1] = 0;
+      tr[l][2] = inp -> trs[3][gs2is[is_idx]] - inp
+        -> trs[2][gs2is[is_idx]];
+      tr[l][3] = inp -> trs[4][gs2is[is_idx]];
+      /* printf(" %le \n", tr[l][3]); */
+    }
+    /* for (m = 0; m < l; m++) { */
+    /*   printf("tr[%d][0] = %d\n", m, (int)tr[m][1] ); */
+    /*   fflush(stdout); */
+    /* }  */
+  }
+  /* printf("\n\n" ); */
+
+  tr[l][1] = -1;
+
+  spec -> trs_red = tr;
+  return 0;
 }
 
 int

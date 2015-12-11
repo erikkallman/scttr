@@ -9,9 +9,9 @@
 /* scttr is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
@@ -31,21 +31,21 @@
    */
 struct metadata
 {
-
-  int sz_inp; /**< size (in bytes) of the input file */
+  int intf_mode; /**< A flag used by to set what type of interference theory is used in the spectrum calculation. */
+  int sz_inp; /**< Size (in bytes) of the input file. */
   int so_enrg; /**< if == 1, the program reads spin-orbit energies,
                   if not, reads spin-free*/
 
-  char *outpath; /**< path to output directory */
-  char *inpath; /**< path to input directory */
+  char *outpath; /**< Path to output directory. */
+  char *inpath; /**< Path to input directory. */
 
-  char *inp_fn; /**< input filename */
+  char *inp_fn; /**< The input filename */
   char *inp_sfx; /**< input file suffix */
 
-  double *state_er; /**< user-provided ranges of energy eigenvalues in the input */
-  double *state_t; /**< transition intensity screening thresholds */
-  double *res; /**< spectral resolution (eV) of the produced spectrum */
-  double *fwhm; /**< full-width half-maximum value for broadening the peaks */
+  double *state_er; /**< User-provided ranges of energy eigenvalues in the input. */
+  double *state_t; /**< Transition intensity screening thresholds. */
+  double *res; /**< Spectral resolution (eV) of the produced spectrum. */
+  double *fwhm; /**< Full-width half-maximum value for broadening the peaks. */
 };
 
 #endif /* METADATA_S_H */

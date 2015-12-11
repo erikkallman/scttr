@@ -9,9 +9,9 @@
 /* std_char_ops is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with std_char_ops, found in the "license" subdirectory of the root */
 /* directory of any program using the std_char_ops library.*/
 /*   If not, see <http://www.gnu.org/licenses/>. */
@@ -29,6 +29,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <inttypes.h>
+#include <errno.h>
 #include "limits.h"
 #include "std_num_ops.h"
 #include "std_char_ops.h"
@@ -36,6 +38,36 @@
 
 #define ISDDASH(x,y) ((((x) == '-') && ((y) == '-')) ? 1 : 0) /**< check if both x and y are dash characters */
 #define MAX_POWERL 100000 /**< the maximally allowed power of a number */
+
+int
+str2int (const char *str)
+{
+  uintmax_t num = strtoumax(str, NULL, 10);
+  if (num == UINTMAX_MAX && errno == ERANGE) {
+    fprintf(stderr, "unable to convert \n");
+    printf( "program terminating due to the previous error.\n");
+    exit(EXIT_FAILURE);
+  }
+  return (int)num;
+}
+
+char *
+a2str (int * a, int n, char delim)
+{
+  int j = 0;
+  int k = 0;
+
+  char *s = malloc((n*2+1)*sizeof(char));
+
+  while (k < n) {
+    s[j] = a[k++] + '0';
+    s[j + 1] = delim;
+    j += 2;
+  }
+  s[j-1] = '\0';
+
+  return s;
+}
 
 char *
 concs (int n_args, ...) {

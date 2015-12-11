@@ -8,9 +8,9 @@
 /* Scatter is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with Scatter, found in the "license" subdirectory of the root */
 /* directory of the Scatter program. If not, see <http://www.gnu.org/licenses/>. */
 /**

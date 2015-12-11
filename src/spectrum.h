@@ -9,9 +9,9 @@
 /* scttr is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
@@ -109,6 +109,20 @@ set_spec (struct inp_node *inp);
    */
 int
 add_spec (struct inp_node *inp, struct spectrum * spec);
+
+/**
+   * @brief In order to form the matrix of transitions, which is used in the
+   * calc_spec() function to generate the spectrum, this function iterates over
+   * the indexing arrays of the provided spectrum @p spec.
+   *
+   * @param inp the input node containing the spectrum of index @p spec_idx
+   *
+   * @returns 1 if successful.
+   * @note side effects: exits with @p EXIT_FAILURE upon failed @p malloc call
+   * , and if the spectrum has not had its indexing arrays defined.
+   */
+int
+set_trs_red (struct inp_node *inp, int spec_idx);
 
 /**
    * @brief Frees up the memory previously allocated for a given spectrum

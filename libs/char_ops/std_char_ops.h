@@ -9,9 +9,9 @@
 /* std_char_ops is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with std_char_ops, found in the "license" subdirectory of the root */
 /* directory of any program using the std_char_ops library.*/
 /*   If not, see <http://www.gnu.org/licenses/>. */
@@ -24,6 +24,21 @@
    */
 #ifndef CHAR_OPS_H
 #define CHAR_OPS_H
+
+int
+str2int (const char *str);
+
+/**
+   * @brief This function converts an array of integers into a string, using the
+   provided delimited between the numbers.
+   *
+   * @param a An array of integers to be converted to a string.
+   * @param n The number of elements in @p a
+   * @param delim A delimiter to be used between each integer, converted to a
+   character in the string.
+   */
+char *
+a2str (int * a, int n, char delim);
 
 /**
    * @brief The concs() function concatenates @p n_args number of strings into

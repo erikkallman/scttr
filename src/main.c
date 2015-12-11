@@ -9,9 +9,9 @@
 /* scttr is distributed in the hope that it will be useful, */
 /* but without any warranty; without even the implied warranty of */
 /* merchantability or fitness for a particular purpose. See the */
-/* GNU General Public License for more details. */
+/* GNU Lesser General Public License for more details. */
 
-/* You should have received a copy of the GNU General Public License */
+/* You should have received a copy of the GNU Lesser General Public License */
 /* along with scttr, found in the "license" subdirectory of the root */
 /* directory of the scttr program. */
 /* If not, see <http://www.gnu.org/licenses/>. */
@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+#include <omp.h>
 #include "std_char_ops.h"
 #include "get_nums.h"
 #include "calc_spec.h"
@@ -44,8 +45,12 @@
 #include "spectrum.h"
 #include "spectrum_s.h"
 #include "inp_node_s.h"
+#include "cpu_opt.h"
+#include "cache_opt.h"
 
 #define BUF_SIZE 256
+
+struct ccfg *cache_cfg;
 
 int
 main (int argc, char *argv[])
@@ -167,12 +172,6 @@ main (int argc, char *argv[])
 
       so_enrg = 1;
       break;
-
-    default :
-      printf("Can not process the flag \"-%c\". To read the help documentation, \
- call tau with the flag \"-h\". Program terminating.\n", (char)argv[1][1]);
-      exit(1);
-
 
     case 'h' :
       printf("See the \"Usage\" section of the documentation provided in the doc directory of the program.\n");
@@ -307,12 +306,21 @@ main (int argc, char *argv[])
       state_t[0] = n_t;
 
       break;
+
+    default :
+      fprintf(stderr, "main.c, function main: Unknown flag %c\n", argv[1][1]);
+      printf( "program terminating due to the previous error.\n");
+      exit(EXIT_FAILURE);
+
     }
     argv++;
     argv++;
     argc--;
     argc--;
   }
+
+  set_ccnuma_affinity();
+  cache_cfg = set_ccfg(0.9); /* use 90% of cache space */
 
   if (!out_set ) {
     if (getcwd(curr_dir,sizeof(curr_dir)) != NULL) {
@@ -366,6 +374,7 @@ main (int argc, char *argv[])
   md -> state_t = state_t;
   md -> res = res;
   md -> fwhm = fwhm_inp;
+  md -> intf_mode = 0; /* only constructive interference implemented for now */
 
   l = j;
   inp = init_inp(md);
@@ -411,7 +420,9 @@ main (int argc, char *argv[])
 
   set_spec(inp);
 
-  calc_spec(inp);
+  set_trs_red(inp, 2);
+  calc_spec(inp, 2);
+
   write_spec(inp, get_spec(inp,2));
   write_plotscript(inp, get_spec(inp,2));
 
