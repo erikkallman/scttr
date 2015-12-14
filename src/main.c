@@ -65,7 +65,7 @@ main (int argc, char *argv[])
   int len_fn = 0;
   int out_set = 0;
   int so_enrg = 0;
-
+  int intf_mode = 0;
   double *res = malloc(2 * sizeof(double));
   /* arrays for storing input file name data */
   char *input_sbuff = malloc(BUF_SIZE);
@@ -307,6 +307,10 @@ main (int argc, char *argv[])
 
       break;
 
+    case 'I' :
+      intf_mode = 1;
+      break;
+
     default :
       fprintf(stderr, "main.c, function main: Unknown flag %c\n", argv[1][1]);
       printf( "program terminating due to the previous error.\n");
@@ -320,7 +324,7 @@ main (int argc, char *argv[])
   }
 
   set_ccnuma_affinity();
-  cache_cfg = set_ccfg(0.9); /* use 90% of cache space */
+  cache_cfg = set_ccfg(0.5); /* use 90% of cache space */
 
   if (!out_set ) {
     if (getcwd(curr_dir,sizeof(curr_dir)) != NULL) {
@@ -374,7 +378,7 @@ main (int argc, char *argv[])
   md -> state_t = state_t;
   md -> res = res;
   md -> fwhm = fwhm_inp;
-  md -> intf_mode = 0; /* only constructive interference implemented for now */
+  md -> intf_mode = intf_mode; /* only constructive interference implemented for now */
 
   l = j;
   inp = init_inp(md);
@@ -423,7 +427,6 @@ main (int argc, char *argv[])
   set_trs_red(inp, 2);
   calc_spec(inp, 2);
 
-  write_spec(inp, get_spec(inp,2));
   write_plotscript(inp, get_spec(inp,2));
 
   free(inp_sfx);

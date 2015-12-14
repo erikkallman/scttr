@@ -861,6 +861,10 @@ write_spec (struct inp_node *inp,
   FILE *fp_smat_out;
   char *dat_fpstr = concs(3, inp -> md -> outpath,
                           inp -> md -> inp_fn, dat_sfx);
+  double emin_x = spec -> emin_x;
+  double emin_y = spec -> emin_y;
+  double de_x = inp -> md -> res[0] / AUTOEV;
+  double de_y = inp -> md -> res[1] / AUTOEV;
 
   if((fp_smat_out = fopen(dat_fpstr, "w"))==NULL) {
     fprintf(stderr, "\n\nscttr_io.c, function write_spec: unable to open the output file %s.\n"
@@ -870,27 +874,14 @@ write_spec (struct inp_node *inp,
   }
 
   printf("  - writing RIXS map to file: %s ..", dat_fpstr);
-  /* for (x = 0; x < spec -> n_elx; x++) { */
-  /*   for (y = 0; y < spec -> n_ely; y++) { */
-  /*     spec -> s_mat[x][y] = spec -> s_mat[x][y] / spec -> sfac; */
-  /*     fprintf(fp_smat_out,"%le %le %le\n", (spec -> omega_x[x][y]) * AUTOEV, spec -> omega_y[x][y] */
-  /*             * AUTOEV, spec -> s_mat[x][y]); */
-  /*     fflush(fp_smat_out); */
-  /*   } */
-  /*   fprintf(fp_smat_out,"\n"); */
-  /*   fflush(fp_smat_out); */
-  /* } */
 
   for (j = 0, x = 0, y = 0; x < spec -> n_elx/* j < spec -> npr_tot */; j++) {
     for (k = 0; (k < spec -> prsz) && (x < spec -> n_elx); k++, y++) {
-      fprintf(fp_smat_out,"%le %le %le\n", (spec -> omega_x[x][y])
-              * AUTOEV, spec -> omega_y[x][y] * AUTOEV,
+      fprintf(fp_smat_out,"%le %le %le\n", ((emin_x + (x * de_x)))
+              * AUTOEV, (emin_y + (y * de_y)) * AUTOEV,
               spec -> s_mat[j][k] / spec -> sfac);
       fflush(fp_smat_out);
       if (y == spec -> n_ely-1) {
-        /* we have traversed one row in the spectrum */
-        /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-        /* exit(1); */
         x++;
         y = 0;
         fprintf(fp_smat_out,"\n");
@@ -1003,10 +994,10 @@ write_plotscript (struct inp_node *inp,
   fprintf(fp_plot_out, "set title \"%s\" font \"Helvetica,40\" offset 0,1\n"
           , md -> inp_fn);
   fprintf(fp_plot_out, "splot [%le:%le][%le:%le] \"./%s.dat\" u (($1+xshift)/1):2:($3*sc) with pm3d title \"\"",
-          spec -> omega_x[0][0] * AUTOEV,
-          spec -> omega_x[spec -> n_elx - 1][0] * AUTOEV,
-          spec -> omega_y[0][0] * AUTOEV,
-          spec -> omega_y[0][spec -> n_ely - 1] * AUTOEV,
+          spec -> emin_x * AUTOEV,
+          spec -> emax_x * AUTOEV,
+          spec -> emin_y * AUTOEV,
+          spec -> emax_y * AUTOEV,
           md -> inp_fn);
 
   if (fclose(fp_plot_in) != 0) {

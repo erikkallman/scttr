@@ -531,8 +531,8 @@ free_spec (struct spectrum *spec)
       free(spec -> s_mat[j]);
     }
     free(spec -> s_mat);
-    free(spec -> omega_x);
-    free(spec -> omega_y);
+    /* free(spec -> omega_x); */
+    /* free(spec -> omega_y); */
   }
 
   /* maintain the structure of the list of spectra */

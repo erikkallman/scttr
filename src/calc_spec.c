@@ -86,6 +86,7 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   /* element to element energy difference in the s_mat matrix */
   double de_x = md -> res[0] / AUTOEV;
   double de_y = md -> res[1] / AUTOEV;
+  double omega_x;
 
   fwhm_x = md -> fwhm[0] / AUTOEV;
   fwhm_y = md -> fwhm[1] / AUTOEV;
@@ -218,6 +219,7 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
         printf("program terminating due to the previous error.\n");
         exit(EXIT_FAILURE);
       }
+      memset(sm[j], 0, spec -> prsz * sizeof(double));
     }
 
     if (ith == 0) {
@@ -225,8 +227,8 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
     }
 
     for (j = 0, x = 0, y = 0; x < spec -> n_elx/* j < spec -> npr_tot */; j++) {
+      omega_x = emin_x + (x * de_x);
       for (k = 0; (k < spec -> prsz) && (x < spec -> n_elx); k++, y++) {
-        sm[j][k] = 0;
         for (l = l_st; l < l_fn; l++) {
           de_if = tr[l][2];
           tmom_if = tr[l][3];
@@ -238,10 +240,10 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
             tmom_gi = tr[l][3];
             /* printf("%d %d %d %d\n", x, spec -> n_elx, y, spec -> n_ely); */
             /* fflush(stdout); */
-            ediff_x = spec -> omega_x[x][y] - de_gi;
-            ediff_y = spec -> omega_y[x][y] - de_gi - de_if;
+            ediff_x = omega_x - de_gi;
+            ediff_y = (emin_y + (y * de_y)) - de_gi - de_if;
 
-            tmp += tmom_gi * tmom_if * bw / (-de_gi + spec -> omega_x[x][y]
+            tmp += tmom_gi * tmom_if * bw / (-de_gi + omega_x
                                              - (fwhm_x / 2)*I);
 
             tmp *= (exp(-(powerl(ediff_x, 2)) / grms_x) / gvar_x * de_x)
@@ -467,25 +469,46 @@ calc_spec (struct inp_node *inp, int spec_idx)
   switch(inp -> md -> intf_mode)
     {
 
-    case '0':
+    case 1:
       printf(" a constructive interference model .. \n");
       intf_0(inp, spec, md);
 
+      for (j = 0; j < spec -> npr_tot; j++) {
+        for (k = 0; k < spec -> prsz; k++) {
+          if (spec -> s_mat[j][k] > spec -> sfac) {
+            spec -> sfac = spec -> s_mat[j][k];
+          }
+        }
+      }
+
+      write_spec(inp, get_spec(inp,2));
+      break;
+
     default:
       printf(" a constructive interference model, since you didnt specify this parameter .. \n");
-      intf_0(inp, spec, md);
+      intf_0_old(inp, spec, md);
+
+      for (j = 0; j < spec -> npr_tot; j++) {
+        for (k = 0; k < spec -> prsz; k++) {
+          if (spec -> s_mat[j][k] > spec -> sfac) {
+            spec -> sfac = spec -> s_mat[j][k];
+          }
+        }
+      }
+
+      write_spec_old(inp, get_spec(inp,2));
     }
 
   printf("    .. done.\n");
   printf("  - finding the normalization constant of the  calculated RIXS map ..");
 
-  for (j = 0; j < spec -> npr_tot; j++) {
-    for (k = 0; k < spec -> prsz; k++) {
-      if (spec -> s_mat[j][k] > spec -> sfac) {
-        spec -> sfac = spec -> s_mat[j][k];
-      }
-    }
-  }
+  /* for (j = 0; j < spec -> npr_tot; j++) { */
+  /*   for (k = 0; k < spec -> prsz; k++) { */
+  /*     if (spec -> s_mat[j][k] > spec -> sfac) { */
+  /*       spec -> sfac = spec -> s_mat[j][k]; */
+  /*     } */
+  /*   } */
+  /* } */
 
   /* for (x = 0; x < spec -> n_elx; x++) { */
   /*   for (y = 0; y < spec -> n_ely; y++) { */
