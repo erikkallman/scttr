@@ -24,19 +24,21 @@ set_ccnuma_affinity (void)
   struct cpu_raw_data_t raw;
   struct cpu_id_t data;
 
-  if (cpuid_get_raw_data(&raw) < 0) {
-    printf("Sorry, cannot get the CPUID raw data.\n");
-    printf("Error: %s\n", cpuid_error());
-    return -2;
-  }
+  n_cpus = env2int("OMP_NUM_THREADS");
 
-  if (cpu_identify(&raw, &data) < 0) {
-    printf("Sorrry, CPU identification failed.\n");
-    printf("Error: %s\n", cpuid_error());
-    return -3;
+  if (!n_cpus) {
+    if (cpuid_get_raw_data(&raw) < 0) {
+      printf("Sorry, cannot get the CPUID raw data.\n");
+      printf("Error: %s\n", cpuid_error());
+      return -2;
+    }
+    if (cpu_identify(&raw, &data) < 0) {
+      printf("Sorrry, CPU identification failed.\n");
+      printf("Error: %s\n", cpuid_error());
+      return -3;
+    }
+    n_cpus = data.num_cores;
   }
-
-  n_cpus = data.num_cores;
 
   cpu_idx = malloc(n_cpus * sizeof(int));
   for (j = 0; j < n_cpus; j++) {

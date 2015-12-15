@@ -40,6 +40,17 @@
 #define MAX_POWERL 100000 /**< the maximally allowed power of a number */
 
 int
+env2int (const char * name)
+{
+  char *s = getenv(name);
+  if (s == NULL) {
+    return (int)s;
+  } else {
+    return str2int(s);
+  }
+}
+
+int
 str2int (const char *str)
 {
   uintmax_t num = strtoumax(str, NULL, 10);

@@ -45,12 +45,6 @@
 #include "cpu_opt.h"
 
 int
-env2int (const char * name)
-{
-  return str2int(getenv(name));
-}
-
-int
 intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
 {
 
@@ -86,7 +80,6 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   /* element to element energy difference in the s_mat matrix */
   double de_x = md -> res[0] / AUTOEV;
   double de_y = md -> res[1] / AUTOEV;
-  double omega_x;
 
   fwhm_x = md -> fwhm[0] / AUTOEV;
   fwhm_y = md -> fwhm[1] / AUTOEV;
@@ -202,6 +195,7 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
     double ediff_y, tmom_if; /* .. of energy transfer (y-axis)*/
     double de_gi, de_if; /* energy eigenvalue differences */
     double bw; /* boltzmann weight */
+    double omega_x;
 
     double complex tmp;  /* accumulator used in the Kramers-Heisenberg formula */
 
@@ -227,8 +221,8 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
     }
 
     for (j = 0, x = 0, y = 0; x < spec -> n_elx/* j < spec -> npr_tot */; j++) {
-      omega_x = emin_x + (x * de_x);
       for (k = 0; (k < spec -> prsz) && (x < spec -> n_elx); k++, y++) {
+        omega_x = emin_x + (x * de_x);
         for (l = l_st; l < l_fn; l++) {
           de_if = tr[l][2];
           tmom_if = tr[l][3];
