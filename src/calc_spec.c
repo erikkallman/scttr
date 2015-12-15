@@ -32,6 +32,7 @@
 #include <complex.h>
 #include <omp.h>
 #include <string.h>
+#include <time.h>
 #include "calc_spec.h"
 #include "dyn_array.h"
 #include "scttr_io.h"
@@ -80,6 +81,8 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   /* element to element energy difference in the s_mat matrix */
   double de_x = md -> res[0] / AUTOEV;
   double de_y = md -> res[1] / AUTOEV;
+
+  double wt; /* wall-time counter */
 
   fwhm_x = md -> fwhm[0] / AUTOEV;
   fwhm_y = md -> fwhm[1] / AUTOEV;
@@ -169,7 +172,7 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   /* printf("%d %d %d\n", spec -> n_elx, spec -> n_ely, spec -> npr_tot / spec -> npr); */
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* exit(1); */
-
+  wt = omp_get_wtime();
 #pragma omp parallel num_threads(env2int("OMP_NUM_THREADS"))
   {
     /* looping variables for the partitioned spectrum matrix  */
@@ -301,6 +304,12 @@ intf_0( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
       }
     }
   }
+  wt = omp_get_wtime() - wt;
+
+  FILE *cpu_out;
+  cpu_out = fopen("./cpu.dat", "a");
+  fprintf(cpu_out,"%le\n",wt);
+  fclose(cpu_out);
 
   spec -> s_mat = sm_th0;
   free(rchunks);
