@@ -50,7 +50,8 @@
    * failed memory allocation.
    */
 int
-calc_spec (struct inp_node *inp,
-           int idx);
+calc_spec (struct inp_node *inp, int idx);
 
+int
+sticks( struct inp_node *inp, struct spectrum *spec, struct metadata *md);
 #endif /* CALC_SPEC_H */

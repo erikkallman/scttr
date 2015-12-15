@@ -20,4 +20,12 @@ set_ccfg (float usage);
 
 int
 get_row_chunk (int nw, int wsz, struct ccfg *c);
+
+int
+cache2file (char *log_fn);
+
+int
+cache2str ();
+
+
 #endif /* CACHE_OPT_H */

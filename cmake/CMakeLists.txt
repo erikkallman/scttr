@@ -21,8 +21,11 @@
 #
 
 cmake_minimum_required(VERSION 2.8)
-project(scttr C)
 enable_language(C)
+project(scttr C)
+
+INCLUDE(CMakeForceCompiler)
+CMAKE_FORCE_C_COMPILER(gcc GNU)
 
 set (SCTTR_VERSION_MAJOR 0)
 set (SCTTR_VERSION_MINOR 3)
@@ -142,6 +145,7 @@ add_library(scttr_src
 
 add_library(scttr_std_libs
   "${project_root_dir}/libs/dyn_array.c"
+  "${project_root_dir}/libs/timing.c"
   "${project_root_dir}/libs/char_ops/get_nums.c"
   "${project_root_dir}/libs/char_ops/std_char_ops.c"
   "${project_root_dir}/libs/num_ops/iquicks.c"

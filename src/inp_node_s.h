@@ -54,13 +54,16 @@ struct inp_node
 
   int n_gfs; /**< number of ground and final electronic states */
   int n_is; /**< number of intermediate electronic states */
-
+  int el; /**< a flag to signify whether or not the data provided in the input
+           is from a scattering process that involves elastic transitions
+          (form a given ground state, to a any given intermediate state
+          and the back down to the same ground state). */
   int *idx_map; /**< a mapping between a state of a given index, to the position
                   of its transitions stored in the trs variable (see below) */
 
   /**< sum of the boltzmann weights of all states in the system*/
   double bw_sum; /**< sum of boltzmann weights  or all ground states */
-  double tmax_q,tmax_d; /**< maximum transition moment of all quadrupole (q) and
+  /* double tmax_q,tmax_d; */ /**< maximum transition moment of all quadrupole (q) and
                            dipole (tmax_d) transitions */
   double e0; /**< lowest energy eigenstate */
 

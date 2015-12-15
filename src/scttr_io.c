@@ -32,6 +32,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <omp.h>
+#include "timing.h"
 #include "dyn_array.h"
 #include "sci_const.h"
 #include "formats.h"
@@ -45,6 +47,9 @@
 #include "metadata_s.h"
 #include "transitions.h"
 #include "scttr_cfg.h"
+#include "glob_time.h"
+
+double total_t;
 
 struct inp_node *root_inp;
 int n_inp = 0;
@@ -53,6 +58,7 @@ int n_inp = 0;
 const char *dat_sfx = ".dat";
 const char *plot_sfx = ".gp";
 const char *log_sfx  = ".txt";
+const char *time_sfx  = "_time.txt";
 const char *bin_sfx  = ".bin";
 const char *tmp_sfx  = ".tmp";
 
@@ -226,7 +232,7 @@ parse_input_bin (struct inp_node *inp, char *bin_fpstr)
 int
 parse_molout (struct inp_node *inp, char *fn_relpath, char *tmp_fpstr)
 {
-  printf("\n      parsing the molcas .log file .. \n");
+
   int j,k,l,m;
 
   /* the mode flag determining if the function should be searching for
@@ -240,11 +246,13 @@ parse_molout (struct inp_node *inp, char *fn_relpath, char *tmp_fpstr)
 
   int c; /* temporary char for storing input file characters */
 
+  char *ltime = malloc(20);
   char *s1 = NULL;
   char *s2 = NULL;
   char *s3 = NULL;
 
   char *str_buf = malloc(BUF_SIZE * 5);
+  printf("\n      parsing the molcas .log file (%s) ..", get_loctime(ltime));
   if (inp -> md -> so_enrg == 0) {
 
     /* read spin-orbit data */
@@ -287,11 +295,6 @@ parse_molout (struct inp_node *inp, char *fn_relpath, char *tmp_fpstr)
   string_flag = 0;
 
   for (j = 0, k = 0; ((c = fgetc(fp_relpath)) != EOF) && (n_match != 3); j++, k++) {
-    if (j % 100000 == 0) {
-      printf("        %.2f%%\r", (((float)(j * sizeof(char))
-                                   / (float)inp -> md -> sz_inp) * 100));
-    }
-
     str_buf[k] = (char)c;
 
     /* keep extracting characters from the input data until an entire line
@@ -338,7 +341,7 @@ parse_molout (struct inp_node *inp, char *fn_relpath, char *tmp_fpstr)
       k = 0;
     }
   }
-  printf("          100%%\r");
+
   if ((fclose(fp_tmpdata) != 0)
       && (fclose(fp_relpath) != 0)) {
     fprintf(stderr, "\n\nscttr_io.c, function parse_molout: unable to close files:\n%s\n%s\n"
@@ -347,25 +350,424 @@ parse_molout (struct inp_node *inp, char *fn_relpath, char *tmp_fpstr)
     exit(1);
   }
   free(str_buf);
-  printf("\n      done. \n");
+  printf(" done (%s).\n", get_loctime(ltime));
+  free(ltime);
   return 1;
 }
 
+/* int */
+/* parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata) */
+/* { */
+/*   int j, k, l, m, j_test; /\* control loop variables *\/ */
+/*   int idx_from, idx_to; /\* index in each transition from state x to y  *\/ */
+/*   int tmp_idx2; */
+/*   int n_states, n_trans; */
+/*   int last_i; */
+/*   int n_proc; /\* number of states processed at any given time in the */
+/*                execution of the function *\/ */
+/*   int trs_type; /\* type  *\/ */
+
+/*   int n_idxs1 = 2; */
+/*   int n_idxs2 = 3; */
+
+/*   char *ltime = malloc(20); */
+
+/*   int *num_idxs1; */
+/*   int *num_idxs2; */
+/*   int *trs_types; */
+/*   int *idxs_eigval; */
+/*   int *proc_idx; */
+
+/*   double *state_er = inp -> md -> state_er; */
+/*   double tmp_idx = 0; */
+/*   double maxr = get_maxl(state_er, state_er[0]); */
+/*   double from_state_en, to_state_en, tmp_state_en; */
+
+/*   double *e_eigval; */
+/*   double *t_mom; */
+
+/*   double **trs_buf; */
+/*   double **trans_idxs; */
+
+/*   /\* variables used later to approximate the amount of input data *\/ */
+/*   int sz_tmp; */
+/*   struct stat st = {0}; */
+
+/*   FILE *fp_tmpdata; */
+
+/*   int c; /\* temporary char for storing input file characters *\/ */
+/*   /\* we are looking for four strings in the output file: one at the beginning */
+/*      of each data block, and one at the end. *\/ */
+/*   char *str_buf = malloc(BUF_SIZE * 5); */
+/*   char *s1 = NULL; */
+/*   char *s2 = NULL; */
+/*   char *s3 = NULL; */
+
+/*   printf("      parsing the tmp file (%s) ..", get_loctime(ltime)); */
+
+/*   if (inp -> md -> so_enrg == 0) { */
+/*     /\* read spin-orbit data *\/ */
+/*     s1 = "Eigenvalues of complex Hamiltonian"; */
+/*     s2 = "Dipole transition strengths (SO states)"; */
+/*     s3 = "Quadrupole transition strengths (SO states)"; */
+/*   } */
+/*   else if(inp -> md -> so_enrg == 1) { */
+/*     /\* read spin-orbit free data *\/ */
+/*     s1 = "SPIN-FREE ENERGIES"; */
+/*     s2 = "Dipole transition strengths"; */
+/*     s3 = "Quadrupole transition strengths"; */
+/*   } */
+
+/*   /\* create a pointer to the three data block beginners s1,s3, *\/ */
+/*   const char *lookup_str[3] = {s1,s2,s3}; */
+
+/*   stat(fn_tmpdata, &st); */
+/*   sz_tmp = (int)st.st_size; /\* file size in bytes *\/ */
+/*   sz_tmp = sz_tmp / 34; /\* shortest line = 34 chars *\/ */
+
+/*   /\* open the input file *\/ */
+/*   if((fp_tmpdata = fopen(fn_tmpdata, "r")) == NULL) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el_el: unable to open the input file %s.\n" */
+/*             , fn_tmpdata); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   k = 0; /\* index for tmp_string *\/ */
+/*   l = 0; /\* index for lookup string *\/ */
+
+/*   /\* storage for the energy eigenvalues *\/ */
+/*   if((e_eigval = malloc(sz_tmp * sizeof(double))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"e_eigval\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   if((trs_types = malloc(sz_tmp * sizeof(double))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"trs_types\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   if((idxs_eigval = malloc(sz_tmp * sizeof(int))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"idxs_eigval\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   for (j = 0; j < sz_tmp; j++) { */
+/*     idxs_eigval[j] = -1; */
+/*   } */
+
+/*   /\* storage for the transition moments *\/ */
+/*   if((t_mom = malloc(sz_tmp * sizeof(double))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"t_mom\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   /\* storage for the transition indexes, column 1 is from a state */
+/*      column 2 is to state index *\/ */
+/*   if((trans_idxs = malloc(2 * sizeof(double *))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"trans_idxs\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   for (j = 0; j < 2; j++) { */
+/*     if((trans_idxs[j] = malloc(sz_tmp * sizeof(double))) == NULL ) { */
+/*       fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"trans_idxs[%d]\"\n" */
+/*               , j); */
+/*       printf("program terminating due to the previous error.\n\n"); */
+/*       exit(1); */
+/*     } */
+/*   } */
+
+/*   if((num_idxs1 = malloc(2 * sizeof(int))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"num_idxs1\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   if((num_idxs2 = malloc(3 * sizeof(int))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"num_idxs2\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   num_idxs1[0] = 0; */
+/*   num_idxs1[1] = 1; */
+
+/*   num_idxs2[0] = 0; */
+/*   num_idxs2[1] = 1; */
+/*   num_idxs2[2] = 2; */
+
+/*   j = j_test = l = m = 0; */
+
+/*   n_states = 0; */
+/*   n_trans = 0; */
+/*   trs_type = 1; */
+
+/*   /\* now that data structures of the rights size has memory allocated for */
+/*      them, start reading data from the temporary file *\/ */
+/*   while ((c = fgetc(fp_tmpdata)) != EOF) { */
+
+/*     str_buf[l] = (char)c; */
+
+/*     if ((str_buf[l]  == '\n') && (l > 0)) { /\* dont send blank lines *\/ */
+/*       str_buf[l + 1] = '\0'; */
+/*       if ((j_test = strscmp(str_buf, lookup_str, 3)) != -1) { */
+/*         j = j_test; */
+/*         trs_type = j; */
+/*       } */
+/*       else { */
+/*         if ((j == 0) && (isempty(str_buf, l) != 1)) { */
+
+/*           /\* extract energy eigenvalues and state indexes *\/ */
+/*           get_nums(str_buf, num_idxs1, l, n_idxs1, &tmp_idx */
+/*                    , &e_eigval[n_states]); */
+/*           if ((fabs(e_eigval[n_states] - e_eigval[0]) * AUTOEV) \ */
+/*               < maxr) { */
+/*             idxs_eigval[(int)tmp_idx - 1] = n_states + 1; */
+/*             n_states++; */
+/*           } */
+/*         } */
+/*         else if ((j > 0) && (isempty(str_buf, l) != 1)) { */
+/*           if (n_trans == 0) { /\* pre-process the eigenvalues *\/ */
+
+/*             /\* sort the states in energy *\/ */
+/*             iquicks(e_eigval, idxs_eigval, 0, n_states - 1, n_states); */
+/*             inp -> e0 = e_eigval[0]; */
+
+/*             /\* adjust n_states so that it accounts for states not to be read */
+/*              due to being outside of the input range *\/ */
+/*             m = 0; */
+/*             for (k = 0; k < n_states; k++) { */
+/*               if ((e_eigval[k] - inp -> e0) * AUTOEV < maxr) { */
+/*                 m++; */
+/*               } */
+/*             } */
+/*             n_states = m; */
+
+/*           } */
+/*           /\* extract transition moments and transition indexes *\/ */
+/*           get_nums(str_buf, num_idxs2, l, n_idxs2, &trans_idxs[0][n_trans], */
+/*                    &trans_idxs[1][n_trans], &t_mom[n_trans]); */
+/*           trs_types[n_trans] = trs_type; */
+
+/*           from_state_en = get_wi(e_eigval, idxs_eigval */
+/*                                  , (int)(trans_idxs[1][n_trans]), n_states); */
+
+/*           to_state_en = get_wi(e_eigval,idxs_eigval */
+/*                                , (int)(trans_idxs[0][n_trans]), n_states); */
+
+/*           if ((((int)to_state_en != -1) && ((int)from_state_en != -1)) */
+/*               && (((to_state_en-inp -> e0) * AUTOEV < maxr) */
+/*                   && ((from_state_en-inp -> e0) * AUTOEV < maxr))){ */
+/*             n_trans++; */
+/*           } */
+/*         } */
+/*       } */
+/*       /\* reset the buffer write head to start reading a the next line *\/ */
+/*       l = 0; */
+/*     } */
+/*     else{ */
+/*       l++; */
+/*     } */
+/*   } */
+
+/*   /\* allocate space for the "parsed input matrix" that will be filled with data */
+/*      in the remaining sections of this function *\/ */
+
+/*   if((proc_idx = malloc(n_states * sizeof(int))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"proc_idx\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   if((inp -> trs = malloc(6 * sizeof(double *))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"inp -> trs\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   for (j = 0; j < 6; j++) { */
+/*     if((inp -> trs[j] = malloc((n_trans + 1) * sizeof(double))) == NULL ) { */
+/*       fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for pointers in \"inp -> trs[%d]\"\n" */
+/*               , j); */
+/*       printf("program terminating due to the previous error.\n\n"); */
+/*       exit(1); */
+/*     } */
+/*   } */
+/*   inp -> trs[0][n_trans] = -1; /\* end of list *\/ */
+
+/*   if((trs_buf = malloc(6 * sizeof(double *))) == NULL ) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for \"trs_buf\"\n"); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   for (j = 0; j < 6; j++) { */
+/*     if((trs_buf[j] = malloc((n_trans + 1) * sizeof(double))) == NULL ) { */
+/*       fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: failed to allocate memory for pointers in \"trs_buf[%d]\"\n" */
+/*               , j); */
+/*       printf("program terminating due to the previous error.\n\n"); */
+/*       exit(1); */
+/*     } */
+/*   } */
+
+/*   /\* finally, store the data in the trs matrix for the parse_input function  *\/ */
+/*   n_proc = 0; */
+/*   last_i = 1; */
+/*   j = k = l = 0; */
+
+/*   /\* l = index of line in the data arrays *\/ */
+/*   /\* j = index of data read into trs_buf, reset upon reading the transitions */
+/*      from a new state *\/ */
+
+/*   while (l < n_trans - 1) { */
+/*     /\* printf("THE DATA: to %d from %d\n ", (int)(trans_idxs[0][j+l]),(int)(trans_idxs[1][j+l])); *\/ */
+/*     if ((j + l) == (n_trans)) { */
+/*       /\* dont read beyond the last value in PI *\/ */
+/*       trs_buf[0][j] = -1; */
+/*       idx_from = -1; */
+/*     } */
+/*     else { */
+/*       from_state_en = get_wi(e_eigval, idxs_eigval */
+/*                              , (int)(trans_idxs[0][j + l]), n_states); */
+/*       to_state_en = get_wi(e_eigval, idxs_eigval */
+/*                            , (int)(trans_idxs[1][j + l]), n_states); */
+
+/*       if (inrange((to_state_en - inp -> e0) * AUTOEV, state_er[3] */
+/*                   , state_er[4]) */
+/*           && (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[5] */
+/*                       ,state_er[6])) */
+/*           && (((int)state_er[1] != (int)state_er[5]) */
+/*               && ((int)state_er[2] != (int)state_er[6])) */
+/*           ) { */
+
+/*         idx_from = trans_idxs[1][j + l]; */
+/*         idx_to = trans_idxs[0][j + l]; */
+
+/*         tmp_state_en = from_state_en; */
+/*         from_state_en = to_state_en; */
+/*         to_state_en = tmp_state_en; */
+/*       } */
+/*       else { */
+
+/*         idx_from = trans_idxs[0][j + l]; */
+/*         idx_to   = trans_idxs[1][j + l]; */
+/*       } */
+
+/*       trs_buf[0][j] = idx_from; */
+/*       trs_buf[1][j] = idx_to; */
+/*       trs_buf[2][j] = from_state_en; */
+/*       trs_buf[3][j] = to_state_en; */
+/*       trs_buf[4][j] = t_mom[j + l]; */
+/*       trs_buf[5][j] = trs_types[j + l]; */
+/*     } */
+/*     if (idx_from != last_i) { */
+
+/*       tmp_idx2 = get_inext(inp -> trs, last_i); */
+/*       /\* we have read all transitions for a state *\/ */
+/*       /\* check if the last_i has already been processed *\/ */
+/*       if (intinint(proc_idx, last_i, n_proc) == -1) { */
+
+/*         m = l; */
+/*         while ((int)trs_buf[0][m - l] != idx_from) { */
+
+/*           inp -> trs[0][m] = trs_buf[0][m - l]; */
+/*           inp -> trs[1][m] = trs_buf[1][m - l]; */
+/*           inp -> trs[2][m] = trs_buf[2][m - l]; */
+/*           inp -> trs[3][m] = trs_buf[3][m - l]; */
+/*           inp -> trs[4][m] = trs_buf[4][m - l]; */
+/*           inp -> trs[5][m] = trs_buf[5][m - l]; */
+
+/*           m++; */
+/*         } */
+
+/*         inp -> trs[0][m] = -1; */
+/*         proc_idx[n_proc++] = last_i; */
+/*       } */
+/*       else{ */
+
+/*         tmp_idx2 = get_inext(inp -> trs, last_i); */
+/*         fwdsplice(trs_buf, inp -> trs, tmp_idx2, l, j, 6); */
+/*         fflush(stdout); */
+/*       } */
+/*       l += j; */
+/*       j = 0; */
+
+/*     } else { */
+/*       j++; */
+/*     } */
+/*     last_i = idx_from; */
+/*   } */
+
+/*   inp -> trs[0][l] = -1; */
+/*   inp -> n_trans = l; */
+
+/*   if (fclose(fp_tmpdata) != 0) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: unable to close file:\n%s\n" */
+/*             , fn_tmpdata); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   if (remove(fn_tmpdata) != 0) { */
+/*     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp_el: unable to remove temporary file:\n%s\n" */
+/*             , fn_tmpdata); */
+/*     printf("program terminating due to the previous error.\n\n"); */
+/*     exit(1); */
+/*   } */
+
+/*   free(e_eigval); */
+/*   free(trs_types); */
+/*   free(idxs_eigval); */
+/*   free(t_mom); */
+
+/*   for (j = 0; j < 2; j++) { */
+/*     free(trans_idxs[j]); */
+/*   } */
+/*   free(trans_idxs); */
+
+/*   free(num_idxs1); */
+/*   free(num_idxs2); */
+/*   free(proc_idx); */
+
+/*   for (j = 0; j<6; j++) { */
+/*     free(trs_buf[j]); */
+/*   } */
+/*   free(trs_buf); */
+/*   free(str_buf); */
+
+/*   printf(" done (%s).\n", get_loctime(ltime)); */
+/*   free(ltime); */
+/*   return 1; */
+/* } */
+
 int
-parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
+parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
 {
-  printf("\n      parsing the tmp file .. \n");
   int j, k, l, m, j_test; /* control loop variables */
-  int idx_from, idx_to; /* index in each transition from state x to y  */
+  int idx_to, idx_from; /* index in each transition from state x to y  */
   int tmp_idx2;
+  int tmp_i = 0;
+  int first = 0; /*  == 1 means dipole transitions have been read */
+  int proci = 0;
   int n_states, n_trans;
   int last_i;
   int n_proc; /* number of states processed at any given time in the
-               execution of the function */
+                 execution of the function */
+  int nsc = 0; /* number of screened out ground states */
   int trs_type; /* type  */
-
+  /* int proci = 0; /\* what kind of transition that was processed *\/ */
   int n_idxs1 = 2;
   int n_idxs2 = 3;
+  int rc;
+  int idx_comp;/* what transition index to compare to */
+
+  char *ltime = malloc(20);
 
   int *num_idxs1;
   int *num_idxs2;
@@ -373,10 +775,14 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
   int *idxs_eigval;
   int *proc_idx;
 
+  float bw_thrsh = inp -> md -> state_t[2];
+
+  double tmp_bw;
+
   double *state_er = inp -> md -> state_er;
   double tmp_idx = 0;
   double maxr = get_maxl(state_er, state_er[0]);
-  double from_state_en, to_state_en, tmp_state_en;
+  double to_state_en, from_state_en, tmp_state_en;
 
   double *e_eigval;
   double *t_mom;
@@ -397,6 +803,8 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
   char *s1 = NULL;
   char *s2 = NULL;
   char *s3 = NULL;
+
+  printf("      parsing the tmp file (%s) ..", get_loctime(ltime));
 
   if (inp -> md -> so_enrg == 0) {
     /* read spin-orbit data */
@@ -521,6 +929,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
                    , &e_eigval[n_states]);
           if ((fabs(e_eigval[n_states] - e_eigval[0]) * AUTOEV) \
               < maxr) {
+
             idxs_eigval[(int)tmp_idx - 1] = n_states + 1;
             n_states++;
           }
@@ -533,7 +942,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
             inp -> e0 = e_eigval[0];
 
             /* adjust n_states so that it accounts for states not to be read
-             due to being outside of the input range */
+               due to being outside of the input range */
             m = 0;
             for (k = 0; k < n_states; k++) {
               if ((e_eigval[k] - inp -> e0) * AUTOEV < maxr) {
@@ -547,17 +956,18 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
                    &trans_idxs[1][n_trans], &t_mom[n_trans]);
           trs_types[n_trans] = trs_type;
 
-          from_state_en = get_wi(e_eigval, idxs_eigval
-                                 , (int)(trans_idxs[1][n_trans]), n_states);
-
-          to_state_en = get_wi(e_eigval,idxs_eigval
+          to_state_en = get_wi(e_eigval, idxs_eigval
                                , (int)(trans_idxs[0][n_trans]), n_states);
 
-          if ((((int)to_state_en != -1) && ((int)from_state_en != -1))
-              && (((to_state_en-inp -> e0) * AUTOEV < maxr)
-                  && ((from_state_en-inp -> e0) * AUTOEV < maxr))){
+          from_state_en = get_wi(e_eigval,idxs_eigval
+                                 , (int)(trans_idxs[1][n_trans]), n_states);
+
+          if ((((int)from_state_en != -1) && ((int)to_state_en != -1))
+              && (((from_state_en-inp -> e0) * AUTOEV < maxr)
+                  && ((to_state_en-inp -> e0) * AUTOEV < maxr))){
             n_trans++;
           }
+
         }
       }
       /* reset the buffer write head to start reading a the next line */
@@ -610,100 +1020,292 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
 
   /* finally, store the data in the trs matrix for the parse_input function  */
   n_proc = 0;
-  last_i = 1;
+  last_i = trans_idxs[0][0];
   j = k = l = 0;
 
   /* l = index of line in the data arrays */
   /* j = index of data read into trs_buf, reset upon reading the transitions
      from a new state */
+  /* printf("\n" ); */
 
-  while (l < n_trans - 1) {
-    if (l % 1 == 0) {
-      printf("        %.2f%%\r", (((float)l / (float)n_trans) * 100));
+  /* for (j = 0; j < n_trans; j++) { */
+  /*   printf("%le %le %le\n",e_eigval[j], (e_eigval[j] - inp -> e0) * AUTOEV, get_boltzw((e_eigval[j] - inp -> e0) * AUTOEV)); */
+  /*   printf("%le %le\n", trans_idxs[0][j], trans_idxs[1][j]); */
+  /* } */
+  /* fprintf(stderr, "\n\n=======%d Valgrind eject point=======\n\n", n_trans); */
+  /* exit(1); */
+
+  int READHEAD, READHEAD_PRE, WRITEHEAD;
+  READHEAD = WRITEHEAD = 0;
+  while (READHEAD <= n_trans) {
+    /* printf("Reading transition %d/%d\n", READHEAD, n_trans); */
+
+    /* READHEAD : the place from which data is being read in the data arrays defined above */
+    /* j : the write head for the trs_buf */
+    /* WRITEHEAD: the place to where we are writing data in the trs matrix */
+    /* printf("THE DATA: to %d from %d\n ", (int)(trans_idxs[0][READHEAD]),(int)(trans_idxs[1][READHEAD])); */
+    if (READHEAD == n_trans) {
+      /* printf("NOPE\n" ); */
+      /* dont read beyond the last value in PI and mark the end of the array */
+      /* trs_buf[0][] = -1; */
+      idx_to = -1;
     }
-    if ((j + l) == (n_trans)) {
-      /* dont read beyond the last value in PI */
-      trs_buf[0][j] = -1;
-      idx_from = -1;
+    /* else { */
+    /* printf("YEP\n" ); */
+    /* read the data arrays row by row */
+    /* 1.bw screening, jump ahead if failed */
+    /* 2.load data into the trs_buf */
+
+    to_state_en = get_wi(e_eigval, idxs_eigval
+                         , (int)(trans_idxs[0][READHEAD]), n_states);
+    from_state_en = get_wi(e_eigval, idxs_eigval
+                           , (int)(trans_idxs[1][READHEAD]), n_states);
+
+    if (inrange((to_state_en - inp -> e0) * AUTOEV, state_er[1]
+                , state_er[2])
+        && ((inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3]
+                     ,state_er[4]))
+        /* && (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3] */
+        /*             ,state_er[4])) */
+            /* && (trs_types[READHEAD] == 1 */)) /* only dipole absorption */
+      {
+
+      idx_to = trans_idxs[1][READHEAD];
+      idx_from = trans_idxs[0][READHEAD];
+
+      tmp_state_en = to_state_en;
+      to_state_en = from_state_en;
+      from_state_en = tmp_state_en;
+      proci = 1;
+      idx_comp = idx_to;
+      first = 1;
     }
     else {
-      from_state_en = get_wi(e_eigval, idxs_eigval
-                             , (int)(trans_idxs[0][j + l]), n_states);
-      to_state_en = get_wi(e_eigval, idxs_eigval
-                           , (int)(trans_idxs[1][j + l]), n_states);
+      proci = 0;
+    }
 
-      if (inrange((to_state_en - inp -> e0) * AUTOEV, state_er[3]
-                  , state_er[4])
-          && (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[5]
-                      ,state_er[6]))
-          && (((int)state_er[1] != (int)state_er[5])
-              && ((int)state_er[2] != (int)state_er[6]))
-          ) {
+    if (proci) { /* a transition was found that fit the energy ranges */
 
-        idx_from = trans_idxs[1][j + l];
-        idx_to = trans_idxs[0][j + l];
+      tmp_state_en =
+        (get_wi(e_eigval
+                , idxs_eigval
+                , idx_from
+                , n_states) - inp -> e0) * AUTOEV;
+      tmp_bw = get_boltzw(tmp_state_en);
+      /* fprintf(stderr, "\n\nproc=======Valgrind eject point=======\n\n"); */
+      /* exit(1); */
+      if (first /* || (tmp_bw > bw_thrsh) */) {
 
-        tmp_state_en = from_state_en;
-        from_state_en = to_state_en;
-        to_state_en = tmp_state_en;
+        /* for (tmp_i = last_i, */
+        /*        tmp_state_en = */
+        /*        (get_wi(e_eigval */
+        /*                , idxs_eigval */
+        /*                , idx_from */
+        /*                , n_states) - inp -> e0) * AUTOEV */
+        /*        ;inrange(tmp_state_en */
+        /*                 , inp -> md -> state_er[1] */
+        /*                 , inp -> md -> state_er[2]) */
+        /*        ;tmp_i = trans_idxs[0][READHEAD], */
+        /*        tmp_state_en = */
+        /*        (get_wi(e_eigval */
+        /*                , idxs_eigval */
+        /*                , (int)(trans_idxs[1][READHEAD]) */
+        /*                , n_states) - inp -> e0) * AUTOEV) { */
+
+        /*   tmp_bw = get_boltzw(tmp_state_en); */
+        /*   if (tmp_bw < bw_thrsh) { */
+        /*     printf("Not accepted bw: %le %le %d %d\n", tmp_state_en, tmp_bw, (int)(trans_idxs[0][READHEAD]), (int)(trans_idxs[1][READHEAD])); */
+        /*     /\* skip ahead to the next block of transitions *\/ */
+        /*     READHEAD_PRE = READHEAD; */
+        /*     tmp_i = trans_idxs[0][READHEAD]; */
+        /*     while((int)trans_idxs[0][READHEAD] == tmp_i) { */
+        /*       READHEAD++; */
+        /*     } */
+
+        /*     /\* last_i = trans_idxs[0][READHEAD]; *\/ */
+        /*     nsc += READHEAD - READHEAD_PRE; */
+        /*   } */
+        /*   else { */
+        /*     printf("Accepted bw: %le %le %d %d\n", tmp_state_en, tmp_bw, (int)(trans_idxs[0][READHEAD]), (int)(trans_idxs[1][READHEAD])); */
+        /*     /\* we have found a state that has a large enough boltzmann weight *\/ */
+        /*     break; */
+        /*   } */
+        /* } */
+
+        /* printf("PROCESSING STATE to %d from %d\n",idx_to, idx_from ); */
+        if (idx_comp != last_i) {
+
+          /* printf("NEXT TRANSITION SET (%d != %d)\n", idx_comp, last_i); */
+          /* /\* j = j-; *\/ */
+          /* for (l = 0; l < j; l++) { */
+          /*   fflush(stdout); */
+          /*   printf("trans: %le %le %le %le %le\n", trs_buf[0][l],trs_buf[1][l], trs_buf[2][l],trs_buf[3][l],trs_buf[4][l]); */
+          /* } */
+          /* printf("\nidx_to = %d, idx_from = %d, last_i = %d, l = %d, j = %d\n", idx_to, idx_from, last_i, l, j); */
+          /* fflush(stdout); */
+          /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+          /* exit(1); */
+
+          /* we have read all transitions for a state */
+          /* check if the last_i has already been processed */
+          if (intinint(proc_idx, last_i, n_proc) == -1) {
+
+            /* for (l = 0; l < WRITEHEAD; l++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
+            /* } */
+            /* printf("\n^Pre write %d\n\n", last_i ); */
+            m = 0;
+            for (m = 0; m < j ; m++, WRITEHEAD++) {
+
+              inp -> trs[0][WRITEHEAD] = trs_buf[0][m];
+              inp -> trs[1][WRITEHEAD] = trs_buf[1][m];
+              inp -> trs[2][WRITEHEAD] = trs_buf[2][m];
+              inp -> trs[3][WRITEHEAD] = trs_buf[3][m];
+              inp -> trs[4][WRITEHEAD] = trs_buf[4][m];
+              inp -> trs[5][WRITEHEAD] = trs_buf[5][m];
+            }
+
+            inp -> trs[0][WRITEHEAD] = -1;
+            /* for (j = 0; j < WRITEHEAD; j++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][j],inp -> trs[1][j], inp -> trs[2][j],inp -> trs[3][j],inp -> trs[4][j]); */
+            /* } */
+
+            proc_idx[n_proc++] = last_i;
+            /* for (j = 0; j < n_proc; j++) { */
+            /*   printf("proc_idx = %d\n", proc_idx[j]); */
+            /* } */
+            /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+            /* exit(1); */
+
+            /* for (l = 0; l < WRITEHEAD; l++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
+            /* } */
+            /* printf("\n^Post write %d\n\n", last_i ); */
+            /* for (l = 0; l < n_proc; l++) { */
+            /*   printf("proc_idx = %d\n", proc_idx[l]); */
+            /* } */
+            /* printf("last_i = %d, idx_to = %d, l = %d\n", last_i, idx_to, l); */
+            /* fflush(stdout); */
+
+          }
+          else {
+            /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+            /* exit(1); */
+            /* printf("Pre splice start\n" ); */
+            /* for (l = 0; l < WRITEHEAD; l++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
+            /* } */
+
+            tmp_idx2 = get_inext(inp -> trs, last_i);
+            /* printf("%d \n", tmp_idx2 ); */
+            /* printf("\n^Pre splice end in trs[%d] = %d with last_i= %d\n\n", tmp_idx2,(int)inp -> trs[0][tmp_idx2], last_i ); */
+            /* printf("\n buffer START:\n" ); */
+
+            /* for (l = 0; l < j; l++) { */
+            /*   printf("%le %le %le %le %le\n", trs_buf[0][l],trs_buf[1][l], trs_buf[2][l],trs_buf[3][l],trs_buf[4][l]); */
+            /* } */
+            /* printf("\n ^buffer END :\n" ); */
+            /* fflush(stdout); */
+            rc = fwdsplice(trs_buf, inp -> trs, tmp_idx2, WRITEHEAD, j, 6);
+            if (rc == 1) {
+              printf("\n^Post splice start %d\n\n", last_i );
+              for (l = 0; l < WRITEHEAD; l++) {
+                printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]);
+              }
+              printf("\n^Post splice end %d\n\n", last_i );
+
+              for (l = 0; l < n_proc; l++) {
+                printf("proc_idx = %d\n", proc_idx[l]);
+              }
+              /* printf("last_i = %d, idx_to = %d, l = %d\n", last_i, idx_to, l); */
+              /* fflush(stdout); */
+              /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+              /* exit(1); */
+              fprintf(stderr, "\n\n\n Error! scttr_io.c, function parse_input_tmp: the fwdsplice function return a non-zero integer. Printing debug information\n");
+              printf("input arguments: %d, %d, %d\n", tmp_idx2, WRITEHEAD, j);
+              printf("additional variables: last_i = %d, idx_to = %d\n", last_i, idx_to);
+              printf("Reading transition %d/%d\n", READHEAD, n_trans);
+              printf( "program terminating due to the previous error.\n");
+              exit(1);
+            }
+            WRITEHEAD += j;
+          }
+          j = 0;
+          /* check what kind of transition that was processed */
+          /* if (proci == 1) { */
+          /*   last_i = idx_from; */
+          /* } else { */
+          /*   last_i = idx_to; */
+          /* } */
+          last_i = idx_comp;
+
+          READHEAD--;
+        }
+        else {
+
+          trs_buf[0][j] = idx_to;
+          trs_buf[1][j] = idx_from;
+          trs_buf[2][j] = to_state_en;
+          trs_buf[3][j] = from_state_en;
+          trs_buf[4][j] = t_mom[READHEAD];
+          trs_buf[5][j] = trs_types[READHEAD];
+
+          /* printf("TRANSBUF[%d]: %le %le %le %le %le %le\n", j, trs_buf[0][j],trs_buf[1][j], trs_buf[2][j],trs_buf[3][j],trs_buf[4][j],trs_buf[5][j]); */
+          /* fflush(stdout); */
+          j++;
+
+        }
+        /* } */
+        READHEAD++;
       }
       else {
+        /* printf("Not accepted bw: %le %le to %d from %d\n", tmp_state_en, tmp_bw, (int)(trans_idxs[0][READHEAD]), (int)(trans_idxs[1][READHEAD])); */
+        /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+        /* exit(1); */
 
-        idx_from = trans_idxs[0][j + l];
-        idx_to   = trans_idxs[1][j + l];
-      }
-
-      trs_buf[0][j] = idx_from;
-      trs_buf[1][j] = idx_to;
-      trs_buf[2][j] = from_state_en;
-      trs_buf[3][j] = to_state_en;
-      trs_buf[4][j] = t_mom[j + l];
-      trs_buf[5][j] = trs_types[j + l];
-    }
-    if (idx_from != last_i) {
-
-      tmp_idx2 = get_inext(inp -> trs, last_i);
-      /* we have read all transitions for a state */
-      /* check if the last_i has already been processed */
-      if (intinint(proc_idx, last_i, n_proc) == -1) {
-
-        m = l;
-        while ((int)trs_buf[0][m - l] != idx_from) {
-
-          inp -> trs[0][m] = trs_buf[0][m - l];
-          inp -> trs[1][m] = trs_buf[1][m - l];
-          inp -> trs[2][m] = trs_buf[2][m - l];
-          inp -> trs[3][m] = trs_buf[3][m - l];
-          inp -> trs[4][m] = trs_buf[4][m - l];
-          inp -> trs[5][m] = trs_buf[5][m - l];
-
-          m++;
+        /* we only screen the quadrupole transitions, so this will work fine */
+        READHEAD_PRE = READHEAD;
+        tmp_i = trans_idxs[0][READHEAD];
+        while((int)trans_idxs[0][READHEAD] == tmp_i) {
+          READHEAD++;
         }
+        nsc += READHEAD - READHEAD_PRE;
 
-        inp -> trs[0][m] = -1;
-        proc_idx[n_proc++] = last_i;
+        /* READHEAD++; */
+        /* nsc++; */
+        /* last_i = trans_idxs[0][READHEAD]; */
+
       }
-      else{
-
-        tmp_idx2 = get_inext(inp -> trs, last_i);
-        fwdsplice(trs_buf, inp -> trs, tmp_idx2, l, j, 6);
-        fflush(stdout);
-      }
-      l += j;
-      j = 0;
-
-    } else {
-      j++;
     }
-    last_i = idx_from;
+    else {
+      READHEAD++;
+    }
   }
 
-  inp -> trs[0][l] = -1;
-  inp -> n_trans = l;
-  printf("          100%%\r");
+  /* for (l = 0; l < n_proc; l++) { */
+  /*   printf("proc_idx = %d\n", proc_idx[l]); */
+  /* } */
+
+  inp -> n_trans = WRITEHEAD;
+  /* printf("\nTotal content:\n" ); */
+  /* for (j = 0; j <= WRITEHEAD; j++) { */
+  /*   fflush(stdout); */
+  /*   printf("trs[:][%d] = %le %le %le %le %le\n", j,  inp -> trs[0][j],inp -> trs[1][j], inp -> trs[2][j],inp -> trs[3][j],inp -> trs[4][j]); */
+  /* } */
+  /* printf("%d %d", nsc, inp -> n_trans); */
+  /* fflush(stdout); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
 
   if (fclose(fp_tmpdata) != 0) {
     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: unable to close file:\n%s\n"
+            , fn_tmpdata);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  if (remove(fn_tmpdata) != 0) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: unable to remove temporary file:\n%s\n"
             , fn_tmpdata);
     printf("program terminating due to the previous error.\n\n");
     exit(1);
@@ -729,7 +1331,627 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
   free(trs_buf);
   free(str_buf);
 
-  printf("\n      done.\n");
+  printf(" done (%s).\n", get_loctime(ltime));
+  free(ltime);
+  return 1;
+}
+
+
+int
+parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
+{
+  int j, k, l, m, j_test; /* control loop variables */
+  int idx_to, idx_from; /* index in each transition from state x to y  */
+  int tmp_idx2;
+  int tmp_i = 0;
+  int first = 0; /*  == 1 means dipole transitions have been read */
+  int proci = 0;
+  int n_states, n_trans;
+  int last_i;
+  int n_proc; /* number of states processed at any given time in the
+                 execution of the function */
+  int nsc = 0; /* number of screened out ground states */
+  int trs_type; /* type  */
+  /* int proci = 0; /\* what kind of transition that was processed *\/ */
+  int n_idxs1 = 2;
+  int n_idxs2 = 3;
+  int rc;
+  int idx_comp;/* what transition index to compare to */
+
+  char *ltime = malloc(20);
+
+  int *num_idxs1;
+  int *num_idxs2;
+  int *trs_types;
+  int *idxs_eigval;
+  int *proc_idx;
+
+  float bw_thrsh = inp -> md -> state_t[2];
+
+  double tmp_bw;
+
+  double *state_er = inp -> md -> state_er;
+  double tmp_idx = 0;
+  double maxr = get_maxl(state_er, state_er[0]);
+  double to_state_en, from_state_en, tmp_state_en;
+
+  double *e_eigval;
+  double *t_mom;
+
+  double **trs_buf;
+  double **trans_idxs;
+
+  /* variables used later to approximate the amount of input data */
+  int sz_tmp;
+  struct stat st = {0};
+
+  FILE *fp_tmpdata;
+
+  int c; /* temporary char for storing input file characters */
+  /* we are looking for four strings in the output file: one at the beginning
+     of each data block, and one at the end. */
+  char *str_buf = malloc(BUF_SIZE * 5);
+  char *s1 = NULL;
+  char *s2 = NULL;
+  char *s3 = NULL;
+
+  printf("      parsing the tmp file (%s) ..", get_loctime(ltime));
+
+  if (inp -> md -> so_enrg == 0) {
+    /* read spin-orbit data */
+    s1 = "Eigenvalues of complex Hamiltonian";
+    s2 = "Dipole transition strengths (SO states)";
+    s3 = "Quadrupole transition strengths (SO states)";
+  }
+  else if(inp -> md -> so_enrg == 1) {
+    /* read spin-orbit free data */
+    s1 = "SPIN-FREE ENERGIES";
+    s2 = "Dipole transition strengths";
+    s3 = "Quadrupole transition strengths";
+  }
+
+  /* create a pointer to the three data block beginners s1,s3, */
+  const char *lookup_str[3] = {s1,s2,s3};
+
+  stat(fn_tmpdata, &st);
+  sz_tmp = (int)st.st_size; /* file size in bytes */
+  sz_tmp = sz_tmp / 34; /* shortest line = 34 chars */
+
+  /* open the input file */
+  if((fp_tmpdata = fopen(fn_tmpdata, "r")) == NULL) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: unable to open the input file %s.\n"
+            , fn_tmpdata);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  k = 0; /* index for tmp_string */
+  l = 0; /* index for lookup string */
+
+  /* storage for the energy eigenvalues */
+  if((e_eigval = malloc(sz_tmp * sizeof(double))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"e_eigval\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  if((trs_types = malloc(sz_tmp * sizeof(double))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"trs_types\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  if((idxs_eigval = malloc(sz_tmp * sizeof(int))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"idxs_eigval\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  for (j = 0; j < sz_tmp; j++) {
+    idxs_eigval[j] = -1;
+  }
+
+  /* storage for the transition moments */
+  if((t_mom = malloc(sz_tmp * sizeof(double))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"t_mom\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  /* storage for the transition indexes, column 1 is from a state
+     column 2 is to state index */
+  if((trans_idxs = malloc(2 * sizeof(double *))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"trans_idxs\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  for (j = 0; j < 2; j++) {
+    if((trans_idxs[j] = malloc(sz_tmp * sizeof(double))) == NULL ) {
+      fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"trans_idxs[%d]\"\n"
+              , j);
+      printf("program terminating due to the previous error.\n\n");
+      exit(1);
+    }
+  }
+
+  if((num_idxs1 = malloc(2 * sizeof(int))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"num_idxs1\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  if((num_idxs2 = malloc(3 * sizeof(int))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"num_idxs2\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  num_idxs1[0] = 0;
+  num_idxs1[1] = 1;
+
+  num_idxs2[0] = 0;
+  num_idxs2[1] = 1;
+  num_idxs2[2] = 2;
+
+  j = j_test = l = m = 0;
+
+  n_states = 0;
+  n_trans = 0;
+  trs_type = 1;
+
+  /* now that data structures of the rights size has memory allocated for
+     them, start reading data from the temporary file */
+  while ((c = fgetc(fp_tmpdata)) != EOF) {
+
+    str_buf[l] = (char)c;
+
+    if ((str_buf[l]  == '\n') && (l > 0)) { /* dont send blank lines */
+      str_buf[l + 1] = '\0';
+      if ((j_test = strscmp(str_buf, lookup_str, 3)) != -1) {
+        j = j_test;
+        trs_type = j;
+      }
+      else {
+        if ((j == 0) && (isempty(str_buf, l) != 1)) {
+
+          /* extract energy eigenvalues and state indexes */
+          get_nums(str_buf, num_idxs1, l, n_idxs1, &tmp_idx
+                   , &e_eigval[n_states]);
+          if ((fabs(e_eigval[n_states] - e_eigval[0]) * AUTOEV) \
+              < maxr) {
+
+            idxs_eigval[(int)tmp_idx - 1] = n_states + 1;
+            n_states++;
+          }
+        }
+        else if ((j > 0) && (isempty(str_buf, l) != 1)) {
+          if (n_trans == 0) { /* pre-process the eigenvalues */
+
+            /* sort the states in energy */
+            iquicks(e_eigval, idxs_eigval, 0, n_states - 1, n_states);
+            inp -> e0 = e_eigval[0];
+
+            /* adjust n_states so that it accounts for states not to be read
+               due to being outside of the input range */
+            m = 0;
+            for (k = 0; k < n_states; k++) {
+              if ((e_eigval[k] - inp -> e0) * AUTOEV < maxr) {
+                m++;
+              }
+            }
+            n_states = m;
+          }
+          /* extract transition moments and transition indexes */
+          get_nums(str_buf, num_idxs2, l, n_idxs2, &trans_idxs[0][n_trans],
+                   &trans_idxs[1][n_trans], &t_mom[n_trans]);
+          trs_types[n_trans] = trs_type;
+
+          to_state_en = get_wi(e_eigval, idxs_eigval
+                               , (int)(trans_idxs[0][n_trans]), n_states);
+
+          from_state_en = get_wi(e_eigval,idxs_eigval
+                                 , (int)(trans_idxs[1][n_trans]), n_states);
+
+          if ((((int)from_state_en != -1) && ((int)to_state_en != -1))
+              && (((from_state_en-inp -> e0) * AUTOEV < maxr)
+                  && ((to_state_en-inp -> e0) * AUTOEV < maxr))){
+            n_trans++;
+          }
+
+        }
+      }
+      /* reset the buffer write head to start reading a the next line */
+      l = 0;
+    }
+    else{
+      l++;
+    }
+  }
+
+  /* allocate space for the "parsed input matrix" that will be filled with data
+     in the remaining sections of this function */
+
+  if((proc_idx = malloc(n_states * sizeof(int))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"proc_idx\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  if((inp -> trs = malloc(6 * sizeof(double *))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"inp -> trs\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  for (j = 0; j < 6; j++) {
+    if((inp -> trs[j] = malloc((n_trans + 1) * sizeof(double))) == NULL ) {
+      fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for pointers in \"inp -> trs[%d]\"\n"
+              , j);
+      printf("program terminating due to the previous error.\n\n");
+      exit(1);
+    }
+  }
+  inp -> trs[0][n_trans] = -1; /* end of list */
+
+  if((trs_buf = malloc(6 * sizeof(double *))) == NULL ) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for \"trs_buf\"\n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  for (j = 0; j < 6; j++) {
+    if((trs_buf[j] = malloc((n_trans + 1) * sizeof(double))) == NULL ) {
+      fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: failed to allocate memory for pointers in \"trs_buf[%d]\"\n"
+              , j);
+      printf("program terminating due to the previous error.\n\n");
+      exit(1);
+    }
+  }
+
+  /* finally, store the data in the trs matrix for the parse_input function  */
+  n_proc = 0;
+  last_i = trans_idxs[0][0];
+  j = k = l = 0;
+
+  /* l = index of line in the data arrays */
+  /* j = index of data read into trs_buf, reset upon reading the transitions
+     from a new state */
+  /* printf("\n" ); */
+
+  /* for (j = 0; j < n_trans; j++) { */
+  /*   printf("%le %le %le\n",e_eigval[j], (e_eigval[j] - inp -> e0) * AUTOEV, get_boltzw((e_eigval[j] - inp -> e0) * AUTOEV)); */
+  /*   printf("%le %le\n", trans_idxs[0][j], trans_idxs[1][j]); */
+  /* } */
+  /* fprintf(stderr, "\n\n=======%d Valgrind eject point=======\n\n", n_trans); */
+  /* exit(1); */
+
+  int READHEAD, READHEAD_PRE, WRITEHEAD;
+  READHEAD = WRITEHEAD = 0;
+  while (READHEAD <= n_trans) {
+    /* printf("Reading transition %d/%d\n", READHEAD, n_trans); */
+
+    /* READHEAD : the place from which data is being read in the data arrays defined above */
+    /* j : the write head for the trs_buf */
+    /* WRITEHEAD: the place to where we are writing data in the trs matrix */
+    /* printf("THE DATA: to %d from %d\n ", (int)(trans_idxs[0][READHEAD]),(int)(trans_idxs[1][READHEAD])); */
+    if (READHEAD == n_trans) {
+      /* printf("NOPE\n" ); */
+      /* dont read beyond the last value in PI and mark the end of the array */
+      /* trs_buf[0][] = -1; */
+      idx_to = -1;
+    }
+    /* else { */
+    /* printf("YEP\n" ); */
+    /* read the data arrays row by row */
+    /* 1.bw screening, jump ahead if failed */
+    /* 2.load data into the trs_buf */
+
+    to_state_en = get_wi(e_eigval, idxs_eigval
+                         , (int)(trans_idxs[0][READHEAD]), n_states);
+    from_state_en = get_wi(e_eigval, idxs_eigval
+                           , (int)(trans_idxs[1][READHEAD]), n_states);
+
+    if (inrange((to_state_en - inp -> e0) * AUTOEV, state_er[1]
+                , state_er[2])
+        && ((inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3]
+                     ,state_er[4]))
+            || (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[1]
+                        ,state_er[2])))
+        /* && (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3] */
+        /*             ,state_er[4])) */
+        && (trs_types[READHEAD] == 2))
+      {
+        /* printf("THE quad DATA %d: to %d from %d\n ", first, (int)(trans_idxs[0][READHEAD]),(int)(trans_idxs[1][READHEAD])); */
+        /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+        /* exit(1); */
+      /* fflush(stdout); */
+      /* exit(1); */
+      /* triggered on quad transitions */
+      idx_to = trans_idxs[1][READHEAD];
+      idx_from = trans_idxs[0][READHEAD];
+
+      tmp_state_en = to_state_en;
+      to_state_en = from_state_en;
+      from_state_en = tmp_state_en;
+      proci = 1;
+      idx_comp = idx_to;
+      first = 0;
+    }
+    else if (inrange((to_state_en - inp -> e0) * AUTOEV, state_er[5]
+                     , state_er[6])
+             && ((inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3]
+                         ,state_er[4]))
+                 || (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[1]
+                             ,state_er[2])))
+             /* && (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3] */
+             /*             ,state_er[4])) */
+             && (trs_types[READHEAD] == 1))
+      {
+      /*           printf("THE dipole DATA %d: to %d from %d\n ", first, (int)(trans_idxs[0][READHEAD]),(int)(trans_idxs[1][READHEAD])); */
+      /*           fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+      /*           exit(1); */
+      /* fflush(stdout); */
+      /* exit(1); */
+      /* triggered on dipole transitions */
+      idx_to = trans_idxs[0][READHEAD];
+      idx_from = trans_idxs[1][READHEAD];
+      first = 1;
+      proci = 1;
+      idx_comp = idx_to;
+    }
+    else {
+      proci = 0;
+    }
+
+    if (proci) { /* a transition was found that fit the energy ranges */
+
+      tmp_state_en =
+        (get_wi(e_eigval
+                , idxs_eigval
+                , idx_from
+                , n_states) - inp -> e0) * AUTOEV;
+      tmp_bw = get_boltzw(tmp_state_en);
+
+      if (first || (tmp_bw > bw_thrsh)) {
+
+        /* for (tmp_i = last_i, */
+        /*        tmp_state_en = */
+        /*        (get_wi(e_eigval */
+        /*                , idxs_eigval */
+        /*                , idx_from */
+        /*                , n_states) - inp -> e0) * AUTOEV */
+        /*        ;inrange(tmp_state_en */
+        /*                 , inp -> md -> state_er[1] */
+        /*                 , inp -> md -> state_er[2]) */
+        /*        ;tmp_i = trans_idxs[0][READHEAD], */
+        /*        tmp_state_en = */
+        /*        (get_wi(e_eigval */
+        /*                , idxs_eigval */
+        /*                , (int)(trans_idxs[1][READHEAD]) */
+        /*                , n_states) - inp -> e0) * AUTOEV) { */
+
+        /*   tmp_bw = get_boltzw(tmp_state_en); */
+        /*   if (tmp_bw < bw_thrsh) { */
+        /*     printf("Not accepted bw: %le %le %d %d\n", tmp_state_en, tmp_bw, (int)(trans_idxs[0][READHEAD]), (int)(trans_idxs[1][READHEAD])); */
+        /*     /\* skip ahead to the next block of transitions *\/ */
+        /*     READHEAD_PRE = READHEAD; */
+        /*     tmp_i = trans_idxs[0][READHEAD]; */
+        /*     while((int)trans_idxs[0][READHEAD] == tmp_i) { */
+        /*       READHEAD++; */
+        /*     } */
+
+        /*     /\* last_i = trans_idxs[0][READHEAD]; *\/ */
+        /*     nsc += READHEAD - READHEAD_PRE; */
+        /*   } */
+        /*   else { */
+        /*     printf("Accepted bw: %le %le %d %d\n", tmp_state_en, tmp_bw, (int)(trans_idxs[0][READHEAD]), (int)(trans_idxs[1][READHEAD])); */
+        /*     /\* we have found a state that has a large enough boltzmann weight *\/ */
+        /*     break; */
+        /*   } */
+        /* } */
+
+        /* printf("PROCESSING STATE to %d from %d\n",idx_to, idx_from ); */
+        if (idx_comp != last_i) {
+
+          /* printf("NEXT TRANSITION SET (%d != %d)\n", idx_comp, last_i); */
+          /* /\* j = j-; *\/ */
+          /* for (l = 0; l < j; l++) { */
+          /*   fflush(stdout); */
+          /*   printf("trans: %le %le %le %le %le\n", trs_buf[0][l],trs_buf[1][l], trs_buf[2][l],trs_buf[3][l],trs_buf[4][l]); */
+          /* } */
+          /* printf("\nidx_to = %d, idx_from = %d, last_i = %d, l = %d, j = %d\n", idx_to, idx_from, last_i, l, j); */
+          /* fflush(stdout); */
+          /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+          /* exit(1); */
+
+          /* we have read all transitions for a state */
+          /* check if the last_i has already been processed */
+          if (intinint(proc_idx, last_i, n_proc) == -1) {
+
+            /* for (l = 0; l < WRITEHEAD; l++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
+            /* } */
+            /* printf("\n^Pre write %d\n\n", last_i ); */
+            m = 0;
+            for (m = 0; m < j ; m++, WRITEHEAD++) {
+
+              inp -> trs[0][WRITEHEAD] = trs_buf[0][m];
+              inp -> trs[1][WRITEHEAD] = trs_buf[1][m];
+              inp -> trs[2][WRITEHEAD] = trs_buf[2][m];
+              inp -> trs[3][WRITEHEAD] = trs_buf[3][m];
+              inp -> trs[4][WRITEHEAD] = trs_buf[4][m];
+              inp -> trs[5][WRITEHEAD] = trs_buf[5][m];
+            }
+
+            inp -> trs[0][WRITEHEAD] = -1;
+            /* for (j = 0; j < WRITEHEAD; j++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][j],inp -> trs[1][j], inp -> trs[2][j],inp -> trs[3][j],inp -> trs[4][j]); */
+            /* } */
+
+            proc_idx[n_proc++] = last_i;
+            /* for (j = 0; j < n_proc; j++) { */
+            /*   printf("proc_idx = %d\n", proc_idx[j]); */
+            /* } */
+            /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+            /* exit(1); */
+
+            /* for (l = 0; l < WRITEHEAD; l++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
+            /* } */
+            /* printf("\n^Post write %d\n\n", last_i ); */
+            /* for (l = 0; l < n_proc; l++) { */
+            /*   printf("proc_idx = %d\n", proc_idx[l]); */
+            /* } */
+            /* printf("last_i = %d, idx_to = %d, l = %d\n", last_i, idx_to, l); */
+            /* fflush(stdout); */
+
+          }
+          else {
+            /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+            /* exit(1); */
+            /* printf("Pre splice start\n" ); */
+            /* for (l = 0; l < WRITEHEAD; l++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
+            /* } */
+
+            tmp_idx2 = get_inext(inp -> trs, last_i);
+            /* printf("%d \n", tmp_idx2 ); */
+            /* printf("\n^Pre splice end in trs[%d] = %d with last_i= %d\n\n", tmp_idx2,(int)inp -> trs[0][tmp_idx2], last_i ); */
+            /* printf("\n buffer START:\n" ); */
+
+            /* for (l = 0; l < j; l++) { */
+            /*   printf("%le %le %le %le %le\n", trs_buf[0][l],trs_buf[1][l], trs_buf[2][l],trs_buf[3][l],trs_buf[4][l]); */
+            /* } */
+            /* printf("\n ^buffer END :\n" ); */
+            /* fflush(stdout); */
+            rc = fwdsplice(trs_buf, inp -> trs, tmp_idx2, WRITEHEAD, j, 6);
+            if (rc == 1) {
+              printf("\n^Post splice start %d\n\n", last_i );
+              for (l = 0; l < WRITEHEAD; l++) {
+                printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]);
+              }
+              printf("\n^Post splice end %d\n\n", last_i );
+
+              for (l = 0; l < n_proc; l++) {
+                printf("proc_idx = %d\n", proc_idx[l]);
+              }
+              /* printf("last_i = %d, idx_to = %d, l = %d\n", last_i, idx_to, l); */
+              /* fflush(stdout); */
+              /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+              /* exit(1); */
+              fprintf(stderr, "\n\n\n Error! scttr_io.c, function parse_input_tmp: the fwdsplice function return a non-zero integer. Printing debug information\n");
+              printf("input arguments: %d, %d, %d\n", tmp_idx2, WRITEHEAD, j);
+              printf("additional variables: last_i = %d, idx_to = %d\n", last_i, idx_to);
+              printf("Reading transition %d/%d\n", READHEAD, n_trans);
+              printf( "program terminating due to the previous error.\n");
+              exit(1);
+            }
+            WRITEHEAD += j;
+          }
+          j = 0;
+          /* check what kind of transition that was processed */
+          /* if (proci == 1) { */
+          /*   last_i = idx_from; */
+          /* } else { */
+          /*   last_i = idx_to; */
+          /* } */
+          last_i = idx_comp;
+
+          READHEAD--;
+        }
+        else {
+
+          trs_buf[0][j] = idx_to;
+          trs_buf[1][j] = idx_from;
+          trs_buf[2][j] = to_state_en;
+          trs_buf[3][j] = from_state_en;
+          trs_buf[4][j] = t_mom[READHEAD];
+          trs_buf[5][j] = trs_types[READHEAD];
+
+          /* printf("TRANSBUF[%d]: %le %le %le %le %le %le\n", j, trs_buf[0][j],trs_buf[1][j], trs_buf[2][j],trs_buf[3][j],trs_buf[4][j],trs_buf[5][j]); */
+          /* fflush(stdout); */
+          j++;
+
+        }
+        /* } */
+        READHEAD++;
+      }
+      else {
+        /* printf("Not accepted bw: %le %le to %d from %d\n", tmp_state_en, tmp_bw, (int)(trans_idxs[0][READHEAD]), (int)(trans_idxs[1][READHEAD])); */
+        /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+        /* exit(1); */
+
+        /* we only screen the quadrupole transitions, so this will work fine */
+        READHEAD_PRE = READHEAD;
+        tmp_i = trans_idxs[0][READHEAD];
+        while((int)trans_idxs[0][READHEAD] == tmp_i) {
+          READHEAD++;
+        }
+        nsc += READHEAD - READHEAD_PRE;
+
+        /* READHEAD++; */
+        /* nsc++; */
+        /* last_i = trans_idxs[0][READHEAD]; */
+
+      }
+    }
+    else {
+      READHEAD++;
+    }
+  }
+
+  /* for (l = 0; l < n_proc; l++) { */
+  /*   printf("proc_idx = %d\n", proc_idx[l]); */
+  /* } */
+
+  inp -> n_trans = WRITEHEAD;
+  /* printf("\nTotal content:\n" ); */
+  /* for (j = 0; j <= WRITEHEAD; j++) { */
+  /*   fflush(stdout); */
+  /*   printf("trs[:][%d] = %le %le %le %le %le\n", j,  inp -> trs[0][j],inp -> trs[1][j], inp -> trs[2][j],inp -> trs[3][j],inp -> trs[4][j]); */
+  /* } */
+  /* printf("%d %d", nsc, inp -> n_trans); */
+  /* fflush(stdout); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
+
+  if (fclose(fp_tmpdata) != 0) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: unable to close file:\n%s\n"
+            , fn_tmpdata);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  if (remove(fn_tmpdata) != 0) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: unable to remove temporary file:\n%s\n"
+            , fn_tmpdata);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  free(e_eigval);
+  free(trs_types);
+  free(idxs_eigval);
+  free(t_mom);
+
+  for (j = 0; j < 2; j++) {
+    free(trans_idxs[j]);
+  }
+  free(trans_idxs);
+
+  free(num_idxs1);
+  free(num_idxs2);
+  free(proc_idx);
+
+  for (j = 0; j<6; j++) {
+    free(trs_buf[j]);
+  }
+  free(trs_buf);
+  free(str_buf);
+
+  printf(" done (%s).\n", get_loctime(ltime));
+  free(ltime);
   return 1;
 }
 
@@ -750,9 +1972,9 @@ parse_input (struct inp_node *inp)
 
   /* did the user provide a binary file as input? */
   if (strcmp(format, bin_sfx) <= 0) {
-    bin_fpstr = concs(1,md -> inpath);
+    bin_fpstr = concs(1, md -> inpath);
   } else {
-    bin_fpstr =  concs(3,md -> outpath,md -> inp_fn, bin_sfx);
+    bin_fpstr =  concs(3, md -> outpath, md -> inp_fn, bin_sfx);
   }
 
   fp_bin = fopen(bin_fpstr, "r");
@@ -777,24 +1999,36 @@ parse_input (struct inp_node *inp)
         printf("program terminating due to the previous error.\n\n");
         fclose(fp_tmp);
         exit(1);
-      } else {
-
-        parse_input_tmp(inp, tmp_fpstr);
+      }
+      else {
+        if (inp -> el == 1) {
+          parse_input_tmp_el(inp, tmp_fpstr);
+        }
+        else if(inp -> el == 0) {
+          parse_input_tmp(inp, tmp_fpstr);
+        }
       }
     }
-    else {
 
-      /* the tmp file path was provided in the input */
-      parse_input_tmp(inp, inpath);
-    }
-
-    if ((md -> state_er[1] == md -> state_er[5])
-        && (md -> state_er[2] == md -> state_er[6])) {
-
-      count_states(inp);
+    if (inp -> el == 1) {
+      /* printf("\nPRE adding\n "); */
+      /* for (j = 0; j < inp->n_trans; j++) { */
+      /*   printf("%d %d %le %le %le %d\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j], (int)inp -> trs[5][j]); */
+      /* } */
+      /* count_states(inp); */
       add_eltrans(inp);
+      /* fflush(stdout); */
+      /* printf("\nPOST adding\n "); */
+      /* printf("%d, %d\n", inp->n_gfs, inp->n_is ); */
+      /* /\* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); *\/ */
+      /* /\* exit(1); *\/ */
+      /* for (j = 0; j < inp->n_trans; j++) { */
+      /*   printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]); */
+      /* } */
+      /* fflush(stdout); */
+      /* fprintf(stderr, "\n\n=======added.Valgrind eject point=======\n\n"); */
+      /* exit(1); */
     }
-
     /* the only way the parse_input_tmp function can get called is if there is if
        no binary file present. we can therefore safely write to the binary file
        without checking if it already exists. */
@@ -833,8 +2067,23 @@ parse_input (struct inp_node *inp)
       exit(1);
     }
   }
+  /* printf("\nPOST adding\n "); */
+  /* for (j = 0; (int)inp -> trs[0][j] != -1; j++) { */
+  /*   printf("%d %d %le %le %le %d\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j], (int)inp -> trs[5][j]); */
+  /* } */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
 
-  if ((rc = set_root_spec(inp)) != 0) {
+  /* if (inp -> el == 1) { */
+    /* rc = set_root_spec_el(inp); */
+  /* } */
+  /* else if(inp -> el == 0) { */
+  rc = set_root_spec(inp);
+  /* } */
+
+  if (rc != 0) {
 
     fprintf(stderr, "\n\nscttr_io.c, function parse_input: set_root_spec() returned non-zero integer.\n");
 
@@ -853,14 +2102,14 @@ parse_input (struct inp_node *inp)
 }
 
 int
-write_spec (struct inp_node *inp,
-            struct spectrum *spec)
+write_spec (struct inp_node *inp, struct spectrum *spec)
 {
   int j, k, x, y;
 
   FILE *fp_smat_out;
   char *dat_fpstr = concs(3, inp -> md -> outpath,
                           inp -> md -> inp_fn, dat_sfx);
+
   double emin_x = spec -> emin_x;
   double emin_y = spec -> emin_y;
   double de_x = inp -> md -> res[0] / AUTOEV;
@@ -873,7 +2122,7 @@ write_spec (struct inp_node *inp,
     exit(1);
   }
 
-  printf("  - writing RIXS map to file: %s ..", dat_fpstr);
+  printf("    - writing RIXS map to file: %s ..", dat_fpstr);
 
   for (j = 0, x = 0, y = 0; x < spec -> n_elx/* j < spec -> npr_tot */; j++) {
     for (k = 0; (k < spec -> prsz) && (x < spec -> n_elx); k++, y++) {
@@ -899,54 +2148,11 @@ write_spec (struct inp_node *inp,
   }
 
   free(dat_fpstr);
-  return 1;
+  return 0;
 }
 
 int
-write_spec_old (struct inp_node *inp,
-            struct spectrum *spec)
-{
-  int x, y;
-
-  FILE *fp_smat_out;
-  char *dat_fpstr = concs(3, inp -> md -> outpath,
-                          inp -> md -> inp_fn, dat_sfx);
-
-  if((fp_smat_out = fopen(dat_fpstr, "w"))==NULL) {
-    fprintf(stderr, "\n\nscttr_io.c, function write_spec: unable to open the output file %s.\n"
-            , dat_fpstr);
-    printf("program terminating due to the previous error.\n\n");
-    exit(1);
-  }
-
-  printf("  - writing RIXS map to file: %s ..", dat_fpstr);
-  for (x = 0; x < spec -> n_elx; x++) {
-    for (y = 0; y < spec -> n_ely; y++) {
-      spec -> s_mat[x][y] = spec -> s_mat[x][y] / spec -> sfac;
-      fprintf(fp_smat_out,"%le %le %le\n", (spec -> omega_x[x][y]) * AUTOEV, spec -> omega_y[x][y]
-              * AUTOEV, spec -> s_mat[x][y]);
-      fflush(fp_smat_out);
-    }
-    fprintf(fp_smat_out,"\n");
-    fflush(fp_smat_out);
-  }
-
-  printf(" done.\n");
-  if (fclose(fp_smat_out) != 0) {
-    fprintf(stderr, "\n\nscttr_io.c, function write_spec:: unable to close some of the files:\n%s\n",
-            dat_fpstr);
-    printf("program terminating due to the previous error.\n\n");
-    exit(1);
-  }
-
-  free(dat_fpstr);
-  return 1;
-}
-
-
-int
-write_plotscript (struct inp_node *inp,
-                  struct spectrum *spec)
+write_plotscript (struct inp_node *inp, struct spectrum *spec)
 {
 
   if (spec == NULL) {
@@ -1015,5 +2221,45 @@ write_plotscript (struct inp_node *inp,
 
   free(line);
   free(plot_fpstr);
-  return 1;
+  return 0;
+}
+
+int
+write_timings (struct inp_node *inp)
+{
+  int nth = 0;
+  env2int("OMP_NUM_THREADS", &nth);
+  FILE *fp_time_out;
+  char *time_fpstr = concs(3, inp -> md -> outpath,
+                           inp -> md -> inp_fn, time_sfx);
+  double st;
+
+  if((fp_time_out = fopen(time_fpstr, "a"))==NULL) {
+    fprintf(stderr, "\n\nscttr_io.c, function write_spec: unable to open the output file %s.\n"
+            , time_fpstr);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  printf("    - writing execution timing data to file: %s ..", time_fpstr);
+  st = omp_get_wtime() - serial_t - para_t;
+  total_t = st + para_t;
+  fprintf(fp_time_out,"#sfac = %le\n", get_spec(inp,2) -> sfac);
+  fprintf(fp_time_out,"Ncores\tTserial\tTparallel\tTtotal\n" );
+  fprintf(fp_time_out,"%d ", nth);
+  fprintf(fp_time_out,"%le ", st);
+  fprintf(fp_time_out,"%le ", para_t);
+  fprintf(fp_time_out,"%le\n", total_t);
+  printf(" done.\n");
+
+  if (fclose(fp_time_out) != 0) {
+    fprintf(stderr, "\n\nscttr_io.c, function write_spec:: unable to close the file:\n%s\n",
+            time_fpstr);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  free(time_fpstr);
+
+  return 0;
 }

@@ -32,9 +32,11 @@
 struct metadata
 {
   int intf_mode; /**< A flag used by to set what type of interference theory is used in the spectrum calculation. */
+
   int sz_inp; /**< Size (in bytes) of the input file. */
   int so_enrg; /**< if == 1, the program reads spin-orbit energies,
                   if not, reads spin-free*/
+  int printing; /**< Priting mode */
 
   char *outpath; /**< Path to output directory. */
   char *inpath; /**< Path to input directory. */
@@ -45,7 +47,22 @@ struct metadata
   double *state_er; /**< User-provided ranges of energy eigenvalues in the input. */
   double *state_t; /**< Transition intensity screening thresholds. */
   double *res; /**< Spectral resolution (eV) of the produced spectrum. */
-  double *fwhm; /**< Full-width half-maximum value for broadening the peaks. */
+
+  /**< Full-width half-maximum value for broadening the peaks. This
+  array contains sets of 3 numbers, each associating a broadening factor
+  to a bound energy range in one dimension of the spectrum, as follows:
+     ab[0] = number of broadenings to apply in this dimension,
+     ab[n] = broadening factor,
+     ab[n+1] = lower energy bound,
+     ab[n+2] = upper energy bound,
+  where a defines the type of broadening (gaussian or lorentzian) and b
+  the dimension of the broadening (x or y), and n, index of a given
+  broadening value (always >0).
+  */
+  double *gx;
+  double *gy;
+  double *lx;
+  double *ly;
 };
 
 #endif /* METADATA_S_H */

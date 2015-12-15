@@ -77,6 +77,9 @@ init_spec (struct inp_node *inp, int cap, int inc);
 int
 set_root_spec (struct inp_node *inp);
 
+int
+set_root_spec_el (struct inp_node *inp);
+
 /**
  * @brief The set_spec() function adds a spectrum to the list currently on
  * @p inp, based on its root spectrum (see the inp_node struct)
@@ -145,5 +148,14 @@ free_spec (struct spectrum * spec);
    */
 int
 free_all_specs (struct inp_node *inp);
+
+void
+trs2str (struct spectrum *spec);
+
+void
+strs2str (struct inp_node *inp, struct spectrum *spec);
+
+void
+tot_strs2str (struct inp_node *inp, struct spectrum *spec);
 
 #endif /* SPECTRUM_H */

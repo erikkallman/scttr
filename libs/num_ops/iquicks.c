@@ -23,6 +23,7 @@
    * library.
    */
 #include <stdio.h>
+#include <stdlib.h>
 #include "iquicks.h"
 
 void
@@ -71,6 +72,11 @@ iquicks(double *x, int *sorted_idx, int first, int last, int n_el)
 void
 iquicks_d(double *x, double *sorted_idx, int first, int last, int n_el)
 {
+  if ((n_el > 0) && ((first > n_el) || (last > n_el))) {
+    fprintf(stderr, "\n\n file iquicks.c, function iquicks_d: arguments are not in an acceptable range: first = %d, last = %d, n_el = %d\n", first, last, n_el);
+    printf( "program terminating due to the previous error.\n");
+    exit(1);
+  }
 
   int p, j, i;
   double temp1;

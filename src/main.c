@@ -36,6 +36,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <omp.h>
+#include "sci_const.h"
+#include "timing.h"
 #include "std_char_ops.h"
 #include "get_nums.h"
 #include "calc_spec.h"
@@ -47,34 +49,43 @@
 #include "inp_node_s.h"
 #include "cpu_opt.h"
 #include "cache_opt.h"
-
+#include "glob_time.h"
 #define BUF_SIZE 256
+
+double serial_t;
 
 struct ccfg *cache_cfg;
 
 int
 main (int argc, char *argv[])
 {
-
-  printf("\n\n scttr calculation initiated.\n\n");
-  int j, k, l, m;                    /* iteration variables */
+  serial_t = omp_get_wtime(); /* start mark of the serial runtime
+                                        of the program */
+  int j, k, l, m, n;                    /* iteration variables */
   int n_t;                      /* number of numbers read from input flag */
   int n_er = 0;                     /* number of numbers eigenstate energy values provided */
+  m = 0;
   int n_res;
   int len_op = 0;
   int len_fn = 0;
   int out_set = 0;
   int so_enrg = 0;
   int intf_mode = 0;
+  int no_el = 0; /* force non-elastic transition mode to be actiated */
+  int verbose = 0;
   double *res = malloc(2 * sizeof(double));
+
+  char argv_buf[BUF_SIZE];
   /* arrays for storing input file name data */
   char *input_sbuff = malloc(BUF_SIZE);
   char *inp_fn = NULL;
   char *outpath = NULL;
   char *inpath = NULL;
   char *inp_sfx = NULL;
+  char *cache_fpstr;
   char *num_buf;
 
+  char *ltime = malloc(20);
   char curr_dir[BUF_SIZE] = {0};
   char out_buf[BUF_SIZE] = {0};
 
@@ -84,26 +95,29 @@ main (int argc, char *argv[])
 
   /* initial/final and intermediate state energy ranges */
   double *state_er = malloc(7 * sizeof(double));
-  double *fwhm_inp = malloc(2 * sizeof(double));
 
+  double *gx_inp = NULL;
+  double *gy_inp = NULL;
+  double *lx_inp = NULL;
+  double *ly_inp = NULL;
+  double *fwhm_inp = NULL;
   struct metadata *md = init_md();
   struct inp_node *inp;
 
   /* set default values for the parameter arrays */
-  fwhm_inp[0] = 0.5;
-  fwhm_inp[1] = 0.5;
-
   n_t = 2;
   state_t[0] = n_t;
-  state_t[1] = 0.01; /* by default, keep 99% of the total
+  state_t[1] = 0.99; /* by default, keep 99% of the total
                        intensity */
-  state_t[2] = state_t[1] * 0.0001;
+  state_t[2] = 0.0000000001;
   res[0] = 0.05;
   res[1] = 0.05;
 
   state_er[0] = 0;
 
   struct stat st = {0};
+
+  printf("\n\n scttr calculation initiated (%s).\n\n", get_loctime(ltime));
 
   /* process the input arguments */
   if (argc == 1) {
@@ -113,13 +127,20 @@ main (int argc, char *argv[])
 
   while (argc > 1 && (argv[1][0] == '-')) {
 
-    switch(argv[1][1]) {
+    n = 0;
+    while(argv[1][n] != '\0') {
+      argv_buf[n] = argv[1][n];
+      n++;
+    }
+    argv_buf[n++] = '\0';
 
-    case 'e' :
-
+    if(strstr(argv_buf,"v") || strstr(argv_buf,"verbose")) {
+      verbose = 1;
+    }
+    else if(strstr(argv_buf,"e")) {
       n_er = 1;
 
-      for (j = 3, k = 0; argv[1][j] != '\0'; j++) {
+      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[1][j];
 
@@ -140,49 +161,86 @@ main (int argc, char *argv[])
         }
       }
       state_er[0] = n_er - 1;
-
-      break;
-
-    case 'f' :
+    }
+    else if(strstr(argv_buf, "F")) {
+      so_enrg = 1;
+    }
+    else if(strstr(argv_buf,"gx")) {
 
       /* the user specified thresholds for each state type (ground, initial,
          final) to be used for screening the states when calculating the map */
       m = 0;
-      for (j = 3, k = 0; argv[1][j] != '\0'; j++) {
-
-        input_sbuff[k++] = argv[1][j];
+      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
         if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
-          num_buf = malloc(k + 1);
-
-          for (l = 0; l < k; l++) {
-            num_buf[l] = input_sbuff[l];
-          }
-          num_buf[k] = '\0';
-
-          fwhm_inp[m++] = atof(num_buf);
-          free(num_buf);
-          num_buf        = NULL;
-
-          k = 0;
+          m++;
         }
       }
-      break;
+      if (m > 1) {
+        gx_inp = malloc((m + 2) * sizeof(double));
+        gx_inp[0] = m;
+        m = 1;
+        for (j = 0, k = 0; argv[1][j + n] != '\0'; j++) {
 
-    case 'F' :
+          input_sbuff[k++] = argv[1][j + n];
+          if ((argv[1][j + n] == ',') || (argv[1][j + n + 1] == '\0')) {
+            num_buf = malloc(k + 1);
+            for (l = 0; l < k; l++) {
+              num_buf[l] = input_sbuff[l];
+            }
+            num_buf[k] = '\0';
 
-      so_enrg = 1;
-      break;
+            gx_inp[m++] = atof(num_buf);
+            free(num_buf);
+            num_buf        = NULL;
 
-    case 'h' :
+            k = 0;
+          }
+        }
+      }
+    }
+    else if(strstr(argv_buf,"gy")) {
+
+      /* the user specified thresholds for each state type (ground, initial,
+         final) to be used for screening the states when calculating the map */
+      m = 0;
+      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
+        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+          m++;
+        }
+      }
+      if (m > 1) {
+        gy_inp = malloc((m + 2) * sizeof(double));
+        gy_inp[0] = m;
+        m = 1;
+        for (j = 0, k = 0; argv[1][j + n] != '\0'; j++) {
+
+          input_sbuff[k++] = argv[1][j + n];
+          if ((argv[1][j + n] == ',') || (argv[1][j + n + 1] == '\0')) {
+            num_buf = malloc(k + 1);
+            for (l = 0; l < k; l++) {
+              num_buf[l] = input_sbuff[l];
+            }
+            num_buf[k] = '\0';
+
+            gy_inp[m++] = atof(num_buf);
+            free(num_buf);
+            num_buf        = NULL;
+
+            k = 0;
+          }
+        }
+      }
+    }
+    else if(strstr(argv_buf, "h")) {
       printf("See the \"Usage\" section of the documentation provided in the doc directory of the program.\n");
       exit(1);
-      break;
+    }
 
-    case 'i' :
+    else if(strstr(argv_buf, "i")) {
 
       k = 0;
       /* extract the file name */
-      for (j=3;argv[1][j] != '\0'; j++) {
+      for (j = n; argv[1][j] != '\0'; j++) {
         if (argv[1][j] == '/') {
           k = j + 1;
         }
@@ -193,6 +251,7 @@ main (int argc, char *argv[])
       for (l = 0, j = k; argv[1][j] != '\0'; j++) {
 
         if (argv[1][j] == '.') {
+          inp_fn[l] = '\0';
           j--;
           break;
         }
@@ -201,11 +260,12 @@ main (int argc, char *argv[])
         l++;
       }
 
-      for (j = 3; argv[1][j] != '\0'; j++) {
-        input_sbuff[j - 3] = argv[1][j];
+      for (j = 0; argv[1][n+j] != '\0'; j++) {
+        input_sbuff[j] = argv[1][n+j];
       }
 
-      len_fn = j - 3;
+      /* set the path to the input file */
+      len_fn = j;
       inpath = malloc(len_fn + 1);
 
       for (j = 0; j < len_fn; j++) {
@@ -223,10 +283,76 @@ main (int argc, char *argv[])
         inp_sfx[k] = inpath[j];
         k++;
       }
+      printf("  - input path specified  = %s\n", inpath);
+    }
+    else if(strstr(argv_buf,"lx")) {
 
-      break;
+      /* the user specified thresholds for each state type (ground, initial,
+         final) to be used for screening the states when calculating the map */
+      m = 0;
+      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
+        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+          m++;
+        }
+      }
 
-    case 'o' :
+      if (m > 1) {
+        lx_inp = malloc((m + 2) * sizeof(double));
+        lx_inp[0] = m;
+        m = 1;
+        for (j = 0, k = 0; argv[1][j + n] != '\0'; j++) {
+
+          input_sbuff[k++] = argv[1][j + n];
+          if ((argv[1][j + n] == ',') || (argv[1][j + n + 1] == '\0')) {
+            num_buf = malloc(k + 1);
+            for (l = 0; l < k; l++) {
+              num_buf[l] = input_sbuff[l];
+            }
+            num_buf[k] = '\0';
+
+            lx_inp[m++] = atof(num_buf);
+            free(num_buf);
+            num_buf        = NULL;
+
+            k = 0;
+          }
+        }
+      }
+    }
+    else if(strstr(argv_buf,"ly")) {
+
+      /* the user specified thresholds for each state type (ground, initial,
+         final) to be used for screening the states when calculating the map */
+      m = 0;
+      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
+        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+          m++;
+        }
+      }
+      if (m > 1) {
+        ly_inp = malloc((m + 2) * sizeof(double));
+        ly_inp[0] = m;
+        m = 1;
+        for (j = 0, k = 0; argv[1][j + n] != '\0'; j++) {
+
+          input_sbuff[k++] = argv[1][j + n];
+          if ((argv[1][j + n] == ',') || (argv[1][j + n + 1] == '\0')) {
+            num_buf = malloc(k + 1);
+            for (l = 0; l < k; l++) {
+              num_buf[l] = input_sbuff[l];
+            }
+            num_buf[k] = '\0';
+
+            ly_inp[m++] = atof(num_buf);
+            free(num_buf);
+            num_buf        = NULL;
+
+            k = 0;
+          }
+        }
+      }
+    }
+    else if(strstr(argv_buf,"o")) {
       /* printf("processing input file: "); */
       out_set = 1;
 
@@ -243,10 +369,9 @@ main (int argc, char *argv[])
       }
 
       outpath[len_op] = '\0';
-      printf("  - outpath specified  = %s\n",outpath );
-      break;
-
-    case 'r' :
+      printf("  - output path specified  = %s\n", outpath);
+    }
+    else if(strstr(argv_buf,"r")) {
       n_res = 0;
 
       for (j = 3,k=0; argv[1][j] != '\0'; j++) {
@@ -269,9 +394,8 @@ main (int argc, char *argv[])
           k = 0;
         }
       }
-      break;
-
-    case 't' :
+    }
+    else if(strstr(argv_buf,"t")) {
       n_t = 1;
 
       for (j = 3, k = 0; argv[1][j] != '\0'; j++) {
@@ -298,29 +422,37 @@ main (int argc, char *argv[])
         }
       }
 
-      state_t[1] = 1 - state_t[1] / 100;
-      if (n_t == 1) {
-        state_t[2] = state_t[1] * state_t[2];
-      }
-
       state_t[0] = n_t;
-
-      break;
-
-    case 'I' :
+    }
+    else if(strstr(argv_buf,"I")) {
       intf_mode = 1;
-      break;
-
-    default :
-      fprintf(stderr, "main.c, function main: Unknown flag %c\n", argv[1][1]);
+    }
+    else if(strstr(argv_buf,"N")) {
+      no_el = 1;
+    }
+    else if(strstr(argv_buf,"S")) {
+      intf_mode = 2;
+    }
+    else{
+      fprintf(stderr, "main.c, function main: Unknown flag %s. See the \"Usage\" section of the documentation provided in the doc directory of the program.\n"
+              , argv_buf);
       printf( "program terminating due to the previous error.\n");
       exit(EXIT_FAILURE);
-
     }
+
     argv++;
     argv++;
     argc--;
     argc--;
+  }
+
+  if (fwhm_inp == NULL) { /* set default broadenings */
+    fwhm_inp = malloc(4 * sizeof(double));
+    fwhm_inp[0] = 1;
+    fwhm_inp[1] = 0;
+    fwhm_inp[2] = 0.5;
+    fwhm_inp[3] = 0.5;
+    fwhm_inp[3] = 0.5;
   }
 
   set_ccnuma_affinity();
@@ -366,6 +498,12 @@ main (int argc, char *argv[])
   }
 
   stat(inpath, &st);
+
+  gx_inp[m] = (state_er[3] + 9) / AUTOEV;
+  lx_inp[m] = gx_inp[m];
+  gy_inp[m] = (state_er[6] + 9) / AUTOEV;
+  ly_inp[m] = gy_inp[m];
+
   md -> sz_inp = (int)st.st_size;
   md -> so_enrg = so_enrg;
 
@@ -377,11 +515,25 @@ main (int argc, char *argv[])
   md -> state_er  = state_er;
   md -> state_t = state_t;
   md -> res = res;
-  md -> fwhm = fwhm_inp;
+  md -> gx = gx_inp;
+  md -> gy = gy_inp;
+  md -> lx = lx_inp;
+  md -> ly = ly_inp;
+
   md -> intf_mode = intf_mode; /* only constructive interference implemented for now */
+  md -> printing = verbose;
 
   l = j;
   inp = init_inp(md);
+
+  if ((no_el == 0)
+      && ((md -> state_er[1] == md -> state_er[5])
+      && (md -> state_er[2] == md -> state_er[6]))){
+    inp -> el = 1;
+  }
+  else {
+    inp -> el = 0;
+  }
 
   if (len_fn == 0) {
    fprintf(stderr, "\n\Error: calc_spec.c, main: you didnt provide the path to an input file.");
@@ -389,7 +541,7 @@ main (int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
   else {
-    printf("  - parsing input data ..");
+    printf("  - parsing input data (%s)..", get_loctime(ltime));
     fflush(stdout);
 
     if (parse_input(inp)) {
@@ -398,7 +550,8 @@ main (int argc, char *argv[])
       printf("program terminating due to the previous error.\n");
       exit(EXIT_FAILURE);
     } else {
-      printf("    done.\n");
+      fflush(stdout);
+      printf("\n    done (%s).\n", get_loctime(ltime));
     }
   }
 
@@ -407,8 +560,8 @@ main (int argc, char *argv[])
          , inpath);
   printf("  - intensity and ground state boltzmann weight threshold values respectively:\n    ");
 
-  for (j = 0; j < n_t; j++) {
-    printf("%le, ", state_t[j + 1]);
+  for (j = 1; j < n_t; j++) {
+    printf("%le, ", state_t[j]);
   }
 
   printf("\n\n");
@@ -421,13 +574,34 @@ main (int argc, char *argv[])
 
   printf("\n\n");
   printf(" execution progress:\n\n");
+  printf("  - screening transitions on relative intensities (%s)..", get_loctime(ltime));
 
   set_spec(inp);
 
+  printf(" done (%s).\n", get_loctime(ltime));
+
+  printf("  - forming the reduced transition matrix (%s)..", get_loctime(ltime));
+  fflush(stdout);
+
   set_trs_red(inp, 2);
+  strs2str(inp, get_spec(inp,2));
+
+  printf(" done (%s).\n", get_loctime(ltime));
+
+  sticks(inp, get_spec(inp,2), md);
   calc_spec(inp, 2);
 
+  /* trs2str(get_spec(inp,2)); */
+  write_spec(inp, get_spec(inp,2));
   write_plotscript(inp, get_spec(inp,2));
+
+  if (verbose == 1) {
+    cache_fpstr = concs(2, inp -> md -> outpath,
+                        "cache_info.txt");
+    write_timings(inp);
+    cache2file(cache_fpstr);
+    free(cache_fpstr);
+  }
 
   free(inp_sfx);
   free_inp(inp);
@@ -435,8 +609,9 @@ main (int argc, char *argv[])
   free(input_sbuff);
   free(state_er);
   free(state_t);
-  printf("\n scttr successfully executed.\n");
-  printf(" program terminating.\n\n");
 
+  printf("\n scttr successfully executed.\n");
+  printf(" program terminating (%s).\n\n", get_loctime(ltime));
+  free(ltime);
   return 0;
 }

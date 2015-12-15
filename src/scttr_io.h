@@ -35,9 +35,9 @@
 extern const char *dat_sfx;
 extern const char *plot_sfx;
 extern const char *log_sfx;
+extern const char *time_sfx;
 extern const char *bin_sfx;
 extern const char *tmp_sfx;
-extern const char *log_sfx;
 
 /**
    * @brief Allocates memory for a new metadata struct.
@@ -147,6 +147,9 @@ parse_molout (struct inp_node *inp, char *fn_relpath, char *tmp_fpstr);
 int
 parse_input_tmp (struct inp_node *inp, char *fn_tmpdata);
 
+int
+parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata);
+
 /**
    * @brief In addition to figuring out which function to use for parse the
    * provided input file given its suffix (.log, .tmp, or .bin), this function
@@ -187,10 +190,6 @@ int
 write_spec (struct inp_node *inp,
             struct spectrum *spec);
 
-int
-write_spec_old (struct inp_node *inp,
-            struct spectrum *spec);
-
 /**
    * @brief This function reads the plot_template file in the src directory of
    * the program and writes it to the output path provided by the user,
@@ -210,5 +209,8 @@ write_spec_old (struct inp_node *inp,
 int
 write_plotscript (struct inp_node *inp,
                   struct spectrum *spec);
+
+int
+write_timings (struct inp_node *inp);
 
 #endif /* SCTTR_IO_H */

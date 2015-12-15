@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "timing.h"
 #include "iquicks.h"
 #include "transitions.h"
 #include "std_num_ops.h"
@@ -128,7 +129,7 @@ count_states (struct inp_node *inp)
 
   j = 0;
 
-  /* gount all ground and final states */
+  /* count all ground and final states */
   while((int)(inp -> trs[0][j]) != -1) {
     if(((inp -> trs[2][j]-inp -> e0)*AUTOEV >= state_er[1])
        && ((inp -> trs[2][j]-inp -> e0)*AUTOEV <= state_er[2])) {
@@ -167,9 +168,6 @@ count_states (struct inp_node *inp)
 int
 add_eltrans (struct inp_node *inp)
 {
-
-  printf("      adding elastic transitions ..\n");
-
   int j, k, l;
   int n_proc, nb;
   int tmp_idx, next_to;
@@ -177,9 +175,10 @@ add_eltrans (struct inp_node *inp)
   int nt_el = inp -> n_trans;
   int sz_buf = inp -> n_tmax;
 
+  char *ltime = malloc(20);
   /* in the worst case, the number of transitions are doubled when adding
      elastic transitions to the trs matrix */
-  long int sz_el = (inp -> n_trans * 2) + 1;
+  long int sz_el = (inp -> n_trans * 4) + 1;
 
   if (nt_el > (int)sz_el) {
     fprintf(stderr, "parse_input.c, function add_eltrans: input buffer writing outside its memory. nt_el = %d >= sz_el = %d.\n"
@@ -200,6 +199,8 @@ add_eltrans (struct inp_node *inp)
   /* transition matrix with enough space to acommodate the elastic
      transitions */
   double **trs_el;
+
+  printf("      adding elastic transitions (%s) ..", get_loctime(ltime));
 
   if((trs_buf = malloc(6 * sizeof(double *))) == NULL ) {
     fprintf(stderr, "transitions.c, function add_eltrans: failed to allocate memory for \"trs_buf\"\n");
@@ -251,16 +252,16 @@ add_eltrans (struct inp_node *inp)
   trs_el[0][l] = inp -> trs[0][l] = -1;
 
   j = nb = n_proc = 0;
+
   while ((int)inp -> trs[0][j] > 0) {
+    if ((intinint(proc_st, (int)inp -> trs[0][j], n_proc) == -1)
+        && (((inp -> trs[2][j] - e0) * AUTOEV >= state_er[3])
+            && ((inp -> trs[2][j] - e0) * AUTOEV <= state_er[4]))
+        && (((inp -> trs[3][j] - e0) * AUTOEV >= state_er[1])
+            && ((inp -> trs[3][j] - e0) * AUTOEV <= state_er[2]))
+        /* && (int)inp -> trs[5][j] == 2 */) {
 
-    printf("        %.2f%%\r", (((float)j / (float)inp -> n_trans) * 100));
-    if ((intinint(proc_st, (int)inp -> trs[1][j], n_proc) == -1)
-        && (((inp -> trs[2][j] - e0) * AUTOEV >= state_er[1])
-            && ((inp -> trs[2][j] - e0) * AUTOEV <= state_er[2]))
-        && (((inp -> trs[3][j] - e0) * AUTOEV >= state_er[3])
-            && ((inp -> trs[3][j] - e0) * AUTOEV <= state_er[4]))) {
-
-      next_to = (int)inp -> trs[1][j];
+      next_to = (int)inp -> trs[0][j];
 
       /* found a "to" state that has not had its elastic transitions
        added yet. loop over the trs matrix and check if there are transitions
@@ -268,9 +269,9 @@ add_eltrans (struct inp_node *inp)
       nb = 0;
       l = j;
       while ((int)inp -> trs[0][l] != -1) {
-        if (((int)inp -> trs[1][l] == next_to)
-            && (((inp -> trs[2][l] - e0) * AUTOEV >= state_er[1])
-                && ((inp -> trs[2][l] - e0) * AUTOEV <= state_er[2]))
+        if (((int)inp -> trs[0][l] == next_to)
+            && (((inp -> trs[3][l] - e0) * AUTOEV >= state_er[1])
+                && ((inp -> trs[3][l] - e0) * AUTOEV <= state_er[2]))
             ) {
 
           /* transitions from another state */
@@ -280,14 +281,15 @@ add_eltrans (struct inp_node *inp)
           trs_buf[3][nb] = inp -> trs[2][l];
           trs_buf[4][nb] = inp -> trs[4][l];
           trs_buf[5][nb] = inp -> trs[5][l];
-
+          fflush(stdout);
+          /* printf("\nBuffer: %d %d %le %le %le %d\n", (int)trs_buf[0][nb], (int)trs_buf[1][nb], (inp -> trs[2][nb] - inp -> e0) * AUTOEV, (inp -> trs[3][nb] - inp -> e0) * AUTOEV, inp -> trs[4][nb], (int)trs_buf[5][nb]); */
           nb++;
 
           /* jump to the next "from" state, since any given state can only have
            one transition to another specific state */
-          last_i = inp -> trs[0][l];
+          last_i = inp -> trs[1][l];
           while((int)inp -> trs[0][l] != -1) {
-            if ((int)inp -> trs[0][l] != last_i) {
+            if ((int)inp -> trs[1][l] != last_i) {
               break;
             }
             l++;
@@ -297,13 +299,13 @@ add_eltrans (struct inp_node *inp)
           l++;
         }
       }
+
       if ((nt_el + nb + 1) > sz_el) {
       fprintf(stderr, "transitions.c, function add_eltrans: input buffer writing outside its memory. nt_el+nb+1 = %d >= sz_el = %ld.\n"
               ,nt_el+nb+1,sz_el);
         printf("program terminating due to the previous error.\n");
         exit(1);
       }
-
       /* if the from state cant be found in trs, just store the data in the last
          available place in trs_el */
       /* otherwise use the fwdsplice function to add it to trs_el */
@@ -324,7 +326,14 @@ add_eltrans (struct inp_node *inp)
         trs_el[0][nt_el + nb + 1] = -1;
         nt_el += nb;
       }
+      /* for (k = 0; k < nt_el; k++) { */
+      /*   printf("Buffer for %d: %d %d %le %le %le %d\n", next_to, (int)trs_el[0][k], (int)trs_el[1][k], (inp -> trs[2][k] - inp -> e0) * AUTOEV, (inp -> trs[3][k] - inp -> e0) * AUTOEV, inp -> trs[4][k], (int)trs_el[5][k]); */
+      /* } */
+      /* fflush(stdout); */
+      /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+      /* exit(1); */
       proc_st[n_proc++] = next_to;
+      /* printf("next after %d\n", next_to); */
     }
     j++;
   }
@@ -372,6 +381,7 @@ add_eltrans (struct inp_node *inp)
 
   inp -> n_trans = nt_el;
 
-  printf("\n      done.\n");
+  printf(" done (%s).\n",get_loctime(ltime));
+  free(ltime);
   return 1;
 }

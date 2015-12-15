@@ -26,7 +26,7 @@
 #define CHAR_OPS_H
 
 int
-env2int (const char * name);
+env2int (const char * name, int *v);
 
 int
 str2int (const char *str);

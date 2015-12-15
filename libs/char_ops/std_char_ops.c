@@ -40,14 +40,17 @@
 #define MAX_POWERL 100000 /**< the maximally allowed power of a number */
 
 int
-env2int (const char * name)
+env2int (const char * name, int *v)
 {
   char *s = getenv(name);
+
   if (s == NULL) {
-    return (int)s;
+    return 1;
   } else {
-    return str2int(s);
+    *v = str2int(s);
   }
+
+  return 0;
 }
 
 int

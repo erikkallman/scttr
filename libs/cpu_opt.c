@@ -10,6 +10,7 @@ int
 set_ccnuma_affinity (void)
 {
   int j;
+  int rc;
   int n_cpus;
   int *cpu_idx;
   /* strings used for creating the environment variable  */
@@ -24,9 +25,12 @@ set_ccnuma_affinity (void)
   struct cpu_raw_data_t raw;
   struct cpu_id_t data;
 
-  n_cpus = env2int("OMP_NUM_THREADS");
+  rc = env2int("OMP_NUM_THREADS", &n_cpus);
 
-  if (!n_cpus) {
+  if (rc) {
+
+    /* The user didnt set the OMP_NUM_THREADS variable */
+    /* so lets set it from inside the program instead. */
     if (cpuid_get_raw_data(&raw) < 0) {
       printf("Sorry, cannot get the CPUID raw data.\n");
       printf("Error: %s\n", cpuid_error());
@@ -37,7 +41,7 @@ set_ccnuma_affinity (void)
       printf("Error: %s\n", cpuid_error());
       return -3;
     }
-    n_cpus = data.num_cores;
+    n_cpus = data.total_logical_cpus;
   }
 
   cpu_idx = malloc(n_cpus * sizeof(int));

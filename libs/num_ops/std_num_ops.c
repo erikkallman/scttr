@@ -78,15 +78,15 @@ fwdsplice (double **from, double **into, int start, int end,
   if (end < start) {
     fprintf(stderr, "\n\nERROR: std_num_ops.c, function fwdsplice: there is not enough room in the @into array for the specified data in @from to fit. end = %d < start = %d, shift = %d.\n\n", end, start, s);
     printf( "program terminating due to the previous error.\n");
-    exit(EXIT_FAILURE);
+    return 1;
   }
   else if(s > (end - start)) {
     end += s;
   }
   else if((start < 0) || (end < 0) || (s < 0)) {
-    fprintf(stderr, "\n\nERROR: std_num_ops.c, function fwdsplice: negatigve input arguments: start = %d, end = %d, s = %d .\n\n", start, end, s);
+    fprintf(stderr, "\n\nERROR: std_num_ops.c, function fwdsplice: negative input arguments: start = %d, end = %d, s = %d .\n\n", start, end, s);
     printf( "program terminating due to the previous error.\n");
-    exit(EXIT_FAILURE);
+    return 1;
   }
 
   /* make space for the new values by shifting all values forward */
@@ -109,7 +109,7 @@ fwdsplice (double **from, double **into, int start, int end,
     }
   }
 
-  return 1;
+  return 0;
 }
 
 double
