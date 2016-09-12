@@ -36,7 +36,8 @@ struct metadata
   int sz_inp; /**< Size (in bytes) of the input file. */
   int so_enrg; /**< if == 1, the program reads spin-orbit energies,
                   if not, reads spin-free*/
-  int printing; /**< Priting mode */
+  int v; /**< verbosity mode */
+  int lorz; /**< a flag for applying lorentzian broadening or not */
 
   char *outpath; /**< Path to output directory. */
   char *inpath; /**< Path to input directory. */

@@ -72,7 +72,7 @@ strs2str (struct inp_node *inp, struct spectrum *spec)
              , inp -> trs[3][r_gi[is_idx]]
              , inp -> trs[4][r_gi[is_idx]]
              , get_boltzw((inp -> trs[3][r_gi[is_idx]]
-                       - inp -> e0) * (double)AUTOEV));
+                       - inp -> e0) * (double)AUTOEV) / inp -> bw_sum);
     }
   }
 
@@ -127,6 +127,7 @@ tot_strs2str (struct inp_node *inp, struct spectrum *spec)
 
       bw = get_boltzw((inp -> trs[3][r_gi[is_idx]]
                           - inp -> e0) * (double)AUTOEV);
+      bw = bw / inp -> bw_sum;
 
       tmp += tmom_gi * tmom_if * bw;
 
@@ -355,8 +356,9 @@ set_root_spec (struct inp_node *inp)
     exit(EXIT_FAILURE);
   }
 
-  printf(" done (%s) found %d G -> I, and %d I -> F transitions.\n",
+  printf(" done (%s)\n      - found %d G -> I, and %d I -> F transitions.\n",
          get_loctime(ltime), root_spec -> gs2is -> n_el, root_spec -> is2fs -> n_el);
+  printf("      - ground states have a Boltzmann weight sum of %le.\n", inp -> bw_sum);
   free(ltime);
   free(proc_st);
   /* strs2str(inp); */
@@ -364,182 +366,182 @@ set_root_spec (struct inp_node *inp)
   return 0;
 }
 
-int
-set_root_spec_el (struct inp_node *inp)
-{
-  int j, k, l;
+/* int */
+/* set_root_spec_el (struct inp_node *inp) */
+/* { */
+/*   int j, k, l; */
 
-  char *ltime = malloc(20);
+/*   char *ltime = malloc(20); */
 
-  /* int r1, r2; */
-  int is_num = 0;
-  int is_idx = 0;
-  int n_is_tmp;
-  int nt = 0; /* number of transitions fround in the provided energy range */
-  int wh = 0; /* write head for the gs2is array */
+/*   /\* int r1, r2; *\/ */
+/*   int is_num = 0; */
+/*   int is_idx = 0; */
+/*   int n_is_tmp; */
+/*   int nt = 0; /\* number of transitions fround in the provided energy range *\/ */
+/*   int wh = 0; /\* write head for the gs2is array *\/ */
 
-  struct spectrum *root_spec = init_spec(inp, inp -> n_trans, inp -> n_trans);
+/*   struct spectrum *root_spec = init_spec(inp, inp -> n_trans, inp -> n_trans); */
 
-  root_spec -> emin_x = (inp -> md -> state_er[3] - 3) / AUTOEV;
-  root_spec -> emax_x = (inp -> md -> state_er[4] + 3) / AUTOEV;
-  root_spec -> emin_y = (inp -> md -> state_er[5] - 3) / AUTOEV;
-  root_spec -> emax_y = (inp -> md -> state_er[6] + 3) / AUTOEV;
+/*   root_spec -> emin_x = (inp -> md -> state_er[3] - 3) / AUTOEV; */
+/*   root_spec -> emax_x = (inp -> md -> state_er[4] + 3) / AUTOEV; */
+/*   root_spec -> emin_y = (inp -> md -> state_er[5] - 3) / AUTOEV; */
+/*   root_spec -> emax_y = (inp -> md -> state_er[6] + 3) / AUTOEV; */
 
-  float bw_thrsh = inp -> md -> state_t[2];
-  double bw;
-  double e_gs, e_is, e_fs;
+/*   float bw_thrsh = inp -> md -> state_t[2]; */
+/*   double bw; */
+/*   double e_gs, e_is, e_fs; */
 
-  /* keep check on what states that have been processed to make sure that no
-     "to" state appears in the pi matrix more than once  */
-  int *proc_st;
-  int n_proc = 0;
-  int is_proc;
+/*   /\* keep check on what states that have been processed to make sure that no */
+/*      "to" state appears in the pi matrix more than once  *\/ */
+/*   int *proc_st; */
+/*   int n_proc = 0; */
+/*   int is_proc; */
 
-  inp -> n_states = 0;
+/*   inp -> n_states = 0; */
 
-  if((proc_st = malloc(inp -> n_trans * sizeof(double))) == NULL ) {
-    fprintf(stderr, "spectrum.c, function set_root_spec_el: failed to allocate memory for \"proc_st\"\n");
-    printf("program terminating due to the previous error.\n");
-    exit(1);
-  }
+/*   if((proc_st = malloc(inp -> n_trans * sizeof(double))) == NULL ) { */
+/*     fprintf(stderr, "spectrum.c, function set_root_spec_el: failed to allocate memory for \"proc_st\"\n"); */
+/*     printf("program terminating due to the previous error.\n"); */
+/*     exit(1); */
+/*   } */
 
-  if((inp -> idx_map = malloc((inp -> n_trans + 1)
-                              *  sizeof(int))) == NULL ) {
-    fprintf(stderr, "spectrum.c, function set_root_spec_el: failed to allocate memory for \"inp->idx_map\"\n");
-    printf("program terminating due to the previous error.\n");
-    exit(1);
-  }
+/*   if((inp -> idx_map = malloc((inp -> n_trans + 1) */
+/*                               *  sizeof(int))) == NULL ) { */
+/*     fprintf(stderr, "spectrum.c, function set_root_spec_el: failed to allocate memory for \"inp->idx_map\"\n"); */
+/*     printf("program terminating due to the previous error.\n"); */
+/*     exit(1); */
+/*   } */
 
-  for (j = 0; j < inp -> n_trans; j++) {
-    inp -> idx_map[j] = -1;
-  }
+/*   for (j = 0; j < inp -> n_trans; j++) { */
+/*     inp -> idx_map[j] = -1; */
+/*   } */
 
-  inp -> idx_map[inp -> n_trans] = -2; /* mark the end of the list */
-  inp -> idx_map[0] = 0;
+/*   inp -> idx_map[inp -> n_trans] = -2; /\* mark the end of the list *\/ */
+/*   inp -> idx_map[0] = 0; */
 
-  printf("      initial boltzman weight screening and sorting of transitions (%s) .."
-         ,get_loctime(ltime));
-  fflush(stdout);
-  /* check so that every state in PI can be reached with the get_i function */
-  j = 0;
+/*   printf("      initial boltzman weight screening and sorting of transitions (%s) .." */
+/*          ,get_loctime(ltime)); */
+/*   fflush(stdout); */
+/*   /\* check so that every state in PI can be reached with the get_i function *\/ */
+/*   j = 0; */
 
-  /* inp -> tmax_d = inp -> tmax_q = -1; */
+/*   /\* inp -> tmax_d = inp -> tmax_q = -1; *\/ */
 
-  while((int)inp->trs[0][j] != -1) {
+/*   while((int)inp->trs[0][j] != -1) { */
 
-    /* make sure the transition is not taking place between states
-       in the same energy range interval */
-    /* r1 = get_erange(inp, inp -> trs[2][j]); */
-    /* r2 = get_erange(inp, inp -> trs[3][j]); */
+/*     /\* make sure the transition is not taking place between states */
+/*        in the same energy range interval *\/ */
+/*     /\* r1 = get_erange(inp, inp -> trs[2][j]); *\/ */
+/*     /\* r2 = get_erange(inp, inp -> trs[3][j]); *\/ */
 
-    /* if ((r1 != -1) && (r2 != -1) */
-    /*   && (get_erange(inp, inp -> trs[2][j]) */
-    /*         != get_erange(inp, inp -> trs[3][j]))) { */
+/*     /\* if ((r1 != -1) && (r2 != -1) *\/ */
+/*     /\*   && (get_erange(inp, inp -> trs[2][j]) *\/ */
+/*     /\*         != get_erange(inp, inp -> trs[3][j]))) { *\/ */
 
-    /*   if ((int)inp -> trs[5][j] == 1) { */
-    /*     if (inp -> trs[4][j] > inp -> tmax_d) { */
-    /*       inp -> tmax_d = inp -> trs[4][j]; */
-    /*     } */
-    /*   } */
-    /*   else{ */
-    /*     if (inp -> trs[4][j] > inp -> tmax_q) { */
-    /*       inp -> tmax_q = inp -> trs[4][j]; */
-    /*     } */
-    /*   } */
-    /* } */
+/*     /\*   if ((int)inp -> trs[5][j] == 1) { *\/ */
+/*     /\*     if (inp -> trs[4][j] > inp -> tmax_d) { *\/ */
+/*     /\*       inp -> tmax_d = inp -> trs[4][j]; *\/ */
+/*     /\*     } *\/ */
+/*     /\*   } *\/ */
+/*     /\*   else{ *\/ */
+/*     /\*     if (inp -> trs[4][j] > inp -> tmax_q) { *\/ */
+/*     /\*       inp -> tmax_q = inp -> trs[4][j]; *\/ */
+/*     /\*     } *\/ */
+/*     /\*   } *\/ */
+/*     /\* } *\/ */
 
-    e_fs = inp -> trs[2][j];
-    e_is = inp -> trs[3][j];
+/*     e_fs = inp -> trs[2][j]; */
+/*     e_is = inp -> trs[3][j]; */
 
-    /* is this a transition from an intermediate to final state? */
-    if (inrange((e_fs-inp -> e0) * AUTOEV, inp -> md -> state_er[5]
-                , inp -> md -> state_er[6])
-        && inrange((e_is-inp -> e0) * AUTOEV, inp -> md -> state_er[3]
-                   , inp -> md -> state_er[4])) {
+/*     /\* is this a transition from an intermediate to final state? *\/ */
+/*     if (inrange((e_fs-inp -> e0) * AUTOEV, inp -> md -> state_er[5] */
+/*                 , inp -> md -> state_er[6]) */
+/*         && inrange((e_is-inp -> e0) * AUTOEV, inp -> md -> state_er[3] */
+/*                    , inp -> md -> state_er[4])) { */
 
-      da_append(root_spec -> is2fs, j);
-      is_num = inp -> trs[1][j];
+/*       da_append(root_spec -> is2fs, j); */
+/*       is_num = inp -> trs[1][j]; */
 
-      /* have the gs-is transitions for this particular is already
-         been processed? */
-      is_proc = intinint(proc_st, is_num, n_proc);
+/*       /\* have the gs-is transitions for this particular is already */
+/*          been processed? *\/ */
+/*       is_proc = intinint(proc_st, is_num, n_proc); */
 
-      if (is_proc == -1) {
+/*       if (is_proc == -1) { */
 
-        /* loop over the list of transitions looking for corresponding
-           g.state->i-state transitions */
-        n_is_tmp = root_spec -> gs2is -> n_el;
-        for (k = 0; (int)inp -> trs[0][k] != -1; k++) {
-          e_gs = inp -> trs[3][k];
-          /* bw = get_boltzw((e_gs - inp -> e0) * (double)AUTOEV); */
-          if ((((int)inp -> trs[0][k]) == is_num)
-              && inrange((e_gs - inp -> e0) * AUTOEV
-                         , inp -> md -> state_er[1]
-                         , inp -> md -> state_er[2])
-              /* && (bw >= bw_thrsh) */
-              ) {
+/*         /\* loop over the list of transitions looking for corresponding */
+/*            g.state->i-state transitions *\/ */
+/*         n_is_tmp = root_spec -> gs2is -> n_el; */
+/*         for (k = 0; (int)inp -> trs[0][k] != -1; k++) { */
+/*           e_gs = inp -> trs[3][k]; */
+/*           /\* bw = get_boltzw((e_gs - inp -> e0) * (double)AUTOEV); *\/ */
+/*           if ((((int)inp -> trs[0][k]) == is_num) */
+/*               && inrange((e_gs - inp -> e0) * AUTOEV */
+/*                          , inp -> md -> state_er[1] */
+/*                          , inp -> md -> state_er[2]) */
+/*               /\* && (bw >= bw_thrsh) *\/ */
+/*               ) { */
 
-            da_append(root_spec -> is_idxs, root_spec -> gs2is -> n_el);
-            da_append(root_spec -> gs2is, k);
-            nt++;
-          }
-        }
-        if (n_is_tmp == root_spec -> gs2is -> n_el) {
+/*             da_append(root_spec -> is_idxs, root_spec -> gs2is -> n_el); */
+/*             da_append(root_spec -> gs2is, k); */
+/*             nt++; */
+/*           } */
+/*         } */
+/*         if (n_is_tmp == root_spec -> gs2is -> n_el) { */
 
-          /* no gs2is transitions found for that is2fs transition */
-          root_spec -> is2fs -> n_el--;
-        }
-        else{
+/*           /\* no gs2is transitions found for that is2fs transition *\/ */
+/*           root_spec -> is2fs -> n_el--; */
+/*         } */
+/*         else{ */
 
-          /* gs2is transitions were added */
-          da_append(root_spec -> is_idxs, -1);
-          da_append(root_spec -> ii_start, wh);
+/*           /\* gs2is transitions were added *\/ */
+/*           da_append(root_spec -> is_idxs, -1); */
+/*           da_append(root_spec -> ii_start, wh); */
 
-          wh = root_spec -> is_idxs -> n_el;
-          proc_st[n_proc++] = is_num;
-        }
-      }
-      else {
+/*           wh = root_spec -> is_idxs -> n_el; */
+/*           proc_st[n_proc++] = is_num; */
+/*         } */
+/*       } */
+/*       else { */
 
-        /* find the intermediate state in the gs2trs matrix */
-        for (l=0; l < root_spec -> is_idxs -> n_el; l++) {
-          is_idx = root_spec -> is_idxs -> a[l];
-          if (is_idx != -1) {
-            if ((int)inp -> trs[0][root_spec -> gs2is -> a[is_idx]]
-                == is_num) {
-              break;
-            }
-          }
-        }
-        da_append(root_spec -> ii_start, l);
-        while(root_spec -> is_idxs -> a[l++] != -1)
-          nt++;
-      }
-    }
-    j++;
-  }
+/*         /\* find the intermediate state in the gs2trs matrix *\/ */
+/*         for (l=0; l < root_spec -> is_idxs -> n_el; l++) { */
+/*           is_idx = root_spec -> is_idxs -> a[l]; */
+/*           if (is_idx != -1) { */
+/*             if ((int)inp -> trs[0][root_spec -> gs2is -> a[is_idx]] */
+/*                 == is_num) { */
+/*               break; */
+/*             } */
+/*           } */
+/*         } */
+/*         da_append(root_spec -> ii_start, l); */
+/*         while(root_spec -> is_idxs -> a[l++] != -1) */
+/*           nt++; */
+/*       } */
+/*     } */
+/*     j++; */
+/*   } */
 
-  root_spec -> n_st = nt;
-  add_spec(inp, root_spec);
-  inp -> n_states = n_proc;
+/*   root_spec -> n_st = nt; */
+/*   add_spec(inp, root_spec); */
+/*   inp -> n_states = n_proc; */
 
-  /* strs2str(get_spec(inp, 1)); */
-  /* fprintf(stderr, "\n\nset_root_spec_el exit ======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
+/*   /\* strs2str(get_spec(inp, 1)); *\/ */
+/*   /\* fprintf(stderr, "\n\nset_root_spec_el exit ======Valgrind eject point=======\n\n"); *\/ */
+/*   /\* exit(1); *\/ */
 
-  if ((root_spec -> is2fs -> n_el == 0)
-      || (root_spec -> gs2is -> n_el == 0)){
-    fprintf(stderr, "spectrum.c, function set_root_spec_el: no intermediate or final states states were found in the energy range you provided. (spec -> is2fs -> n_el = %d, root_spec -> gs2is -> n_el = %d)\n"
-            ,root_spec -> is2fs -> n_el,root_spec -> gs2is -> n_el);
-    printf("program terminating due to the previous error.\n");
-    exit(EXIT_FAILURE);
-  }
+/*   if ((root_spec -> is2fs -> n_el == 0) */
+/*       || (root_spec -> gs2is -> n_el == 0)){ */
+/*     fprintf(stderr, "spectrum.c, function set_root_spec_el: no intermediate or final states states were found in the energy range you provided. (spec -> is2fs -> n_el = %d, root_spec -> gs2is -> n_el = %d)\n" */
+/*             ,root_spec -> is2fs -> n_el,root_spec -> gs2is -> n_el); */
+/*     printf("program terminating due to the previous error.\n"); */
+/*     exit(EXIT_FAILURE); */
+/*   } */
 
-  printf(" done.\n");
-  free(proc_st);
+/*   printf(" done.\n"); */
+/*   free(proc_st); */
 
-  return 0;
-}
+/*   return 0; */
+/* } */
 
 int
 set_spec (struct inp_node *inp)
@@ -552,7 +554,7 @@ set_spec (struct inp_node *inp)
   int is_proc;
   int is_pos = 0;
 
-  int is_idx = 0;
+  int is_idx   = 0;
   int n_is_tmp = 0;
   int nt = inp -> root_spec -> n_st;
 
@@ -560,8 +562,8 @@ set_spec (struct inp_node *inp)
 
   /* use the number of states as the default initialization values
      for the dynamic arrays in the spectrum class */
-  struct spectrum *spec = init_spec(inp, inp -> n_states, inp -> n_states);
-  int n_sfs = root_spec -> is2fs -> n_el;
+  struct spectrum *spec  = init_spec(inp, inp -> n_states, inp -> n_states);
+  int              n_sfs = root_spec -> is2fs -> n_el;
 
   int * r_gi = root_spec -> gs2is -> a;
   int * r_fi = root_spec -> is2fs -> a;
@@ -592,7 +594,8 @@ set_spec (struct inp_node *inp)
     }
   }
 
-  for (int_tot = 0, l = 0, j = 0; j<n_sfs; j++) {
+  int_tot = 0;
+  for (l = 0, j = 0; j<n_sfs; j++) {
 
     is_pos = root_spec -> ii_start -> a[j];
     is_idx = r_ii[is_pos];
@@ -605,23 +608,14 @@ set_spec (struct inp_node *inp)
 
       int_dist[0][l] = l;
 
-      int_dist[1][l] = tmom_if * tmom_gi * bw;
-      /* printf("%le %le %le\n", int_dist[0][l], int_dist[1][l], bw); */
+      int_dist[1][l] = tmom_if * tmom_gi * bw / inp -> bw_sum;
 
       int_tot += int_dist[1][l];
+      /* printf("\nSOMEDAT: %le %le %le %le\n", int_dist[0][l], int_dist[1][l], bw, bw/inp -> bw_sum); */
+
       l++;
     }
   }
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* exit(1); */
-
-  /* for (j = 0; j < nt; j++) { */
-  /*   printf("%le %le\n", int_dist[0][j], int_dist[1][j]); */
-  /* } */
-
-  /* fflush(stdout); */
-  /* fprintf(stderr, "\n\n %d %le =======Valgrind eject point=======\n\n",n_sfs, int_tot); */
-  /* exit(1); */
 
   /* sort ascendingly according to intensity */
   iquicks_d(int_dist[1], int_dist[0], 0, nt - 1, nt);
@@ -629,26 +623,51 @@ set_spec (struct inp_node *inp)
   /* screen until retaining x% of the intensity of all transitions,
    set all "sceened" states to the n_trans+1 */
   int_scr = 0;
+  /* for (j = 0; j < nt; j++) { */
+  /*   printf("\nprescreen included: %d %le \n", (int)int_dist[0][j], int_dist[1][j]); */
+  /* } */
+  /* printf("\n\n" ); */
+  /* printf("%le %le \n", int_thrsh, int_tot); */
+  /* for (j = 0; j < nt; j++) { */
+  /*   if ((int_scr / int_tot) <= int_thrsh) { */
+  /*     printf("included: %d %le \n", (int)int_dist[0][j], int_dist[1][j]); */
+  /*     int_scr += int_dist[1][j]; */
+  /*   } */
+  /*   else { */
+
+  /*     if (j > 0) { */
+  /*       j--; */
+  /*     } */
+  /*     int_dist[0][j] = -1; */
+  /*     printf("broke out at: %d %le %le \n", j, int_dist[1][j], int_scr); */
+  /*     break; */
+  /*   } */
+  /* } */
 
   for (j = 0; j < nt; j++) {
-    if ((int_scr / int_tot) <= int_thrsh) {
-      int_scr += int_dist[1][j];
-    }
-    else {
-      if (j > 0) {
-        j--;
-      }
-      int_dist[0][j] = -1;
+    int_scr += int_dist[1][j];
+    if ((int_scr / int_tot) > int_thrsh) {
+      /* printf("broke out at: %d %le %le \n", j, int_dist[1][j], int_scr); */
       break;
     }
   }
 
+
+
+  /* sort ascendingly according to index */
   iquicks_d(int_dist[0], int_dist[1], j, nt - 1, nt);
+
+  /* for (l = 0; l < nt; l++) { */
+  /*   printf("\npostscreen included: %d %le \n", (int)int_dist[0][l], int_dist[1][l]); */
+  /* } */
+  /* printf("\n\n" ); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======  %d  \n\n",j); */
+  /* exit(1); */
 
   /* finally, generate the new screen by only including those states that were not screened out above */
   n_fs = n_is = 0;
   l = 0;
-  m = j + 1;
+  m = j;
   wh = 0;
 
   for (j = 0; j < n_sfs; j++) {
@@ -658,9 +677,11 @@ set_spec (struct inp_node *inp)
     is_idx = r_ii[is_pos];
     n_is_tmp = spec -> is_idxs -> n_el;
 
+    fflush(stdout);
     for (k = is_pos; ((is_idx = root_spec->is_idxs->a[k]) != -1); k++) {
-      if (l == (int)int_dist[0][m]) {
 
+      if (l == (int)int_dist[0][m]) {
+        /* printf("\nl == %d %d %d %d\n", l , (int)int_dist[0][m], m, nt); */
         /* is there an index in spec that already maps to
            this gs2is transition?*/
         if ((is_proc = intinint(spec -> gs2is -> a, root_spec -> gs2is
@@ -676,6 +697,7 @@ set_spec (struct inp_node *inp)
           break;
         }
       }
+      /* printf("\nl++ %d %d %d %d\n", l , (int)int_dist[0][m], m, nt); */
       l++;
     }
     /* check if any gs2is transitions were added */
@@ -693,7 +715,13 @@ set_spec (struct inp_node *inp)
       break;
     }
   }
+  /*   printf("\n\n" ); */
+  /* for (j = 0; j < nt; j++) { */
+  /*   printf("post included: %d %le \n", (int)int_dist[0][j], int_dist[1][j]); */
+  /* } */
 
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   spec -> emin_x = floor((get_minl(tmp_evals[0], n_is) - 3)) / AUTOEV;
   spec -> emax_x = ceil((get_maxl(tmp_evals[0], n_is) + 3)) / AUTOEV;
   spec -> emin_y = floor((get_minl(tmp_evals[1], n_fs) - 3)) / AUTOEV;
@@ -742,11 +770,11 @@ add_spec (struct inp_node *inp, struct spectrum *spec)
 }
 
 void
-trs2str (struct spectrum *spec)
+trs2str (struct inp_node *inp, struct spectrum *spec)
 {
   int l;
 
-  double ** tr = spec -> trs_red;
+  double ** tr   = spec -> trs_red;
   int n_st = spec -> n_st;
 
   double de_gi, de_if;
@@ -759,7 +787,7 @@ trs2str (struct spectrum *spec)
     printf("\nIS2FS: to %le from %le\n", de_if, tmom_if);
     while((int)tr[++l][1] == 0) { /* loop over ground to intermediate
                                      transitions */
-      bw = tr[l][0];
+      bw = tr[l][0] / inp -> bw_sum;
       de_gi = tr[l][2];
       tmom_gi = tr[l][3];
       printf("  GS2IS: bw = %le, de_gi = %le, tmom_gi = %le\n", bw, de_gi, tmom_gi);
@@ -782,14 +810,14 @@ set_trs_red (struct inp_node *inp, int spec_idx)
 
   int j, k, l;
 
-  int is_idx, is_pos;
-  int n_el = 0;
+  int  is_idx, is_pos;
+  int  n_el     = 0;
   /* create local copies and pointers to variables whos name would
      otherwise clutter the code loop */
-  int n_sfs = spec -> is2fs -> n_el;
-  int *is2fs = spec -> is2fs -> a;
-  int *gs2is = spec -> gs2is -> a;
-  int *is_idxs = spec -> is_idxs -> a;
+  int  n_sfs    = spec -> is2fs -> n_el;
+  int *is2fs    = spec -> is2fs -> a;
+  int *gs2is    = spec -> gs2is -> a;
+  int *is_idxs  = spec -> is_idxs -> a;
   int *ii_start = spec -> ii_start -> a;
 
   double **tr;
@@ -797,8 +825,8 @@ set_trs_red (struct inp_node *inp, int spec_idx)
   /* figure out size of tr */
   for (n_el = 0, j = 0; j < n_sfs; j++) {
 
-    is_pos = ii_start[j];
-    is_idx = is_idxs[j];
+    is_pos                                           = ii_start[j];
+    is_idx                                           = is_idxs[j];
     /* printf("%le \n", inp -> trs[4][is2fs[j]]); */
     for (n_el++, k = is_pos; ((is_idx = is_idxs[k]) != -1); k++,n_el++) {    /* printf("  %le\n", inp -> trs[4][gs2is[is_idx]]); */}
   }
@@ -829,13 +857,13 @@ set_trs_red (struct inp_node *inp, int spec_idx)
     tr[l][3] = inp -> trs[4][is2fs[j]];
     /* printf("%le \n", tr[l][3]); */
     is_pos = ii_start[j];
-    is_idx = is_idxs[j];
+    is_idx   = is_idxs[j];
 
     for (l++, k = is_pos; ((is_idx = is_idxs[k]) != -1); k++, l++) {
       /* printf("%d %d %d %d %le\n", is_idx, gs2is[is_idx], gs2is[is_idx], inp -> n_trans, inp -> trs[2][gs2is[is_idx]]); */
       fflush(stdout);
       tr[l][0] = get_boltzw((inp -> trs[3][gs2is[is_idx]]
-                       - inp -> e0) * (double)AUTOEV);
+                       - inp -> e0) * (double)AUTOEV) / inp -> bw_sum;
       tr[l][1] = 0;
       tr[l][2] = inp -> trs[2][gs2is[is_idx]]
         - inp -> trs[3][gs2is[is_idx]];

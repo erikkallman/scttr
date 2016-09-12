@@ -213,4 +213,7 @@ write_plotscript (struct inp_node *inp,
 int
 write_timings (struct inp_node *inp);
 
+int
+write_sticks (struct inp_node *inp, struct spectrum *spec, struct metadata *md);
+
 #endif /* SCTTR_IO_H */

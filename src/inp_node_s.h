@@ -49,8 +49,7 @@ struct inp_node
   int n_states; /**< number of electronic states */
   int n_trans; /**< number of transitions between those states */
   int n_spec; /**< number of spectra contained in this node */
-  int n_tmax; /**< maximum number of intermediate state transitions from
-               any given electronic state */
+  int t_max; /**< maximum transition moment out of all transitions */
 
   int n_gfs; /**< number of ground and final electronic states */
   int n_is; /**< number of intermediate electronic states */
@@ -62,11 +61,11 @@ struct inp_node
                   of its transitions stored in the trs variable (see below) */
 
   /**< sum of the boltzmann weights of all states in the system*/
-  double bw_sum; /**< sum of boltzmann weights  or all ground states */
+
   /* double tmax_q,tmax_d; */ /**< maximum transition moment of all quadrupole (q) and
                            dipole (tmax_d) transitions */
   double e0; /**< lowest energy eigenstate */
-
+  double bw_sum; /**< the sum of all Boltzmann weight for the ground states */
   double **trs;  /**< the trs variable contains an array of six rows and n_trans
                     columns. for a transition from state x to state yeach
                     row stores the following data:

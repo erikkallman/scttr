@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <omp.h>
+#include <ctype.h>
 #include "sci_const.h"
 #include "timing.h"
 #include "std_char_ops.h"
@@ -56,6 +57,93 @@ double serial_t;
 
 struct ccfg *cache_cfg;
 
+char **
+parse_inpfile (char * fname)
+{
+  int j, k, l;
+  int foundspace = 0;
+
+  FILE *inpfile;
+
+  char **argv_file;
+  argv_file = malloc(BUF_SIZE * sizeof(char *));
+
+  char *argv_buf = NULL;
+  size_t len = 0;
+  ssize_t line_sz;
+  int lsz;
+
+  for (j = 0; j < BUF_SIZE; j++) {
+    argv_file[j] = malloc(BUF_SIZE * sizeof(char));
+  }
+
+  if((inpfile = fopen(fname, "r")) == NULL) {
+    fprintf(stderr, "\n\nmain.c, function parse_inpfile: unable to open the input file %s.\n"
+            , fname);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  j = 1;
+  k = 0;
+
+  while ((line_sz = getline(&argv_buf, &len, inpfile)) != -1) {
+    lsz = (int)line_sz - 1;
+
+    /* printf("Retrieved line of length %d :\n", lsz); */
+    /* printf("containing: %s\n", argv_buf); */
+
+    if ((lsz > 0) && (argv_buf[0] != '#')) {
+
+      for (k = 0; k < lsz; k++) {
+        if (argv_buf[k] == ' ') {
+          foundspace = 1;
+        }
+      }
+
+      argv_file[j][0] = '-';
+
+      if (foundspace) {
+
+        /* the line contains a space, meaning it is of type "arg params" */
+        for (l = 1, k = 0; k < lsz; k++) {
+
+          if (argv_buf[k] == ' ') {
+            /* next line */
+            argv_file[j][l] = '\0';
+            j++;
+            l = 0;
+          }
+          else {
+            argv_file[j][l++] = argv_buf[k];
+          }
+        }
+        argv_file[j][l] = '\0';
+        foundspace = 0;
+      }
+      else {
+        for (k = 0; k < lsz; k++) {
+          argv_file[j][k+1] = argv_buf[k];
+        }
+        argv_file[j][k+1] = '\0';
+      }
+      j++;
+    }
+  }
+
+  sprintf(argv_file[0], "%d", j);
+
+  if (fclose(inpfile) != 0) {
+    fprintf(stderr, "\n\nmain.c, function parse_inpfile: unable to close the file:\n%s\n",
+            fname);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+  free(argv_buf);
+
+  return argv_file;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -72,7 +160,9 @@ main (int argc, char *argv[])
   int so_enrg = 0;
   int intf_mode = 0;
   int no_el = 0; /* force non-elastic transition mode to be actiated */
-  int verbose = 0;
+  int verbosity = 0;
+  int lorz = 0;
+
   double *res = malloc(2 * sizeof(double));
 
   char argv_buf[BUF_SIZE];
@@ -84,6 +174,7 @@ main (int argc, char *argv[])
   char *inp_sfx = NULL;
   char *cache_fpstr;
   char *num_buf;
+  char *end;
 
   char *ltime = malloc(20);
   char curr_dir[BUF_SIZE] = {0};
@@ -109,7 +200,7 @@ main (int argc, char *argv[])
   state_t[0] = n_t;
   state_t[1] = 0.99; /* by default, keep 99% of the total
                        intensity */
-  state_t[2] = 0.0000000001;
+  state_t[2] = 0.01;
   res[0] = 0.05;
   res[1] = 0.05;
 
@@ -125,6 +216,13 @@ main (int argc, char *argv[])
     fflush(stdout);
   }
 
+  /* if only three arguments were provided, assume that the input parameters
+     can be found in the path of the input file. */
+  if (argc == 3) {
+    argv = parse_inpfile(argv[2]);
+    argc = strtol(argv[0], &end, 10);
+  }
+
   while (argc > 1 && (argv[1][0] == '-')) {
 
     n = 0;
@@ -134,17 +232,26 @@ main (int argc, char *argv[])
     }
     argv_buf[n++] = '\0';
 
-    if(strstr(argv_buf,"v") || strstr(argv_buf,"verbose")) {
-      verbose = 1;
+    if(strstr(argv_buf,"v") || strstr(argv_buf,"verbosity")) {
+      num_buf = malloc(2);
+      /* num_buf[1] = '\0'; */
+      num_buf[0] = argv[2][0];
+      verbosity = (int)atof(num_buf);
+
+      free(num_buf);
+      num_buf = NULL;
+
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf,"e")) {
       n_er = 1;
 
-      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
+      for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
-        input_sbuff[k++] = argv[1][j];
+        input_sbuff[k++] = argv[2][j];
 
-        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
           num_buf = malloc(k + 1);
 
           for (l = 0; l < k; l++) {
@@ -154,24 +261,24 @@ main (int argc, char *argv[])
 
           state_er[n_er] = atof(num_buf);
           free(num_buf);
-          num_buf        = NULL;
+          num_buf = NULL;
           n_er++;
 
           k = 0;
         }
       }
       state_er[0] = n_er - 1;
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf, "F")) {
       so_enrg = 1;
     }
     else if(strstr(argv_buf,"gx")) {
 
-      /* the user specified thresholds for each state type (ground, initial,
-         final) to be used for screening the states when calculating the map */
       m = 0;
-      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
-        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+      for (j = 0; argv[2][j] != '\0'; j++) {
+        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
           m++;
         }
       }
@@ -179,10 +286,10 @@ main (int argc, char *argv[])
         gx_inp = malloc((m + 2) * sizeof(double));
         gx_inp[0] = m;
         m = 1;
-        for (j = 0, k = 0; argv[1][j + n] != '\0'; j++) {
+        for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
-          input_sbuff[k++] = argv[1][j + n];
-          if ((argv[1][j + n] == ',') || (argv[1][j + n + 1] == '\0')) {
+          input_sbuff[k++] = argv[2][j];
+          if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
             num_buf = malloc(k + 1);
             for (l = 0; l < k; l++) {
               num_buf[l] = input_sbuff[l];
@@ -191,20 +298,22 @@ main (int argc, char *argv[])
 
             gx_inp[m++] = atof(num_buf);
             free(num_buf);
-            num_buf        = NULL;
+            num_buf = NULL;
 
             k = 0;
           }
         }
       }
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf,"gy")) {
 
       /* the user specified thresholds for each state type (ground, initial,
          final) to be used for screening the states when calculating the map */
       m = 0;
-      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
-        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+      for (j = 0; argv[2][j] != '\0'; j++) {
+        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
           m++;
         }
       }
@@ -212,10 +321,10 @@ main (int argc, char *argv[])
         gy_inp = malloc((m + 2) * sizeof(double));
         gy_inp[0] = m;
         m = 1;
-        for (j = 0, k = 0; argv[1][j + n] != '\0'; j++) {
+        for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
-          input_sbuff[k++] = argv[1][j + n];
-          if ((argv[1][j + n] == ',') || (argv[1][j + n + 1] == '\0')) {
+          input_sbuff[k++] = argv[2][j];
+          if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
             num_buf = malloc(k + 1);
             for (l = 0; l < k; l++) {
               num_buf[l] = input_sbuff[l];
@@ -224,44 +333,45 @@ main (int argc, char *argv[])
 
             gy_inp[m++] = atof(num_buf);
             free(num_buf);
-            num_buf        = NULL;
+            num_buf = NULL;
 
             k = 0;
           }
         }
       }
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf, "h")) {
       printf("See the \"Usage\" section of the documentation provided in the doc directory of the program.\n");
       exit(1);
     }
-
     else if(strstr(argv_buf, "i")) {
 
       k = 0;
+
       /* extract the file name */
-      for (j = n; argv[1][j] != '\0'; j++) {
-        if (argv[1][j] == '/') {
+      for (j = 0; argv[2][j] != '\0'; j++) {
+        if (argv[2][j] == '/') {
           k = j + 1;
         }
       }
 
       inp_fn = malloc(j - k + 1);
 
-      for (l = 0, j = k; argv[1][j] != '\0'; j++) {
+      for (l = 0, j = k; argv[2][j] != '\0'; j++) {
 
-        if (argv[1][j] == '.') {
+        if (argv[2][j] == '.') {
           inp_fn[l] = '\0';
           j--;
           break;
         }
-
-        inp_fn[l] = argv[1][j];
+        inp_fn[l] = argv[2][j];
         l++;
       }
 
-      for (j = 0; argv[1][n+j] != '\0'; j++) {
-        input_sbuff[j] = argv[1][n+j];
+      for (j = 0; argv[2][j] != '\0'; j++) {
+        input_sbuff[j] = argv[2][j];
       }
 
       /* set the path to the input file */
@@ -283,27 +393,28 @@ main (int argc, char *argv[])
         inp_sfx[k] = inpath[j];
         k++;
       }
+
       printf("  - input path specified  = %s\n", inpath);
+
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf,"lx")) {
 
-      /* the user specified thresholds for each state type (ground, initial,
-         final) to be used for screening the states when calculating the map */
       m = 0;
-      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
-        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+      for (j = 0; argv[2][j] != '\0'; j++) {
+        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
           m++;
         }
       }
-
       if (m > 1) {
         lx_inp = malloc((m + 2) * sizeof(double));
         lx_inp[0] = m;
         m = 1;
-        for (j = 0, k = 0; argv[1][j + n] != '\0'; j++) {
+        for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
-          input_sbuff[k++] = argv[1][j + n];
-          if ((argv[1][j + n] == ',') || (argv[1][j + n + 1] == '\0')) {
+          input_sbuff[k++] = argv[2][j];
+          if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
             num_buf = malloc(k + 1);
             for (l = 0; l < k; l++) {
               num_buf[l] = input_sbuff[l];
@@ -312,20 +423,21 @@ main (int argc, char *argv[])
 
             lx_inp[m++] = atof(num_buf);
             free(num_buf);
-            num_buf        = NULL;
+            num_buf = NULL;
 
             k = 0;
           }
         }
       }
+      lorz = 1;
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf,"ly")) {
 
-      /* the user specified thresholds for each state type (ground, initial,
-         final) to be used for screening the states when calculating the map */
       m = 0;
-      for (j = n, k = 0; argv[1][j] != '\0'; j++) {
-        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+      for (j = 0; argv[2][j] != '\0'; j++) {
+        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
           m++;
         }
       }
@@ -333,10 +445,10 @@ main (int argc, char *argv[])
         ly_inp = malloc((m + 2) * sizeof(double));
         ly_inp[0] = m;
         m = 1;
-        for (j = 0, k = 0; argv[1][j + n] != '\0'; j++) {
+        for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
-          input_sbuff[k++] = argv[1][j + n];
-          if ((argv[1][j + n] == ',') || (argv[1][j + n + 1] == '\0')) {
+          input_sbuff[k++] = argv[2][j];
+          if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
             num_buf = malloc(k + 1);
             for (l = 0; l < k; l++) {
               num_buf[l] = input_sbuff[l];
@@ -351,17 +463,20 @@ main (int argc, char *argv[])
           }
         }
       }
+      lorz = 1;
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf,"o")) {
       /* printf("processing input file: "); */
       out_set = 1;
 
       /* extract the output path */
-      for (j = 3; argv[1][j] != '\0'; j++) {
-        input_sbuff[j - 3] = argv[1][j];
+      for (j = 0; argv[2][j] != '\0'; j++) {
+        input_sbuff[j] = argv[2][j];
       }
 
-      len_op = j - 3;
+      len_op = j;
       outpath = malloc(len_op + 1);
 
       for (j = 0; j < len_op; j++) {
@@ -370,14 +485,17 @@ main (int argc, char *argv[])
 
       outpath[len_op] = '\0';
       printf("  - output path specified  = %s\n", outpath);
+
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf,"r")) {
       n_res = 0;
 
-      for (j = 3,k=0; argv[1][j] != '\0'; j++) {
+      for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
-        input_sbuff[k++] = argv[1][j];
-        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
+        input_sbuff[k++] = argv[2][j];
+        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
 
           num_buf = malloc(k + 1);
 
@@ -394,16 +512,19 @@ main (int argc, char *argv[])
           k = 0;
         }
       }
+
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf,"t")) {
       n_t = 1;
 
-      for (j = 3, k = 0; argv[1][j] != '\0'; j++) {
+      for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
-        input_sbuff[k++] = argv[1][j];
+        input_sbuff[k++] = argv[2][j];
 
-        if ((argv[1][j] == ',') || (argv[1][j + 1] == '\0')) {
-          num_buf        = malloc(k + 1);
+        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+          num_buf = malloc(k + 1);
 
           for (l = 0; l < k; l++) {
             num_buf[l] = input_sbuff[l];
@@ -411,8 +532,9 @@ main (int argc, char *argv[])
           num_buf[k] = '\0';
 
           state_t[n_t] = atof(num_buf);
+
           free(num_buf);
-          num_buf      = NULL;
+          num_buf = NULL;
 
           if ((n_t) == 3) {
             break;
@@ -421,8 +543,9 @@ main (int argc, char *argv[])
           k = 0;
         }
       }
-
       state_t[0] = n_t;
+      argv++;
+      argc--;
     }
     else if(strstr(argv_buf,"I")) {
       intf_mode = 1;
@@ -430,19 +553,13 @@ main (int argc, char *argv[])
     else if(strstr(argv_buf,"N")) {
       no_el = 1;
     }
-    else if(strstr(argv_buf,"S")) {
-      intf_mode = 2;
-    }
     else{
       fprintf(stderr, "main.c, function main: Unknown flag %s. See the \"Usage\" section of the documentation provided in the doc directory of the program.\n"
               , argv_buf);
       printf( "program terminating due to the previous error.\n");
       exit(EXIT_FAILURE);
     }
-
     argv++;
-    argv++;
-    argc--;
     argc--;
   }
 
@@ -500,9 +617,12 @@ main (int argc, char *argv[])
   stat(inpath, &st);
 
   gx_inp[m] = (state_er[3] + 9) / AUTOEV;
-  lx_inp[m] = gx_inp[m];
   gy_inp[m] = (state_er[6] + 9) / AUTOEV;
-  ly_inp[m] = gy_inp[m];
+
+  if (lorz) {
+    lx_inp[m] = gx_inp[m];
+    ly_inp[m] = gy_inp[m];
+  }
 
   md -> sz_inp = (int)st.st_size;
   md -> so_enrg = so_enrg;
@@ -519,9 +639,9 @@ main (int argc, char *argv[])
   md -> gy = gy_inp;
   md -> lx = lx_inp;
   md -> ly = ly_inp;
-
+  md -> lorz = lorz;
   md -> intf_mode = intf_mode; /* only constructive interference implemented for now */
-  md -> printing = verbose;
+  md -> v = verbosity;
 
   l = j;
   inp = init_inp(md);
@@ -584,23 +704,35 @@ main (int argc, char *argv[])
   fflush(stdout);
 
   set_trs_red(inp, 2);
-  strs2str(inp, get_spec(inp,2));
+  /* strs2str(inp, get_spec(inp,1)); */
 
+  /* printf("\n\n" ); */
+  /* strs2str(inp, get_spec(inp,2)); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   printf(" done (%s).\n", get_loctime(ltime));
 
-  sticks(inp, get_spec(inp,2), md);
   calc_spec(inp, 2);
 
   /* trs2str(get_spec(inp,2)); */
+
   write_spec(inp, get_spec(inp,2));
   write_plotscript(inp, get_spec(inp,2));
 
-  if (verbose == 1) {
+  if ((verbosity == 1) || (verbosity == 3)) {
+    write_sticks(inp, get_spec(inp,2), md);
     cache_fpstr = concs(2, inp -> md -> outpath,
                         "cache_info.txt");
     write_timings(inp);
     cache2file(cache_fpstr);
     free(cache_fpstr);
+  }
+
+  if ((verbosity == 2) || (verbosity == 3)) {
+    strs2str(inp, get_spec(inp,1));
+    printf("\n\n" );
+    printf("\n\n" );
+    strs2str(inp, get_spec(inp,2));
   }
 
   free(inp_sfx);
@@ -609,6 +741,7 @@ main (int argc, char *argv[])
   free(input_sbuff);
   free(state_er);
   free(state_t);
+
 
   printf("\n scttr successfully executed.\n");
   printf(" program terminating (%s).\n\n", get_loctime(ltime));

@@ -93,10 +93,9 @@ fwdsplice (double **from, double **into, int start, int end,
   /*  we know how many values are already in the into array */
   for (j = end; j >= start; j--) {
     for (k = 0; k < n_dims; k++) {
-
       if (memcpy(&into[k][j + s], &into[k][j],
                  sizeof(into[0][0])) != &into[k][j + s]) {
-        fprintf(stderr, "parse_input.c, function sharr_fwd: the double %le stored at memory location %p cannot be copied to location %p.\n",into[j][k], &into[j][k + s], &into[j][k]);
+        fprintf(stderr, "parse_input.c, function fwdsplice: the double %le stored at memory location %p cannot be copied to location %p.\n",into[j][k], &into[j][k + s], &into[j][k]);
         printf( "program terminating due to the previous error.\n");
         exit(1);
       }

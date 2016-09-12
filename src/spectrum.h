@@ -150,7 +150,7 @@ int
 free_all_specs (struct inp_node *inp);
 
 void
-trs2str (struct spectrum *spec);
+trs2str (struct inp_node *inp, struct spectrum *spec);
 
 void
 strs2str (struct inp_node *inp, struct spectrum *spec);

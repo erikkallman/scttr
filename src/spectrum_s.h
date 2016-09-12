@@ -74,6 +74,7 @@ struct spectrum
                             final states */
   double emin_y, emax_y; /**< maximum and minimum energies in the range of
                             intermediate states. */
+  double bw_sum; /**< the sum of the boltzmann weight of all ground states. used to normalize the spectrum.*/
 
   double sfac; /**< scaling factor used to normalized the spectrum matrix */
 

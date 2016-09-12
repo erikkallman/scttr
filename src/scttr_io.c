@@ -59,6 +59,7 @@ const char *dat_sfx = ".dat";
 const char *plot_sfx = ".gp";
 const char *log_sfx  = ".txt";
 const char *time_sfx  = "_time.txt";
+const char *stick_sfx  = "_stick.txt";
 const char *bin_sfx  = ".bin";
 const char *tmp_sfx  = ".tmp";
 
@@ -170,6 +171,7 @@ parse_input_bin (struct inp_node *inp, char *bin_fpstr)
 {
   int j;
   int pi_xdim, pi_ydim;
+  inp -> bw_sum = 0;
 
   printf("\n      processing binary file corresponding to the provided input file ..");
   fflush(stdout);
@@ -178,6 +180,12 @@ parse_input_bin (struct inp_node *inp, char *bin_fpstr)
 
   if ( fread(&pi_ydim, sizeof(int), 1, fp_bin) != 1) {
     fprintf(stderr, "\n\nscttr_io.c, function parse_input_bin: unable to read pi_ydim from binary output file \n");
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  if ( fread(&inp -> bw_sum, sizeof(double), 1, fp_bin) != 1) {
+    fprintf(stderr, "\n\nscttr_io.c, function parse_input_bin: unable to read bw_sum from binary output file \n");
     printf("program terminating due to the previous error.\n\n");
     exit(1);
   }
@@ -216,7 +224,13 @@ parse_input_bin (struct inp_node *inp, char *bin_fpstr)
       inp -> e0 = inp -> trs[2][j];
     }
   }
-
+  /* printf("\n" ); */
+  /* for (j = 0; j < pi_ydim; j++) { */
+  /*   printf("%le %le\n", (inp -> trs[2][j] - inp -> e0)*AUTOEV, (inp -> trs[3][j] - inp -> e0)*AUTOEV); */
+  /*     /\* inp -> bw_sum += inp *\/ */
+  /*     /\* inp -> e0 = inp -> trs[2][j]; *\/ */
+  /* } */
+  /* printf("\n" ); */
   inp -> trs[0][pi_ydim] = -1;
 
   if (fclose(fp_bin) != 0) {
@@ -777,7 +791,7 @@ parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
 
   float bw_thrsh = inp -> md -> state_t[2];
 
-  double tmp_bw;
+  /* double tmp_bw; */
 
   double *state_er = inp -> md -> state_er;
   double tmp_idx = 0;
@@ -804,7 +818,7 @@ parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
   char *s2 = NULL;
   char *s3 = NULL;
 
-  printf("      parsing the tmp file (%s) ..", get_loctime(ltime));
+  printf("      parsing the tmp file (%s), extracting elastic transitions  ..", get_loctime(ltime));
 
   if (inp -> md -> so_enrg == 0) {
     /* read spin-orbit data */
@@ -909,6 +923,8 @@ parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
   n_trans = 0;
   trs_type = 1;
 
+  inp -> bw_sum = 0;
+
   /* now that data structures of the rights size has memory allocated for
      them, start reading data from the temporary file */
   while ((c = fgetc(fp_tmpdata)) != EOF) {
@@ -932,6 +948,12 @@ parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
 
             idxs_eigval[(int)tmp_idx - 1] = n_states + 1;
             n_states++;
+
+            if (inrange((e_eigval[n_states] - e_eigval[0]) * (double)AUTOEV
+                       , inp -> md -> state_er[1]
+                       , inp -> md -> state_er[2])) {
+                inp -> bw_sum += get_boltzw((e_eigval[n_states] - e_eigval[0]) * (double)AUTOEV);
+              }
           }
         }
         else if ((j > 0) && (isempty(str_buf, l) != 1)) {
@@ -1069,7 +1091,7 @@ parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
         /*             ,state_er[4])) */
             /* && (trs_types[READHEAD] == 1 */)) /* only dipole absorption */
       {
-
+        /* flip the absorption transitions  */
       idx_to = trans_idxs[1][READHEAD];
       idx_from = trans_idxs[0][READHEAD];
 
@@ -1086,12 +1108,12 @@ parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
 
     if (proci) { /* a transition was found that fit the energy ranges */
 
-      tmp_state_en =
-        (get_wi(e_eigval
-                , idxs_eigval
-                , idx_from
-                , n_states) - inp -> e0) * AUTOEV;
-      tmp_bw = get_boltzw(tmp_state_en);
+      /* tmp_state_en = */
+      /*   (get_wi(e_eigval */
+      /*           , idxs_eigval */
+      /*           , idx_from */
+      /*           , n_states) - inp -> e0) * AUTOEV; */
+      /* tmp_bw = get_boltzw(tmp_state_en); */
       /* fprintf(stderr, "\n\nproc=======Valgrind eject point=======\n\n"); */
       /* exit(1); */
       if (first /* || (tmp_bw > bw_thrsh) */) {
@@ -1264,6 +1286,7 @@ parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
         /* exit(1); */
 
         /* we only screen the quadrupole transitions, so this will work fine */
+        /* skip ahead until we have found the next state */
         READHEAD_PRE = READHEAD;
         tmp_i = trans_idxs[0][READHEAD];
         while((int)trans_idxs[0][READHEAD] == tmp_i) {
@@ -1500,6 +1523,8 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
   n_trans = 0;
   trs_type = 1;
 
+  inp -> bw_sum = 0;
+
   /* now that data structures of the rights size has memory allocated for
      them, start reading data from the temporary file */
   while ((c = fgetc(fp_tmpdata)) != EOF) {
@@ -1518,10 +1543,18 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
           /* extract energy eigenvalues and state indexes */
           get_nums(str_buf, num_idxs1, l, n_idxs1, &tmp_idx
                    , &e_eigval[n_states]);
-          if ((fabs(e_eigval[n_states] - e_eigval[0]) * AUTOEV) \
+          if ((fabs(e_eigval[n_states] - e_eigval[0]) * (double)AUTOEV) \
               < maxr) {
 
             idxs_eigval[(int)tmp_idx - 1] = n_states + 1;
+
+
+            if (inrange((e_eigval[n_states] - e_eigval[0]) * (double)AUTOEV
+                       , inp -> md -> state_er[1]
+                        , inp -> md -> state_er[2])) {
+                inp -> bw_sum += get_boltzw((e_eigval[n_states] - e_eigval[0]) * (double)AUTOEV);
+                /* printf("\nbw  = %le\n", get_boltzw((e_eigval[n_states] - e_eigval[0]) * (double)AUTOEV)); */
+            }
             n_states++;
           }
         }
@@ -1568,7 +1601,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
       l++;
     }
   }
-
+  /* printf("\nbw _sum = %le\n",inp -> bw_sum ); */
   /* allocate space for the "parsed input matrix" that will be filled with data
      in the remaining sections of this function */
 
@@ -1592,6 +1625,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
       exit(1);
     }
   }
+
   inp -> trs[0][n_trans] = -1; /* end of list */
 
   if((trs_buf = malloc(6 * sizeof(double *))) == NULL ) {
@@ -1623,8 +1657,6 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
   /*   printf("%le %le %le\n",e_eigval[j], (e_eigval[j] - inp -> e0) * AUTOEV, get_boltzw((e_eigval[j] - inp -> e0) * AUTOEV)); */
   /*   printf("%le %le\n", trans_idxs[0][j], trans_idxs[1][j]); */
   /* } */
-  /* fprintf(stderr, "\n\n=======%d Valgrind eject point=======\n\n", n_trans); */
-  /* exit(1); */
 
   int READHEAD, READHEAD_PRE, WRITEHEAD;
   READHEAD = WRITEHEAD = 0;
@@ -1635,12 +1667,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
     /* j : the write head for the trs_buf */
     /* WRITEHEAD: the place to where we are writing data in the trs matrix */
     /* printf("THE DATA: to %d from %d\n ", (int)(trans_idxs[0][READHEAD]),(int)(trans_idxs[1][READHEAD])); */
-    if (READHEAD == n_trans) {
-      /* printf("NOPE\n" ); */
-      /* dont read beyond the last value in PI and mark the end of the array */
-      /* trs_buf[0][] = -1; */
-      idx_to = -1;
-    }
+
     /* else { */
     /* printf("YEP\n" ); */
     /* read the data arrays row by row */
@@ -1688,7 +1715,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
              /*             ,state_er[4])) */
              && (trs_types[READHEAD] == 1))
       {
-      /*           printf("THE dipole DATA %d: to %d from %d\n ", first, (int)(trans_idxs[0][READHEAD]),(int)(trans_idxs[1][READHEAD])); */
+                /* printf("THE dipole DATA %d: to %d from %d\n ", first, (int)(trans_idxs[0][READHEAD]),(int)(trans_idxs[1][READHEAD])); */
       /*           fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
       /*           exit(1); */
       /* fflush(stdout); */
@@ -1704,16 +1731,29 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
       proci = 0;
     }
 
+
+    if (READHEAD == n_trans) {
+      /* Make sure also the last set of transitions are added. */
+      /* printf("NOPE\n" ); */
+      /* dont read beyond the last value in PI and mark the end of the array */
+      /* trs_buf[0][] = -1; */
+      READHEAD++;
+      proci = 1;
+      idx_comp = -last_i;
+      /* break; */
+      /* idx_to = -1; */
+    }
+
     if (proci) { /* a transition was found that fit the energy ranges */
 
-      tmp_state_en =
-        (get_wi(e_eigval
-                , idxs_eigval
-                , idx_from
-                , n_states) - inp -> e0) * AUTOEV;
-      tmp_bw = get_boltzw(tmp_state_en);
+      /* tmp_state_en = */
+      /*   (get_wi(e_eigval */
+      /*           , idxs_eigval */
+      /*           , idx_from */
+      /*           , n_states) - inp -> e0) * AUTOEV; */
+      /* tmp_bw = get_boltzw(tmp_state_en); */
 
-      if (first || (tmp_bw > bw_thrsh)) {
+      if (1 /* || (tmp_bw > bw_thrsh) */) {
 
         /* for (tmp_i = last_i, */
         /*        tmp_state_en = */
@@ -1751,7 +1791,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
         /*   } */
         /* } */
 
-        /* printf("PROCESSING STATE to %d from %d\n",idx_to, idx_from ); */
+        /* printf("PROCESSING STATE to %d from %d last_i = %d\n",idx_to, idx_from ); */
         if (idx_comp != last_i) {
 
           /* printf("NEXT TRANSITION SET (%d != %d)\n", idx_comp, last_i); */
@@ -1764,11 +1804,12 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
           /* fflush(stdout); */
           /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
           /* exit(1); */
-
+          tmp_idx2 = get_inext(inp -> trs, last_i);
           /* we have read all transitions for a state */
           /* check if the last_i has already been processed */
-          if (intinint(proc_idx, last_i, n_proc) == -1) {
-
+          if ((intinint(proc_idx, last_i, n_proc) == -1)
+              || (tmp_idx2 == n_trans - 1)) {
+            /* printf("\n\nNO splicing.\n\n" ); */
             /* for (l = 0; l < WRITEHEAD; l++) { */
             /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
             /* } */
@@ -1808,15 +1849,19 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
 
           }
           else {
+            /* The to state transition has to be spliced into the matrix since
+               it has already had transitions from it registered previously  */
             /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
             /* exit(1); */
-            /* printf("Pre splice start\n" ); */
+            /* printf("\n\nYES splicing.\n\n" ); */
+
+            /* printf("Pre splice trs\n" ); */
             /* for (l = 0; l < WRITEHEAD; l++) { */
             /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
             /* } */
 
-            tmp_idx2 = get_inext(inp -> trs, last_i);
-            /* printf("%d \n", tmp_idx2 ); */
+            /* printf("tmp_idx2 = %d \n", tmp_idx2 ); */
+            /* fflush(stdout); */
             /* printf("\n^Pre splice end in trs[%d] = %d with last_i= %d\n\n", tmp_idx2,(int)inp -> trs[0][tmp_idx2], last_i ); */
             /* printf("\n buffer START:\n" ); */
 
@@ -1825,7 +1870,10 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
             /* } */
             /* printf("\n ^buffer END :\n" ); */
             /* fflush(stdout); */
-            rc = fwdsplice(trs_buf, inp -> trs, tmp_idx2, WRITEHEAD, j, 6);
+
+            /* printf("splicing with %d %d %d\n", tmp_idx2, tmp_idx2 + j, j); */
+            rc = fwdsplice(trs_buf, inp -> trs, tmp_idx2, tmp_idx2 + j, j, 6);
+
             if (rc == 1) {
               printf("\n^Post splice start %d\n\n", last_i );
               for (l = 0; l < WRITEHEAD; l++) {
@@ -1848,6 +1896,12 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
               exit(1);
             }
             WRITEHEAD += j;
+            /* printf("post splice trs \n" ); */
+            /* for (l = 0; l < WRITEHEAD; l++) { */
+            /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
+            /* } */
+            /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+            /* exit(1); */
           }
           j = 0;
           /* check what kind of transition that was processed */
@@ -1856,6 +1910,8 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
           /* } else { */
           /*   last_i = idx_to; */
           /* } */
+
+
           last_i = idx_comp;
 
           READHEAD--;
@@ -1952,6 +2008,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
 
   printf(" done (%s).\n", get_loctime(ltime));
   free(ltime);
+
   return 1;
 }
 
@@ -2010,25 +2067,31 @@ parse_input (struct inp_node *inp)
       }
     }
 
-    if (inp -> el == 1) {
+    /* if (inp -> el == 1) { */
       /* printf("\nPRE adding\n "); */
       /* for (j = 0; j < inp->n_trans; j++) { */
-      /*   printf("%d %d %le %le %le %d\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j], (int)inp -> trs[5][j]); */
+      /*   printf("%d %d %le %le %le %d\n" */
+      /*          , (int)inp -> trs[0][j] */
+      /*          , (int)inp -> trs[1][j] */
+      /*          , (inp -> trs[2][j] - inp -> e0) * AUTOEV */
+      /*          , (inp -> trs[3][j] - inp -> e0) * AUTOEV */
+      /*          , inp -> trs[4][j], (int)inp -> trs[5][j]); */
       /* } */
+
       /* count_states(inp); */
       add_eltrans(inp);
       /* fflush(stdout); */
       /* printf("\nPOST adding\n "); */
       /* printf("%d, %d\n", inp->n_gfs, inp->n_is ); */
-      /* /\* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); *\/ */
-      /* /\* exit(1); *\/ */
+      /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+      /* exit(1); */
       /* for (j = 0; j < inp->n_trans; j++) { */
       /*   printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]); */
       /* } */
-      /* fflush(stdout); */
-      /* fprintf(stderr, "\n\n=======added.Valgrind eject point=======\n\n"); */
+
       /* exit(1); */
-    }
+    /* } */
+
     /* the only way the parse_input_tmp function can get called is if there is if
        no binary file present. we can therefore safely write to the binary file
        without checking if it already exists. */
@@ -2040,6 +2103,8 @@ parse_input (struct inp_node *inp)
     }
 
     fwrite((const void*) & (inp -> n_trans), sizeof(int), 1, fp_bin);
+    fflush(fp_bin);
+    fwrite((const void*) & (inp -> bw_sum), sizeof(double), 1, fp_bin);
     fflush(fp_bin);
     fclose(fp_bin);
 
@@ -2122,7 +2187,7 @@ write_spec (struct inp_node *inp, struct spectrum *spec)
     exit(1);
   }
 
-  printf("    - writing RIXS map to file: %s ..", dat_fpstr);
+  printf("  - writing RIXS map to file: %s ..", dat_fpstr);
 
   for (j = 0, x = 0, y = 0; x < spec -> n_elx/* j < spec -> npr_tot */; j++) {
     for (k = 0; (k < spec -> prsz) && (x < spec -> n_elx); k++, y++) {
@@ -2235,13 +2300,13 @@ write_timings (struct inp_node *inp)
   double st;
 
   if((fp_time_out = fopen(time_fpstr, "a"))==NULL) {
-    fprintf(stderr, "\n\nscttr_io.c, function write_spec: unable to open the output file %s.\n"
+    fprintf(stderr, "\n\nscttr_io.c, function write_timings: unable to open the output file %s.\n"
             , time_fpstr);
     printf("program terminating due to the previous error.\n\n");
     exit(1);
   }
 
-  printf("    - writing execution timing data to file: %s ..", time_fpstr);
+  printf("  - writing execution timing data to file: %s ..", time_fpstr);
   st = omp_get_wtime() - serial_t - para_t;
   total_t = st + para_t;
   fprintf(fp_time_out,"#sfac = %le\n", get_spec(inp,2) -> sfac);
@@ -2250,7 +2315,6 @@ write_timings (struct inp_node *inp)
   fprintf(fp_time_out,"%le ", st);
   fprintf(fp_time_out,"%le ", para_t);
   fprintf(fp_time_out,"%le\n", total_t);
-  printf(" done.\n");
 
   if (fclose(fp_time_out) != 0) {
     fprintf(stderr, "\n\nscttr_io.c, function write_spec:: unable to close the file:\n%s\n",
@@ -2260,6 +2324,73 @@ write_timings (struct inp_node *inp)
   }
 
   free(time_fpstr);
+  printf(" done.\n");
+  return 0;
+}
 
+int
+write_sticks (struct inp_node *inp, struct spectrum *spec, struct metadata *md)
+{
+
+  int j, k, l; /* iteration variables */
+
+  char *stick_fpstr = concs(3, inp -> md -> outpath,
+                          inp -> md -> inp_fn, stick_sfx);
+  FILE *fp_stick_out;
+
+  if((fp_stick_out = fopen(stick_fpstr, "w"))==NULL) {
+    fprintf(stderr, "\n\nscttr_io.c, function write_sticks: unable to open the output file %s.\n"
+            , stick_fpstr);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  printf("  - writing stick intensities to file: %s ..", stick_fpstr);
+
+  double tmom_gi; /* .. of excitiation (x-axis)*/
+  double tmom_if; /* .. of energy transfer (y-axis)*/
+  double de_gi, de_if; /* energy eigenvalue differences */
+  /* double tmom_max = 0; */
+  double bw; /* boltzmann weight */
+
+  double complex tmp;  /* accumulator used in the Kramers-Heisenberg formula */
+
+  double ** tr = spec -> trs_red;
+
+  for (l = 0; tr[l][1] != -1;) {
+    de_if = tr[l][2];
+    tmom_if = tr[l][3];
+    tmp = 0 + 0*I;
+    while((int)tr[++l][1] == 0) { /* loop over ground to intermediate
+                                     transitions */
+      bw = tr[l][0];
+      de_gi = tr[l][2];
+      tmom_gi = tr[l][3];
+
+      tmp += tmom_gi * tmom_if * bw;
+      tmp += 0*I;
+      tmp = fabsc(tmp);
+
+      /* if (fabsc(tmp) > tmom_max) { */
+      /*   tmom_max = tmp; */
+      /* } */
+      /* printf("%le %le %le\n",de_gi * AUTOEV, (de_gi - de_if) * AUTOEV, creal(tmp)); */
+      fprintf(fp_stick_out, "%le %le %le\n", de_gi * AUTOEV, (de_gi + de_if) * AUTOEV, creal(tmp));
+      /* printf("%le %le %le %le\n", (de_if - de_gi)* AUTOEV, (de_gi + de_if) * AUTOEV, de_if*AUTOEV, de_gi*AUTOEV); */
+    }
+    fprintf(fp_stick_out, "\n");
+  }
+
+  /* printf("\nstick scaling factor: %le\n", tmom_max); */
+
+  if (fclose(fp_stick_out) != 0) {
+    fprintf(stderr, "\n\nscttr_io.c, function write_sticks:: unable to close the file:\n%s\n",
+            stick_fpstr);
+    printf("program terminating due to the previous error.\n\n");
+    exit(1);
+  }
+
+  free(stick_fpstr);
+  printf(" done.\n");
   return 0;
 }

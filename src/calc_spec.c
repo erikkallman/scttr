@@ -630,7 +630,8 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   }
 
   if (l < nth) {
-    printf("========Does not scale beyond %d (nth = %d)\n", l ,nth );
+    printf("\n    - the calculation does not scale beyond %d threads (current nth = %d). Reducing the number of threads used to %d.\n", l , nth, l );
+    fflush(stdout);
     nth = l;
     goto threading;
   }
@@ -865,73 +866,77 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
       }
     } /* implicit barrier */
   }
-  printf(" done (%s).", get_loctime(ltime));
+  /* printf(" done (%s).", get_loctime(ltime)); */
   fflush(stdout);
   para_t = omp_get_wtime() - wt;
-  /* printf("\n      applying lorentzian boadening.. (%s)",get_loctime(ltime)); */
-  /* fflush(stdout); */
 
-  /* for (j = 0, x = 0, y = 0; x < spec -> n_elx; j++) { */
-  /*   for (k = 0; (k < spec -> prsz) && (x < spec -> n_elx); k++, y++) { */
-  /*     omega_x = emin_x + (x * de_x); */
-  /*     omega_y = emin_y + (y * de_y); */
+  if (inp -> md -> lorz) {
 
-  /*     /\* update the broadenings, if needed *\/ */
-  /*     if (omega_x > eu_lx) { */
-  /*       /\* printf("thread %d at i= %d set lx since %le > %le\n", ith,lx_i, omega_x, eu_lx); *\/ */
-  /*       /\* fflush(stdout); *\/ */
-  /*       lx_i += 2; */
-  /*       lx_t = md -> lx[lx_i] / AUTOEV; */
+    /* printf("\n      applying lorentzian boadening.. (%s)",get_loctime(ltime)); */
+    /* fflush(stdout); */
 
-  /*       lx_mfac = 0.5 * lx_t / PI; */
-  /*       lx_afac = (0.25 * lx_t * lx_t); */
+    for (j = 0, x = 0, y = 0; x < spec -> n_elx; j++) {
+      for (k = 0; (k < spec -> prsz) && (x < spec -> n_elx); k++, y++) {
+        omega_x = emin_x + (x * de_x);
+        omega_y = emin_y + (y * de_y);
 
-  /*       eu_lx = (md -> lx)[lx_i+1] / AUTOEV; */
-  /*     } */
-  /*     if (omega_y > eu_ly) { */
-  /*       /\* printf("thread %d at i= %d set ly since %le > %le\n", ith, ly_i, omega_y, eu_ly); *\/ */
-  /*       /\* fflush(stdout); *\/ */
-  /*       ly_i += 2; */
-  /*       ly_t = md -> ly[ly_i] / AUTOEV; */
+        /* update the broadenings, if needed */
+        if (omega_x > eu_lx) {
+          /* printf("thread %d at i= %d set lx since %le > %le\n", ith,lx_i, omega_x, eu_lx); */
+          /* fflush(stdout); */
+          lx_i += 2;
+          lx_t = md -> lx[lx_i] / AUTOEV;
 
-  /*       ly_mfac = 0.5 * ly_t / PI; */
-  /*       ly_afac = (0.25 * ly_t * ly_t); */
+          lx_mfac = 0.5 * lx_t / PI;
+          lx_afac = (0.25 * lx_t * lx_t);
 
-  /*       eu_ly = (md -> ly)[ly_i+1] / AUTOEV; */
-  /*     } */
+          eu_lx = (md -> lx)[lx_i+1] / AUTOEV;
+        }
+        if (omega_y > eu_ly) {
+          /* printf("thread %d at i= %d set ly since %le > %le\n", ith, ly_i, omega_y, eu_ly); */
+          /* fflush(stdout); */
+          ly_i += 2;
+          ly_t = md -> ly[ly_i] / AUTOEV;
 
-  /*     tmp_int = 0; */
-  /*     for (j_in = 0, x_in = 0, y_in = 0; x_in < spec -> n_elx; j_in++) { */
-  /*       for (k_in = 0; (k_in < spec -> prsz) && (x_in < spec -> n_elx) */
-  /*              ;k_in++, y_in++) { */
-  /*         omega_x_in = emin_x + (x_in * de_x); */
-  /*         omega_y_in = emin_y + (y_in * de_y); */
+          ly_mfac = 0.5 * ly_t / PI;
+          ly_afac = (0.25 * ly_t * ly_t);
 
-  /*         /\* calculate the lorentzian contribution to this intensity_in *\/ */
-  /*         ediff_x = omega_x - omega_x_in; */
-  /*         ediff_y = omega_y - omega_y_in; */
+          eu_ly = (md -> ly)[ly_i+1] / AUTOEV;
+        }
 
-  /*         tmp_int += sm_th0[j_in][k_in] */
-  /*           * (lx_mfac / ((ediff_x * ediff_x) + lx_afac)) */
-  /*           * (ly_mfac / ((ediff_y * ediff_y) + ly_afac)); */
+        tmp_int = 0;
+        for (j_in = 0, x_in = 0, y_in = 0; x_in < spec -> n_elx; j_in++) {
+          for (k_in = 0; (k_in < spec -> prsz) && (x_in < spec -> n_elx)
+                 ;k_in++, y_in++) {
+            omega_x_in = emin_x + (x_in * de_x);
+            omega_y_in = emin_y + (y_in * de_y);
 
-  /*         if (y_in == spec -> n_ely-1) { */
-  /*           x_in++; */
-  /*           y_in = 0; */
-  /*         } */
-  /*       } */
-  /*     } */
+            /* calculate the lorentzian contribution to this intensity_in */
+            ediff_x = omega_x - omega_x_in;
+            ediff_y = omega_y - omega_y_in;
 
-  /*     spec -> s_mat[j][k] += tmp_int; */
+            tmp_int += sm_th0[j_in][k_in]
+              * (lx_mfac / ((ediff_x * ediff_x) + lx_afac))
+              * (ly_mfac / ((ediff_y * ediff_y) + ly_afac));
 
-  /*     if (y == spec -> n_ely-1) { */
-  /*       /\* we have traversed one row in the spectrum *\/ */
-  /*       x++; */
-  /*       y = 0; */
-  /*     } */
-  /*   } */
-  /* } */
-  /* printf(" done (%s).", get_loctime(ltime)); */
+            if (y_in == spec -> n_ely-1) {
+              x_in++;
+              y_in = 0;
+            }
+          }
+        }
+
+        spec -> s_mat[j][k] += tmp_int;
+
+        if (y == spec -> n_ely-1) {
+          /* we have traversed one row in the spectrum */
+          x++;
+          y = 0;
+        }
+      }
+    }
+    /* printf(" done (%s).", get_loctime(ltime)); */
+  }
 
   spec -> s_mat = sm_th0;
   /* printf("\n\n==== THREAD INFO END ==== \n\n"); */
@@ -943,53 +948,6 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   free(ltime);
   free(rchunks);
   return 0;
-}
-
-int
-sticks( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
-{
-
-  int j, k, l; /* iteration variables */
-
-  double tmom_gi; /* .. of excitiation (x-axis)*/
-  double tmom_if; /* .. of energy transfer (y-axis)*/
-  double de_gi, de_if; /* energy eigenvalue differences */
-  double tmom_max = 0;
-  double bw; /* boltzmann weight */
-
-  double complex tmp;  /* accumulator used in the Kramers-Heisenberg formula */
-
-  double ** tr = spec -> trs_red;
-
-  printf("\nSTICKS\\START\n");
-
-  for (l = 0; tr[l][1] != -1;) {
-    de_if = tr[l][2];
-    tmom_if = tr[l][3];
-    tmp = 0 + 0*I;
-    while((int)tr[++l][1] == 0) { /* loop over ground to intermediate
-                                     transitions */
-      bw = tr[l][0];
-      de_gi = tr[l][2];
-      tmom_gi = tr[l][3];
-
-      tmp += tmom_gi * tmom_if * bw;
-      tmp += 0*I;
-      tmp = fabsc(tmp);
-
-      if (fabsc(tmp) > tmom_max) {
-        tmom_max = tmp;
-      }
-      /* printf("%le %le %le\n",de_gi * AUTOEV, (de_gi - de_if) * AUTOEV, creal(tmp)); */
-      printf("%le %le %le\n", de_gi * AUTOEV, (de_gi + de_if) * AUTOEV, creal(tmp));
-      /* printf("%le %le %le %le\n", (de_if - de_gi)* AUTOEV, (de_gi + de_if) * AUTOEV, de_if*AUTOEV, de_gi*AUTOEV); */
-    }
-    printf("\n");
-  }
-
-  printf("\nstick scaling factor: %le\n", tmom_max);
-
-  printf("STICKS\\END\n");
 }
 
 int
@@ -1072,8 +1030,7 @@ calc_spec (struct inp_node *inp, int spec_idx)
       intf_0_old(inp, spec, md);
     }
 
-  printf("  - done (%s).\n", get_loctime(ltime));
-  printf("  - finding the normalization constant of the calculated RIXS map ..");
+  printf("    done (%s).\n", get_loctime(ltime));
 
   for (j = 0; j < spec -> npr_tot; j++) {
     for (k = 0; k < spec -> prsz; k++) {
@@ -1082,8 +1039,6 @@ calc_spec (struct inp_node *inp, int spec_idx)
       }
     }
   }
-
-  printf("  done.\n");
 
   free(ltime);
   return 0;
