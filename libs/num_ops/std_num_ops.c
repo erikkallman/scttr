@@ -84,8 +84,10 @@ fwdsplice (double **from, double **into, int start, int end,
     end += s;
   }
   else if((start < 0) || (end < 0) || (s < 0)) {
+    fflush(stdout);
     fprintf(stderr, "\n\nERROR: std_num_ops.c, function fwdsplice: negative input arguments: start = %d, end = %d, s = %d .\n\n", start, end, s);
     printf( "program terminating due to the previous error.\n");
+    fflush(stdout);
     return 1;
   }
 

@@ -251,7 +251,9 @@ main (int argc, char *argv[])
 
         input_sbuff[k++] = argv[2][j];
 
-        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
           num_buf = malloc(k + 1);
 
           for (l = 0; l < k; l++) {
@@ -278,7 +280,9 @@ main (int argc, char *argv[])
 
       m = 0;
       for (j = 0; argv[2][j] != '\0'; j++) {
-        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
           m++;
         }
       }
@@ -289,7 +293,9 @@ main (int argc, char *argv[])
         for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
           input_sbuff[k++] = argv[2][j];
-          if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+          if (((argv[2][j] == ',')
+               || (argv[2][j] == ';'))
+              || (argv[2][j + 1] == '\0')) {
             num_buf = malloc(k + 1);
             for (l = 0; l < k; l++) {
               num_buf[l] = input_sbuff[l];
@@ -313,7 +319,9 @@ main (int argc, char *argv[])
          final) to be used for screening the states when calculating the map */
       m = 0;
       for (j = 0; argv[2][j] != '\0'; j++) {
-        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
           m++;
         }
       }
@@ -324,7 +332,9 @@ main (int argc, char *argv[])
         for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
           input_sbuff[k++] = argv[2][j];
-          if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+          if (((argv[2][j] == ',')
+               || (argv[2][j] == ';'))
+              || (argv[2][j + 1] == '\0')) {
             num_buf = malloc(k + 1);
             for (l = 0; l < k; l++) {
               num_buf[l] = input_sbuff[l];
@@ -403,7 +413,9 @@ main (int argc, char *argv[])
 
       m = 0;
       for (j = 0; argv[2][j] != '\0'; j++) {
-        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
           m++;
         }
       }
@@ -414,7 +426,9 @@ main (int argc, char *argv[])
         for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
           input_sbuff[k++] = argv[2][j];
-          if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+          if (((argv[2][j] == ',')
+               || (argv[2][j] == ';'))
+              || (argv[2][j + 1] == '\0')) {
             num_buf = malloc(k + 1);
             for (l = 0; l < k; l++) {
               num_buf[l] = input_sbuff[l];
@@ -437,7 +451,9 @@ main (int argc, char *argv[])
 
       m = 0;
       for (j = 0; argv[2][j] != '\0'; j++) {
-        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
           m++;
         }
       }
@@ -448,7 +464,9 @@ main (int argc, char *argv[])
         for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
           input_sbuff[k++] = argv[2][j];
-          if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+          if (((argv[2][j] == ',')
+               || (argv[2][j] == ';'))
+              || (argv[2][j + 1] == '\0')) {
             num_buf = malloc(k + 1);
             for (l = 0; l < k; l++) {
               num_buf[l] = input_sbuff[l];
@@ -495,7 +513,9 @@ main (int argc, char *argv[])
       for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
         input_sbuff[k++] = argv[2][j];
-        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
 
           num_buf = malloc(k + 1);
 
@@ -523,7 +543,9 @@ main (int argc, char *argv[])
 
         input_sbuff[k++] = argv[2][j];
 
-        if ((argv[2][j] == ',') || (argv[2][j + 1] == '\0')) {
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
           num_buf = malloc(k + 1);
 
           for (l = 0; l < k; l++) {

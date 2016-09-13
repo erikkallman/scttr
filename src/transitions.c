@@ -321,7 +321,7 @@ add_eltrans (struct inp_node *inp)
           trs_el[4][nt_el] = trs_buf[4][k];
           trs_el[5][nt_el] = trs_buf[5][k];
         }
-        trs_el[0][nt_el /* + 1 */] = -1;
+        trs_el[0][nt_el + 1] = -1;
       }
       else {
         /* printf("\nsplicing in\n"); */
