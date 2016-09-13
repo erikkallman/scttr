@@ -1774,7 +1774,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
           the last state in the list */
           if ((intinint(proc_idx, last_i, n_proc) == -1)
               || (tmp_idx2 == WRITEHEAD - 1)
-              || (tmp_idx2 == -1)) {
+              /* || (tmp_idx2 == -1) */) {
 
             fflush(stdout);
             /* printf("hell naw: %d %d %d\n", intinint(proc_idx, last_i, n_proc), tmp_idx2, WRITEHEAD); */
@@ -1900,18 +1900,22 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
           hit = n_hits = 0;
           for (l = 0; l < n_trans; l++) {
             if (inp -> trs[0][l] == last_i) {
+              /* we found one block of transtions to last_i */
+              for (; inp -> trs[0][l] == last_i ; l++) {}
+              l--;
+
               if (hit == 0) {
-                /* fflush(stdout); */
-                /* printf("hit start at %le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
-                /* fflush(stdout); */
+                fflush(stdout);
+                printf("hit start at %le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]);
+                fflush(stdout);
                 hit = 1;
                 n_hits++;
               }
             }
             else if(hit == 1) {
               fflush(stdout);
-              /* printf("hit end at %le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
-              /* fflush(stdout); */
+              printf("hit end at %le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]);
+              fflush(stdout);
               hit = 0;
             }
           }
