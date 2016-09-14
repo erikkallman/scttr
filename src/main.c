@@ -726,11 +726,15 @@ main (int argc, char *argv[])
   fflush(stdout);
 
   set_trs_red(inp, 2);
-  /* strs2str(inp, get_spec(inp,1)); */
 
+  /* fflush(stdout); */
+  /* strs2str(inp, get_spec(inp,1)); */
+  /* fflush(stdout); */
   /* printf("\n\n" ); */
   /* strs2str(inp, get_spec(inp,2)); */
+  /* fflush(stdout); */
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* fflush(stdout); */
   /* exit(1); */
   printf(" done (%s).\n", get_loctime(ltime));
 

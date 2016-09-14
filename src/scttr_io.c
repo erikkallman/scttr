@@ -1775,7 +1775,9 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
           if ((intinint(proc_idx, last_i, n_proc) == -1)
               || (tmp_idx2 == WRITEHEAD - 1)
               || (tmp_idx2 == -1)) {
-
+            /* fflush(stdout); */
+            /* printf("adding %d %d\n", j, last_i); */
+            /* fflush(stdout); */
             /* if ((tmp_idx2 == WRITEHEAD - 1)) { */
 
               /* printf("found edge case %d %d \n",n_trans, tmp_idx2 ); */
@@ -1832,8 +1834,9 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
                it has already had transitions from it registered previously  */
             /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
             /* exit(1); */
-            /* printf("\n\nYES splicing.\n\n" ); */
-
+            /* fflush(stdout); */
+            /* printf("splicing j = %d, last_i = %d, tmp_idx2 = %d\n", j, last_i, tmp_idx2); */
+            /* fflush(stdout); */
             /* printf("Pre splice start trs\n" ); */
             /* for (l = 0; l < WRITEHEAD; l++) { */
             /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
@@ -1850,17 +1853,15 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
             /* printf("splicing with %d %d %d\n", tmp_idx2, tmp_idx2 + j, j); */
             /* printf("idx_comp =  %d, last_i = %d, n_states = %d, n_proc = %d\n", idx_comp, last_i, n_states, n_proc); */
             tmp_idx2 = get_inext(inp -> trs, last_i);
-            rc = fwdsplice(trs_buf, inp -> trs, tmp_idx2, tmp_idx2 + j , j, 6);
-
+            /* rc = fwdsplice(trs_buf, inp -> trs, tmp_idx2, tmp_idx2 + j , j, 6); */
+            rc = fwdsplice(trs_buf, inp -> trs, tmp_idx2, WRITEHEAD, j, 6);
             /* printf("\n^Post splice start %d\n\n", last_i ); */
             /* for (l = 0; l < WRITEHEAD; l++) { */
             /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
             /* } */
             /* printf("\n^Post splice end %d\n\n", last_i ); */
 
-
             if (rc == 1) {
-
 
               /* printf("last_i = %d, idx_to = %d, l = %d\n", last_i, idx_to, l); */
               /* fflush(stdout); */
@@ -1882,60 +1883,44 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
               fflush(stdout);
               exit(1);
             }
+            /* printf("post splice trs %d %d\n",WRITEHEAD, m ); */
             WRITEHEAD += j;
-            /* printf("post splice trs \n" ); */
+            /* inp -> trs[0][WRITEHEAD] = -1; */
+            /* fflush(stdout); */
+            /* printf("post splice trs %d %d\n",last_i, j ); */
             /* for (l = 0; l < WRITEHEAD; l++) { */
             /*   printf("%le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]); */
             /* } */
+            /* fflush(stdout); */
             /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
             /* exit(1); */
           }
 
-          j = 0;
-          fflush(stdout);
+
           /* printf("\nstart processed state %d\n", last_i); */
 
           hit = n_hits = 0;
-          printf("\n processed state %d\n", last_i);
-          fflush(stdout);
-          for (l = 0; inp -> trs[0][l] != -1; l++) {
-
-            if (inp -> trs[0][l] == last_i) {
-              /* we found one block of transtions to last_i */
-              for (; inp -> trs[0][l] == last_i ; l++) {}
-              l--;
-
-              if (hit == 0) {
-                fflush(stdout);
-                printf("hit start at %le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]);
-                fflush(stdout);
-                hit = 1;
-                n_hits++;
-              }
-            }
-            else if(hit == 1) {
-              fflush(stdout);
-              printf("hit end at %le %le %le %le %le\n", inp -> trs[0][l],inp -> trs[1][l], inp -> trs[2][l],inp -> trs[3][l],inp -> trs[4][l]);
-              fflush(stdout);
-              hit = 0;
+          for (l = 0; l < n_trans ; l++) {
+            if (inp -> trs[0][l] == -1) {
+              n_hits++;
             }
           }
           if (n_hits > 1) {
             fflush(stdout);
-            printf("total number of hits %d\n", n_hits);
-            for (j = 0; j < inp->n_trans; j++) {
+            printf("ERROR: n_hits = %d, n_trans = %d, j = %d\n", n_hits, n_trans, j);
+            for (j = 0; j <= n_trans +1; j++) {
               printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]);
             }
-            /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-            /* fflush(stdout); */
-            /* exit(1); */
+            fflush(stdout);
+            fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+            fflush(stdout);
+            exit(1);
           }
           /* printf("total number of hits %d\n", n_hits); */
           /* printf("\nend processed state %d\n", last_i); */
 
-
+          j = 0;
           last_i = idx_comp;
-
           READHEAD--;
         }
         else {
@@ -1962,15 +1947,15 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
   /* } */
 
   inp -> n_trans = WRITEHEAD;
-  printf("\nTotal content:\n" );
-  for (j = 0; j <= WRITEHEAD; j++) {
-    fflush(stdout);
-    printf("trs[:][%d] = %le %le %le %le %le\n", j,  inp -> trs[0][j],inp -> trs[1][j], inp -> trs[2][j],inp -> trs[3][j],inp -> trs[4][j]);
-  }
-  printf("%d %d", nsc, inp -> n_trans);
-  fflush(stdout);
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+  /* printf("\nTotal content:\n" ); */
+  /* for (j = 0; j <= WRITEHEAD; j++) { */
+  /*   fflush(stdout); */
+  /*   printf("trs[:][%d] = %le %le %le %le %le\n", j,  inp -> trs[0][j],inp -> trs[1][j], inp -> trs[2][j],inp -> trs[3][j],inp -> trs[4][j]); */
+  /* } */
+  /* printf("%d %d", nsc, inp -> n_trans); */
+  /* fflush(stdout); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
 
   if (fclose(fp_tmpdata) != 0) {
     fprintf(stderr, "\n\nscttr_io.c, function parse_input_tmp: unable to close file:\n%s\n"
@@ -2059,6 +2044,8 @@ parse_input (struct inp_node *inp)
       }
       else {
         if (inp -> el == 1) {
+          fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+          exit(1);
           parse_input_tmp_el(inp, tmp_fpstr);
         }
         else if(inp -> el == 0) {
