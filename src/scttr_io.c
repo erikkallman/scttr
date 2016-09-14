@@ -1751,8 +1751,6 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
 
     if (proci) { /* a transition was found that fit the energy ranges */
 
-      /* if (1 /\* || (tmp_bw > bw_thrsh) *\/)  *//* { */
-
         /* printf("PROCESSING STATE to %d from %d last_i = %d\n",idx_to, idx_from ); */
         if (idx_comp != last_i) {
           /* all transitions for a specific "to" state have been found */
@@ -1899,23 +1897,23 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
 
           /* printf("\nstart processed state %d\n", last_i); */
 
-          hit = n_hits = 0;
-          for (l = 0; l < n_trans ; l++) {
-            if (inp -> trs[0][l] == -1) {
-              n_hits++;
-            }
-          }
-          if (n_hits > 1) {
-            fflush(stdout);
-            printf("ERROR: n_hits = %d, n_trans = %d, j = %d\n", n_hits, n_trans, j);
-            for (j = 0; j <= n_trans +1; j++) {
-              printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]);
-            }
-            fflush(stdout);
-            fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-            fflush(stdout);
-            exit(1);
-          }
+          /* hit = n_hits = 0; */
+          /* for (l = 0; l < n_trans ; l++) { */
+          /*   if (inp -> trs[0][l] == -1) { */
+          /*     n_hits++; */
+          /*   } */
+          /* } */
+          /* if (n_hits > 1) { */
+          /*   fflush(stdout); */
+          /*   printf("ERROR: n_hits = %d, n_trans = %d, j = %d\n", n_hits, n_trans, j); */
+          /*   for (j = 0; j <= n_trans +1; j++) { */
+          /*     printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]); */
+          /*   } */
+          /*   fflush(stdout); */
+          /*   fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+          /*   fflush(stdout); */
+          /*   exit(1); */
+          /* } */
           /* printf("total number of hits %d\n", n_hits); */
           /* printf("\nend processed state %d\n", last_i); */
 

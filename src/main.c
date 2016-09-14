@@ -219,8 +219,15 @@ main (int argc, char *argv[])
   /* if only three arguments were provided, assume that the input parameters
      can be found in the path of the input file. */
   if (argc == 3) {
+    printf("program provided with the following input file: %s\n\n",argv[2]);
     argv = parse_inpfile(argv[2]);
     argc = strtol(argv[0], &end, 10);
+
+    /* write the input file as a header to the log file */
+    for (j = 1; j < argc; j++) {
+      printf("%s\n", argv[j]);
+    }
+    printf("\n\n");
   }
 
   while (argc > 1 && (argv[1][0] == '-')) {
