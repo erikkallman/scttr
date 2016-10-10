@@ -870,6 +870,8 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   fflush(stdout);
   para_t = omp_get_wtime() - wt;
 
+  spec -> s_mat = sm_th0;
+
   if (inp -> md -> lorz) {
 
     /* printf("\n      applying lorentzian boadening.. (%s)",get_loctime(ltime)); */
@@ -893,8 +895,6 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
           eu_lx = (md -> lx)[lx_i+1] / AUTOEV;
         }
         if (omega_y > eu_ly) {
-          /* printf("thread %d at i= %d set ly since %le > %le\n", ith, ly_i, omega_y, eu_ly); */
-          /* fflush(stdout); */
           ly_i += 2;
           ly_t = md -> ly[ly_i] / AUTOEV;
 
@@ -911,7 +911,7 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
             omega_x_in = emin_x + (x_in * de_x);
             omega_y_in = emin_y + (y_in * de_y);
 
-            /* calculate the lorentzian contribution to this intensity_in */
+            /* calculate the lorentzian contribution to this intensity */
             ediff_x = omega_x - omega_x_in;
             ediff_y = omega_y - omega_y_in;
 
@@ -927,7 +927,7 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
         }
 
         spec -> s_mat[j][k] += tmp_int;
-
+        printf("%le\n", spec-> s_mat[j][k]);
         if (y == spec -> n_ely-1) {
           /* we have traversed one row in the spectrum */
           x++;
@@ -938,7 +938,7 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
     /* printf(" done (%s).", get_loctime(ltime)); */
   }
 
-  spec -> s_mat = sm_th0;
+  /* spec -> s_mat = sm_th0; */
   /* printf("\n\n==== THREAD INFO END ==== \n\n"); */
   /* fflush(stdout); */
   /* for (j = 0; j < spec -> npr_tot; j++) { */
@@ -1019,10 +1019,6 @@ calc_spec (struct inp_node *inp, int spec_idx)
       fflush(stdout);
       intf_0(inp, spec, md);
       break;
-
-    case 2:
-      printf(" a constructive interference model (%s) ..", get_loctime(ltime));
-      fflush(stdout);
 
     default:
       printf(" no interference model (%s) ..", get_loctime(ltime));

@@ -159,7 +159,7 @@ main (int argc, char *argv[])
   int out_set = 0;
   int so_enrg = 0;
   int intf_mode = 0;
-  int no_el = 0; /* force non-elastic transition mode to be actiated */
+  int elastic = 0; /* force non-elastic transition mode to be actiated */
   int verbosity = 0;
   int lorz = 0;
 
@@ -580,8 +580,8 @@ main (int argc, char *argv[])
     else if(strstr(argv_buf,"I")) {
       intf_mode = 1;
     }
-    else if(strstr(argv_buf,"N")) {
-      no_el = 1;
+    else if(strstr(argv_buf,"E")) {
+      elastic = 1;
     }
     else{
       fprintf(stderr, "main.c, function main: Unknown flag %s. See the \"Usage\" section of the documentation provided in the doc directory of the program.\n"
@@ -681,7 +681,7 @@ main (int argc, char *argv[])
   l = j;
   inp = init_inp(md);
 
-  if ((no_el == 0)
+  if ((elastic == 1)
       && ((md -> state_er[1] == md -> state_er[5])
       && (md -> state_er[2] == md -> state_er[6]))){
     inp -> el = 1;
