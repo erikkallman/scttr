@@ -193,6 +193,7 @@ main (int argc, char *argv[])
   double *ly_inp = NULL;
   double *fwhm_inp = NULL;
   struct metadata *md = init_md();
+  struct spectrum *tmp_spec;
   struct inp_node *inp;
 
   /* set default values for the parameter arrays */
@@ -208,7 +209,7 @@ main (int argc, char *argv[])
 
   struct stat st = {0};
 
-  printf("\n\n scttr calculation initiated (%s).\n\n", get_loctime(ltime));
+  printf("\n\nscttr calculation initiated (%s).\n\n", get_loctime(ltime));
 
   /* process the input arguments */
   if (argc == 1) {
@@ -643,6 +644,7 @@ main (int argc, char *argv[])
     }
   }
 
+  /* process the input */
   stat(inpath, &st);
 
   gx_inp[m] = (state_er[3] + 9) / AUTOEV;
@@ -651,6 +653,10 @@ main (int argc, char *argv[])
   if (lorz) {
     lx_inp[m] = gx_inp[m];
     ly_inp[m] = gy_inp[m];
+  }
+
+  if (state_t[1] > 1) {
+    state_t[1] = state_t[1] / 100;
   }
 
   md -> sz_inp = (int)st.st_size;
@@ -723,11 +729,13 @@ main (int argc, char *argv[])
 
   printf("\n\n");
   printf(" execution progress:\n\n");
-  printf("  - screening transitions on relative intensities (%s)..", get_loctime(ltime));
+  printf("  - screening transitions, resulting in the removal of (%s)..\n", get_loctime(ltime));
 
   set_spec(inp);
-
-  printf(" done (%s).\n", get_loctime(ltime));
+  tmp_spec = get_spec(inp, 2);
+  printf("      .. %d transitions (%f%% of the total intensity) on ground state boltzmann weight.\n", tmp_spec -> n_sst_bw, (tmp_spec -> iscr_bw / tmp_spec -> itot)*100);
+  printf("      .. %d transitions (%f%% of the total intensity) on the total transition intensity.\n", tmp_spec -> n_sst_bw, (tmp_spec -> iscr_int / (tmp_spec -> itot - tmp_spec -> iscr_bw))*100);
+  printf("    done (%s).\n", get_loctime(ltime));
 
   printf("  - forming the reduced transition matrix (%s)..", get_loctime(ltime));
   fflush(stdout);
@@ -764,19 +772,13 @@ main (int argc, char *argv[])
   if ((verbosity == 2) || (verbosity == 3)) {
     strs2str(inp, get_spec(inp,1));
     printf("\n\n" );
-    printf("\n\n" );
     strs2str(inp, get_spec(inp,2));
   }
 
-  free(inp_sfx);
   free_inp(inp);
-
   free(input_sbuff);
-  free(state_er);
-  free(state_t);
 
-
-  printf("\n scttr successfully executed.\n");
+  printf("\nscttr calculation successfully executed.\n");
   printf(" program terminating (%s).\n\n", get_loctime(ltime));
   free(ltime);
   return 0;

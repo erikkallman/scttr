@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <float.h>
 #include "spectrum.h"
 #include "sci_const.h"
 #include "spectrum_s.h"
@@ -98,8 +99,6 @@ tot_strs2str (struct inp_node *inp, struct spectrum *spec)
   double e_g, e_i1, e_i2, e_f;
   double bw;
   double tmom_gi, tmom_if;
-  double max_int;
-  double int_stddev;
 
   double tmp;  /* accumulator used in the Kramers-Heisenberg formula */
 
@@ -291,10 +290,11 @@ set_root_spec (struct inp_node *inp)
 
         /* loop over the list of transitions looking for corresponding
            g.state->i-state transitions */
-
         n_is_tmp = root_spec -> gs2is -> n_el;
         for (k = 0; (int)inp -> trs[0][k] != -1; k++) {
           e_gs = inp -> trs[3][k];
+
+          /* screen ground states based on boltzmann weight  */
           /* bw = get_boltzw((e_gs - inp -> e0) * (double)AUTOEV); */
           if ((((int)inp -> trs[0][k]) == is_num)
               && inrange((e_gs - inp -> e0) * AUTOEV
@@ -563,17 +563,26 @@ set_spec (struct inp_node *inp)
   /* use the number of states as the default initialization values
      for the dynamic arrays in the spectrum class */
   struct spectrum *spec  = init_spec(inp, inp -> n_states, inp -> n_states);
-  int              n_sfs = root_spec -> is2fs -> n_el;
+  int n_sfs = root_spec -> is2fs -> n_el;
+
+  /* number of RIXS transitions screened out based on the intensity of the
+     transition */
+  spec -> n_sst_i = 0;
+  /* number of RIXS transitions screened out based on the boltzmann weight of
+     the ground state from which they started */
+  spec -> n_sst_bw = 0;
+  spec -> itot = spec -> iscr_bw = spec -> iscr_int = 0;
 
   int * r_gi = root_spec -> gs2is -> a;
   int * r_fi = root_spec -> is2fs -> a;
   int * r_ii = root_spec -> is_idxs -> a;
 
+  double bw_thrsh = inp -> md -> state_t[2];
   double int_thrsh = 1 - inp -> md -> state_t[1];
+  double tmp_int;
 
   double tmom_gi,tmom_if;
   double bw;
-  double int_tot,int_scr;
 
   double **int_dist  = malloc(sizeof(double *) * 2);
   double **tmp_evals = malloc(sizeof(double *) * 2);
@@ -593,9 +602,9 @@ set_spec (struct inp_node *inp)
       exit(1);
     }
   }
-
-  int_tot = 0;
-  for (l = 0, j = 0; j<n_sfs; j++) {
+  /* printf("sum = %le\n", inp->bw_sum); */
+  spec -> itot = 0;
+  for (l = 1, j = 0; j<n_sfs; j++) {
 
     is_pos = root_spec -> ii_start -> a[j];
     is_idx = r_ii[is_pos];
@@ -603,72 +612,90 @@ set_spec (struct inp_node *inp)
 
     for (k = is_pos; ((is_idx = r_ii[k]) != -1); k++) {
 
-      tmom_gi = inp -> trs[4][r_gi[is_idx]];
       bw = get_boltzw((inp -> trs[3][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV);
+      bw = bw / inp -> bw_sum;
+      tmom_gi = inp -> trs[4][r_gi[is_idx]];
+      tmp_int = tmom_if * tmom_gi * bw;
+      if (bw > bw_thrsh) {
 
-      int_dist[0][l] = l;
-
-      int_dist[1][l] = tmom_if * tmom_gi * bw / inp -> bw_sum;
-
-      int_tot += int_dist[1][l];
-      /* printf("\nSOMEDAT: %le %le %le %le\n", int_dist[0][l], int_dist[1][l], bw, bw/inp -> bw_sum); */
-
+        int_dist[0][l-1] = l;
+        int_dist[1][l-1] = tmp_int;
+        /* printf("bw in [%d] = %le %le\n", l, bw, bw*inp->bw_sum); */
+      }
+      else{
+        spec -> iscr_bw += tmp_int;
+        int_dist[0][l-1] = int_dist[1][l-1] = 0;
+        spec -> n_sst_bw++;
+        /* printf("bw out [%d] = %le %le\n", l, bw, bw*inp->bw_sum); */
+      }
+      spec -> itot += tmp_int;
       l++;
     }
   }
 
-  /* sort ascendingly according to intensity */
-  iquicks_d(int_dist[1], int_dist[0], 0, nt - 1, nt);
-
-  /* screen until retaining x% of the intensity of all transitions,
-   set all "sceened" states to the n_trans+1 */
-  int_scr = 0;
-  /* for (j = 0; j < nt; j++) { */
-  /*   printf("\nprescreen included: %d %le \n", (int)int_dist[0][j], int_dist[1][j]); */
+  /* for (l = 1; l < nt+1; l++) { */
+  /*   printf("\npresort 1 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]); */
   /* } */
   /* printf("\n\n" ); */
-  /* printf("%le %le \n", int_thrsh, int_tot); */
-  /* for (j = 0; j < nt; j++) { */
-  /*   if ((int_scr / int_tot) <= int_thrsh) { */
-  /*     printf("included: %d %le \n", (int)int_dist[0][j], int_dist[1][j]); */
-  /*     int_scr += int_dist[1][j]; */
-  /*   } */
-  /*   else { */
 
-  /*     if (j > 0) { */
-  /*       j--; */
-  /*     } */
-  /*     int_dist[0][j] = -1; */
-  /*     printf("broke out at: %d %le %le \n", j, int_dist[1][j], int_scr); */
-  /*     break; */
-  /*   } */
-  /* } */
+  for (l = 0; l < nt; l++) {
+    if (((int_dist[1][l] - int_dist[1][0]) > DBL_EPSILON)
+        || (int_dist[1][l] < DBL_EPSILON)){
 
-  for (j = 0; j < nt; j++) {
-    int_scr += int_dist[1][j];
-    if ((int_scr / int_tot) > int_thrsh) {
-      /* printf("broke out at: %d %le %le \n", j, int_dist[1][j], int_scr); */
+      /* sort ascendingly according to intensity */
+      iquicks_d(int_dist[1], int_dist[0], 0, nt - 1, nt);
       break;
     }
   }
 
+  /* screen until retaining x% of the intensity of all transitions,
+   set all "sceened" states to the n_trans+1 */
 
+  /* for (l = 1; l < nt +1; l++) { */
+  /*   printf("\npostsort 1 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]); */
+  /* } */
+  /* printf("\n\n" ); */
+
+  /* in the transitions remaining after boltzmann weight screening,
+  screen out transitions according to the intensit screening threshold */
+  for (j = 0; j < nt; j++) {
+    spec -> iscr_int += int_dist[1][j];
+
+    /* check if the intensity screened based on total transition intensity is above threshold */
+    if ((spec -> iscr_int / (spec -> itot - spec -> iscr_bw) > int_thrsh)
+        && (fabs((spec -> iscr_int / (spec -> itot - spec -> iscr_bw)) - int_thrsh) > (DBL_EPSILON*1000))) {
+      spec -> iscr_int -= int_dist[1][j];
+      /* printf("broke out at: int_dist[%d] = %le %le, spec -> iscr =  %le \n", j, int_dist[0][j], int_dist[1][j], spec -> iscr_int); */
+      /* printf("yes %le %le %le %le diff = %le\n", spec -> iscr_int, spec -> itot - spec -> iscr_bw, spec -> iscr_int/(spec -> itot - spec -> iscr_bw), int_thrsh, spec -> iscr_int/(spec -> itot - spec -> iscr_bw) - int_thrsh); */
+      break;
+    }
+    else{
+      /* printf("no %le %le %le %le\n", spec -> iscr_int, spec -> itot - spec -> iscr_bw, spec -> iscr_int/(spec -> itot - spec -> iscr_bw), int_thrsh); */
+      spec -> n_sst_i++;
+      int_dist[0][j] = int_dist[1][j] = 0;
+    }
+  }
+
+
+  /* for (l = 1; l < nt + 1; l++) { */
+  /*   printf("\npresort 2 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]); */
+  /* } */
+  /* printf("\n\n" ); */
 
   /* sort ascendingly according to index */
   iquicks_d(int_dist[0], int_dist[1], j, nt - 1, nt);
 
-  /* for (l = 0; l < nt; l++) { */
-  /*   printf("\npostscreen included: %d %le \n", (int)int_dist[0][l], int_dist[1][l]); */
+  /* for (l = 1; l < nt + 1; l++) { */
+  /*   printf("\npostsort 2 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]); */
   /* } */
   /* printf("\n\n" ); */
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======  %d  \n\n",j); */
-  /* exit(1); */
 
   /* finally, generate the new screen by only including those states that were not screened out above */
   n_fs = n_is = 0;
-  l = 0;
+  l = 1;
   m = j;
   wh = 0;
+  spec -> n_sst_tot = j;
 
   for (j = 0; j < n_sfs; j++) {
 
@@ -677,7 +704,6 @@ set_spec (struct inp_node *inp)
     is_idx = r_ii[is_pos];
     n_is_tmp = spec -> is_idxs -> n_el;
 
-    fflush(stdout);
     for (k = is_pos; ((is_idx = root_spec->is_idxs->a[k]) != -1); k++) {
 
       if (l == (int)int_dist[0][m]) {
@@ -825,8 +851,8 @@ set_trs_red (struct inp_node *inp, int spec_idx)
   /* figure out size of tr */
   for (n_el = 0, j = 0; j < n_sfs; j++) {
 
-    is_pos                                           = ii_start[j];
-    is_idx                                           = is_idxs[j];
+    is_pos = ii_start[j];
+    is_idx = is_idxs[j];
     /* printf("%le \n", inp -> trs[4][is2fs[j]]); */
     for (n_el++, k = is_pos; ((is_idx = is_idxs[k]) != -1); k++,n_el++) {    /* printf("  %le\n", inp -> trs[4][gs2is[is_idx]]); */}
   }

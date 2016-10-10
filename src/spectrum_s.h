@@ -70,14 +70,18 @@ struct spectrum
   int npr; /**< Number of partitioned rows for each row in the spectrum matrix.  */
   int npr_tot; /**< Total number of partitioned rows */
 
+  /**< number of states screened based on boltzmann Weight */
+  int n_sst_bw;
+  int n_sst_i; /**< number of states screened based on intensity */
+  int n_sst_tot; /**< Total number of states screened */
   double emin_x, emax_x; /**< maximum and minimum energies in the range of
                             final states */
   double emin_y, emax_y; /**< maximum and minimum energies in the range of
                             intermediate states. */
-  double bw_sum; /**< the sum of the boltzmann weight of all ground states. used to normalize the spectrum.*/
 
   double sfac; /**< scaling factor used to normalized the spectrum matrix */
 
+  double itot, iscr_bw, iscr_int; /**< total amount of intensity included in the spectrum, the intensity screened out based on the boltzmann weight of the ground state, and the total intensity */
   double **omega_x; /**< energy range in x dimension */
   double **omega_y; /**< energy range in x dimension */
   double **s_mat; /**< the matrix containing the calculated spectrum,

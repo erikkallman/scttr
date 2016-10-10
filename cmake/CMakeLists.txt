@@ -129,8 +129,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Building debug-type makefiles")
   set(CMAKE_C_FLAGS "-pg -fopenmp -o0 -Wall -D_GNU_SOURCE -std=gnu89")
 
-else(CMAKE_BUILD_TYPE STREQUAL "Release")
-  message(STATUS "Building release-type makefiles")
+else(CMAKE_BUILD_TYPE STREQUAL "Production")
+  message(STATUS "Building production-type makefiles")
   set(CMAKE_C_FLAGS "-Wall -fopenmp -o3 -D_GNU_SOURCE -std=gnu89")
 endif()
 
