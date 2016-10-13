@@ -337,9 +337,9 @@ add_eltrans (struct inp_node *inp)
       proc_st[n_proc++] = next_from;
       /* printf("next after %d\n", next_from); */
     }
-    else {
-      printf("\nNot in buffer: %d %d %le %le %le %d\n", (int)inp -> trs[0][j], (int)inp ->trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j], (int)inp -> trs[5][j]);
-    }
+    /* else { */
+    /*   printf("\nNot in buffer: %d %d %le %le %le %d\n", (int)inp -> trs[0][j], (int)inp ->trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j], (int)inp -> trs[5][j]); */
+    /* } */
   }
 
   trs_el[0][nt_el] = -1;

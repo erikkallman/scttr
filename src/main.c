@@ -782,7 +782,7 @@ main (int argc, char *argv[])
   printf("\n\n");
   printf(" execution progress:\n\n");
   printf("  - screening transitions, resulting in the removal of (%s)..\n", get_loctime(ltime));
-
+  fflush(stdout);
   set_spec(inp);
 
   tmp_spec = get_spec(inp, 2);
@@ -801,6 +801,7 @@ main (int argc, char *argv[])
   /* exit(1); */
   printf(" done (%s).\n", get_loctime(ltime));
 
+  fflush(stdout);
   calc_spec(inp, 2);
 
   /* trs2str(get_spec(inp,2)); */
