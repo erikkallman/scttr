@@ -1774,19 +1774,19 @@ parse_input (struct inp_node *inp)
     }
 
     /* if (inp -> el == 1) { */
-      printf("\nPRE adding\n ");
-      for (j = 0; j < inp->n_trans; j++) {
-        printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]);
-      }
+      /* printf("\nPRE adding\n "); */
+      /* for (j = 0; j < inp->n_trans; j++) { */
+      /*   printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]); */
+      /* } */
       /* count_states(inp); */
       add_eltrans(inp);
       fflush(stdout);
-      printf("\nPOST adding\n ");
-      printf("%d, %d\n", inp->n_gfs, inp->n_is );
+      /* printf("\nPOST adding\n "); */
+      /* printf("%d, %d\n", inp->n_gfs, inp->n_is ); */
 
-      for (j = 0; j < inp->n_trans; j++) {
-        printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]);
-      }
+      /* for (j = 0; j < inp->n_trans; j++) { */
+      /*   printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]); */
+      /* } */
       /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
       /* exit(1); */
 
