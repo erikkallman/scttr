@@ -784,15 +784,6 @@ main (int argc, char *argv[])
   printf("  - screening transitions, resulting in the removal of (%s)..\n", get_loctime(ltime));
 
   set_spec(inp);
-  /* fflush(stdout); */
-  /* strs2str(inp, get_spec(inp,1)); */
-  /* fflush(stdout); */
-  /* printf("\n\n" ); */
-  /* strs2str(inp, get_spec(inp,2)); */
-  /* fflush(stdout); */
-  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
-  /* fflush(stdout); */
-  /* exit(1); */
 
   tmp_spec = get_spec(inp, 2);
   printf("      .. %d of %d transitions (%f%% of the total intensity) on ground state boltzmann weight.\n", tmp_spec -> n_sst_bw, tmp_spec -> n_sst_tot, (tmp_spec -> iscr_bw / tmp_spec -> itot)*100);
