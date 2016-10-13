@@ -57,6 +57,8 @@ struct inp_node
            is from a scattering process that involves elastic transitions
           (form a given ground state, to a any given intermediate state
           and the back down to the same ground state). */
+
+  int ems, abs; /**< kinds of emission and absorption 1 = dipole, 2 = quadrupole */
   int *idx_map; /**< a mapping between a state of a given index, to the position
                   of its transitions stored in the trs variable (see below) */
 

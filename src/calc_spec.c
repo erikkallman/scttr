@@ -870,8 +870,6 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   fflush(stdout);
   para_t = omp_get_wtime() - wt;
 
-  spec -> s_mat = sm_th0;
-
   if (inp -> md -> lorz) {
 
     /* printf("\n      applying lorentzian boadening.. (%s)",get_loctime(ltime)); */
@@ -927,7 +925,7 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
         }
 
         spec -> s_mat[j][k] += tmp_int;
-        printf("%le\n", spec-> s_mat[j][k]);
+
         if (y == spec -> n_ely-1) {
           /* we have traversed one row in the spectrum */
           x++;
@@ -937,8 +935,11 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
     }
     /* printf(" done (%s).", get_loctime(ltime)); */
   }
+  else {
+    spec -> s_mat = sm_th0;
+  }
 
-  /* spec -> s_mat = sm_th0; */
+
   /* printf("\n\n==== THREAD INFO END ==== \n\n"); */
   /* fflush(stdout); */
   /* for (j = 0; j < spec -> npr_tot; j++) { */

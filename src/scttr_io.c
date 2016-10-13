@@ -1230,6 +1230,7 @@ parse_input_tmp_el (struct inp_node *inp, char *fn_tmpdata)
 int
 parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
 {
+
   int j; /* the write head for the trs_buf */
   int k, l, m, j_test; /* control loop variables */
   int idx_to, idx_from; /* index in each transition from state x to y  */
@@ -1467,7 +1468,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
                             , state_er[2])
                     && inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3]
                                ,state_er[4])
-                    && (trs_type == 2))) {
+                    && (trs_type == inp -> abs))) {
               inp -> bw_sum += get_boltzw((to_state_en - inp -> e0) * (double)AUTOEV);
               last_i = trans_idxs[0][n_trans];
             }
@@ -1532,7 +1533,7 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
   /* l = index of line in the data arrays */
   /* j = index of data read into trs_buf, reset upon reading the transitions
      from a new state */
-
+  /* printf("NEGHSSHRH %d\n", n_trans); */
   READHEAD = WRITEHEAD = 0;
   while (READHEAD <= n_trans) {
 
@@ -1541,17 +1542,19 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
     from_state_en = get_wi(e_eigval, idxs_eigval
                            , (int)(trans_idxs[1][READHEAD]), n_states);
 
+    /* printf("energies: %le %le \n", (to_state_en - inp -> e0) * AUTOEV, (from_state_en - inp -> e0) * AUTOEV); */
+
     if (inrange((to_state_en - inp -> e0) * AUTOEV, state_er[1]
                 , state_er[2])
         && ((inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3]
                      ,state_er[4]))
             || (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[1]
                         ,state_er[2])))
-        /* && (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3] */
-        /*             ,state_er[4])) */
-        && (trs_types[READHEAD] == 2))
-      {         /* triggered on quad transitions */
+        && (trs_types[READHEAD] == inp -> abs))
+      {         /* triggered on absorption transitions */
 
+        /* fprintf(stderr, "\n\n=======foundquadValgrind eject point=======\n\n"); */
+        /* exit(1); */
         idx_to = trans_idxs[1][READHEAD];
         idx_from = trans_idxs[0][READHEAD];
 
@@ -1570,9 +1573,10 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
                              ,state_er[2])))
              /* && (inrange((from_state_en - inp -> e0)*AUTOEV,state_er[3] */
              /*             ,state_er[4])) */
-             && (trs_types[READHEAD] == 1))
-      { /* triggered on dipole transitions */
-
+             && (trs_types[READHEAD] == inp -> ems))
+      { /* triggered on emission transitions */
+        /* fprintf(stderr, "\n\n=======founddipoleValgrind eject point=======\n\n"); */
+        /* exit(1); */
         idx_to = trans_idxs[0][READHEAD];
         idx_from = trans_idxs[1][READHEAD];
         first = 1;
@@ -1583,6 +1587,9 @@ parse_input_tmp (struct inp_node *inp, char *fn_tmpdata)
       proci = 0;
     }
 
+    /* fflush(stdout); */
+    /* /\* printf("\nNUM NUM %d %d %d\n", trs_types[READHEAD], trs_types[READHEAD] == inp -> ems, trs_types[READHEAD] == inp -> abs ); *\/ */
+    /* fflush(stdout); */
 
     if (READHEAD == n_trans) {
       /* Make sure also the last set of transitions are added. */
@@ -1734,8 +1741,8 @@ parse_input (struct inp_node *inp)
   }
 
   fp_bin = fopen(bin_fpstr, "r");
-  if (fp_bin != NULL) {
-
+  /* if (fp_bin != NULL) { */
+  if (NULL) {
     /* process the binary file instead */
     fclose(fp_bin);
     parse_input_bin(inp, bin_fpstr);
@@ -1767,29 +1774,22 @@ parse_input (struct inp_node *inp)
     }
 
     /* if (inp -> el == 1) { */
-      /* printf("\nPRE adding\n "); */
-      /* for (j = 0; j < inp->n_trans; j++) { */
-      /*   printf("%d %d %le %le %le %d\n" */
-      /*          , (int)inp -> trs[0][j] */
-      /*          , (int)inp -> trs[1][j] */
-      /*          , (inp -> trs[2][j] - inp -> e0) * AUTOEV */
-      /*          , (inp -> trs[3][j] - inp -> e0) * AUTOEV */
-      /*          , inp -> trs[4][j], (int)inp -> trs[5][j]); */
-      /* } */
-
+      printf("\nPRE adding\n ");
+      for (j = 0; j < inp->n_trans; j++) {
+        printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]);
+      }
       /* count_states(inp); */
       add_eltrans(inp);
-      /* fflush(stdout); */
-      /* printf("\nPOST adding\n "); */
-      /* printf("%d, %d\n", inp->n_gfs, inp->n_is ); */
+      fflush(stdout);
+      printf("\nPOST adding\n ");
+      printf("%d, %d\n", inp->n_gfs, inp->n_is );
+
+      for (j = 0; j < inp->n_trans; j++) {
+        printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]);
+      }
       /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
       /* exit(1); */
-      /* for (j = 0; j < inp->n_trans; j++) { */
-      /*   printf("%d %d %le %le %le\n", (int)inp -> trs[0][j], (int)inp -> trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j]); */
-      /* } */
 
-      /* exit(1); */
-    /* } */
 
     /* the only way the parse_input_tmp function can get called is if there is if
        no binary file present. we can therefore safely write to the binary file

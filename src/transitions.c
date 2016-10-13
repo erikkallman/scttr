@@ -255,14 +255,12 @@ add_eltrans (struct inp_node *inp)
 
   nb = n_proc = 0;
   for(j = 0; (int)inp -> trs[0][j] > 0; j++) {
-    /* printf("\nNot in buffer: %d %d %le %le %le %d\n", (int)inp -> trs[0][j], (int)inp ->trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j], (int)inp -> trs[5][j]); */
     if ((intinint(proc_st, (int)inp -> trs[1][j], n_proc) == -1)
         && (((inp -> trs[2][j] - e0) * AUTOEV >= state_er[3])
             && ((inp -> trs[2][j] - e0) * AUTOEV <= state_er[4]))
         && (((inp -> trs[3][j] - e0) * AUTOEV >= state_er[1])
             && ((inp -> trs[3][j] - e0) * AUTOEV <= state_er[2]))
-        && (int)inp -> trs[5][j] == 2) { /* only quadrupole elastic
-                                            absorption */
+        && ((int)inp -> trs[5][j] == inp -> abs)) {
       next_from = (int)inp -> trs[1][j];
 
       /* found a "to" state that has not had its elastic transitions
@@ -338,6 +336,9 @@ add_eltrans (struct inp_node *inp)
       /* exit(1); */
       proc_st[n_proc++] = next_from;
       /* printf("next after %d\n", next_from); */
+    }
+    else {
+      printf("\nNot in buffer: %d %d %le %le %le %d\n", (int)inp -> trs[0][j], (int)inp ->trs[1][j], (inp -> trs[2][j] - inp -> e0) * AUTOEV, (inp -> trs[3][j] - inp -> e0) * AUTOEV, inp -> trs[4][j], (int)inp -> trs[5][j]);
     }
   }
 

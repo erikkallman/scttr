@@ -149,6 +149,7 @@ get_spec (struct inp_node *inp, int idx)
   while ((spec -> idx ) != idx) {
     spec = spec -> next_spec;
     if (spec == NULL) {
+      fprintf(stderr, "\n\nError.\n\n");
       fprintf(stderr, "spectrum.c, function get_spec: spectrum of index %d not found in list.\n"
               ,idx);
       printf("program terminating due to the previous error.\n");

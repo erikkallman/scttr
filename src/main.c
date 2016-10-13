@@ -152,6 +152,7 @@ main (int argc, char *argv[])
   int j, k, l, m, n;                    /* iteration variables */
   int n_t;                      /* number of numbers read from input flag */
   int n_er = 0;                     /* number of numbers eigenstate energy values provided */
+  int ems, abs; /* types of emission and absorption. 1 = dipole, 2 = quadrupole */
   m = 0;
   int n_res;
   int len_op = 0;
@@ -159,7 +160,7 @@ main (int argc, char *argv[])
   int out_set = 0;
   int so_enrg = 0;
   int intf_mode = 0;
-  int elastic = 0; /* force non-elastic transition mode to be actiated */
+
   int verbosity = 0;
   int lorz = 0;
 
@@ -238,21 +239,36 @@ main (int argc, char *argv[])
       argv_buf[n] = argv[1][n];
       n++;
     }
+
     argv_buf[n++] = '\0';
 
-    if(strstr(argv_buf,"v") || strstr(argv_buf,"verbosity")) {
-      num_buf = malloc(2);
-      /* num_buf[1] = '\0'; */
-      num_buf[0] = argv[2][0];
-      verbosity = (int)atof(num_buf);
+    if(strstr(argv_buf,"Absorption") || strstr(argv_buf,"A")) {
 
-      free(num_buf);
-      num_buf = NULL;
+      for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
 
+        input_sbuff[k++] = argv[2][j];
+
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
+          num_buf = malloc(k + 1);
+
+          for (l = 0; l < k; l++) {
+            num_buf[l] = input_sbuff[l];
+          }
+          num_buf[k] = '\0';
+
+          abs = atof(num_buf);
+          free(num_buf);
+          num_buf = NULL;
+
+          k = 0;
+        }
+      }
       argv++;
       argc--;
     }
-    else if(strstr(argv_buf,"e")) {
+    else if(strstr(argv_buf,"erange")) {
       n_er = 1;
 
       for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
@@ -278,6 +294,32 @@ main (int argc, char *argv[])
         }
       }
       state_er[0] = n_er - 1;
+      argv++;
+      argc--;
+    }
+    else if(strstr(argv_buf,"Emission") || strstr(argv_buf,"E")) {
+
+      for (j = 0, k = 0; argv[2][j] != '\0'; j++) {
+
+        input_sbuff[k++] = argv[2][j];
+
+        if (((argv[2][j] == ',')
+             || (argv[2][j] == ';'))
+            || (argv[2][j + 1] == '\0')) {
+          num_buf = malloc(k + 1);
+
+          for (l = 0; l < k; l++) {
+            num_buf[l] = input_sbuff[l];
+          }
+          num_buf[k] = '\0';
+
+          ems = atof(num_buf);
+          free(num_buf);
+          num_buf = NULL;
+
+          k = 0;
+        }
+      }
       argv++;
       argc--;
     }
@@ -580,8 +622,17 @@ main (int argc, char *argv[])
     else if(strstr(argv_buf,"I")) {
       intf_mode = 1;
     }
-    else if(strstr(argv_buf,"E")) {
-      elastic = 1;
+    else if(strstr(argv_buf,"v")) {
+      num_buf = malloc(2);
+      /* num_buf[1] = '\0'; */
+      num_buf[0] = argv[2][0];
+      verbosity = (int)atof(num_buf);
+
+      free(num_buf);
+      num_buf = NULL;
+
+      argv++;
+      argc--;
     }
     else{
       fprintf(stderr, "main.c, function main: Unknown flag %s. See the \"Usage\" section of the documentation provided in the doc directory of the program.\n"
@@ -681,9 +732,10 @@ main (int argc, char *argv[])
   l = j;
   inp = init_inp(md);
 
-  if ((elastic == 1)
-      && ((md -> state_er[1] == md -> state_er[5])
-      && (md -> state_er[2] == md -> state_er[6]))){
+  inp -> ems = ems;
+  inp -> abs = abs;
+
+  if (ems == abs){
     inp -> el = 1;
   }
   else {
@@ -732,22 +784,27 @@ main (int argc, char *argv[])
   printf("  - screening transitions, resulting in the removal of (%s)..\n", get_loctime(ltime));
 
   set_spec(inp);
-  tmp_spec = get_spec(inp, 2);
-  printf("      .. %d transitions (%f%% of the total intensity) on ground state boltzmann weight.\n", tmp_spec -> n_sst_bw, (tmp_spec -> iscr_bw / tmp_spec -> itot)*100);
-  printf("      .. %d transitions (%f%% of the total intensity) on the total transition intensity.\n", tmp_spec -> n_sst_bw, (tmp_spec -> iscr_int / (tmp_spec -> itot - tmp_spec -> iscr_bw))*100);
-  printf("    done (%s).\n", get_loctime(ltime));
-
-  printf("  - forming the reduced transition matrix (%s)..", get_loctime(ltime));
-  fflush(stdout);
-
-  set_trs_red(inp, 2);
-
   /* fflush(stdout); */
   /* strs2str(inp, get_spec(inp,1)); */
   /* fflush(stdout); */
   /* printf("\n\n" ); */
   /* strs2str(inp, get_spec(inp,2)); */
   /* fflush(stdout); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* fflush(stdout); */
+  /* exit(1); */
+
+  tmp_spec = get_spec(inp, 2);
+  printf("      .. %d of %d transitions (%f%% of the total intensity) on ground state boltzmann weight.\n", tmp_spec -> n_sst_bw, tmp_spec -> n_sst_tot, (tmp_spec -> iscr_bw / tmp_spec -> itot)*100);
+  printf("      .. %d of %d transitions (%f%% of the total intensity) on the total transition intensity.\n", tmp_spec -> n_sst_bw, tmp_spec -> n_sst_tot, (tmp_spec -> iscr_int / (tmp_spec -> itot - tmp_spec -> iscr_bw))*100);
+  printf("    done (%s).\n", get_loctime(ltime));
+
+  printf("  - forming the reduced transition matrix (%s)..", get_loctime(ltime));
+  fflush(stdout);
+
+  set_trs_red(inp, 2);
+  /* fflush(stdout); */
+  /* trs2str(inp, get_spec(inp,2)); */
   /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
   /* fflush(stdout); */
   /* exit(1); */
