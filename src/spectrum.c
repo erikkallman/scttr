@@ -544,6 +544,82 @@ set_root_spec (struct inp_node *inp)
 /*   return 0; */
 /* } */
 
+
+int compare(const void *stackA, const void *stackB)
+{
+  const double *a=*(const double**)stackA;
+  const double *b=*(const double**)stackB;
+    if((a[0] - b[0]) <= DBL_EPSILON)
+    return a[1] - b[1];
+  else
+    return a[0] - b[0];
+}
+
+/* copy part of a 2d array from one to other b.start inclusive and end exclusive. both indices are c-type (0->inf.)*/
+/* copy from beginning of the to array to arbitrary place in from array */
+void
+copy_ft_part(double **from, double **to, int start, int end)
+{
+  int j,k,l;
+  int nvals = end - start;
+  for (k = 0, j = start; j < end; j++, k++) {
+    to[k][0] = from[j][0];
+    to[k][1] = from[j][1];
+  }
+}
+
+/* copy from beginning of the from array to arbitrary place in to array */
+void
+copy_tf_part(double **from, double **to, int start, int end)
+{
+  int j,k,l;
+  int nvals = end - start;
+  for (k = 0, j = start; j < end; j++, k++) {
+    to[j][0] = from[k][0];
+    to[j][1] = from[k][1];
+  }
+}
+
+void
+qsort_partial(double **array, int start, int end, int nrows, int ncols)
+{
+  /* a part of the array */
+  int j;
+  double **ap;
+
+  if ((end - start) == nrows){
+    qsort(array, nrows, sizeof(array[0]), compare);
+  }
+  else if(end == start){
+    fprintf(stderr, "\n\nbut why=======Valgrind eject point=======\n\n");
+    exit(1);
+  }
+  else {
+    ap = malloc((end-start) * sizeof(double *));
+    for (j = 0; j < end-start; j++) {
+      ap[j] = malloc(ncols * sizeof(double));
+    }
+
+    copy_ft_part(array, ap, start, end);
+
+    qsort(ap, end-start, sizeof(ap[0]), compare);
+
+    copy_tf_part(ap, array, start, end);
+  }
+}
+
+void mswap_cols(double **a, double **b, int nrows, int ncols, int d1, int d2)
+{
+  int j,k;
+  double tmp;
+
+  for (j = 0; j < nrows; j++) {
+    tmp =  a[j][d1];
+    a[j][d1] = b[j][d2];
+    b[j][d2] = tmp;
+  }
+}
+
 int
 set_spec (struct inp_node *inp)
 {
@@ -585,16 +661,19 @@ set_spec (struct inp_node *inp)
   double tmom_gi,tmom_if;
   double bw;
 
-  double **int_dist  = malloc(sizeof(double *) * 2);
+  double **int_dist  = malloc(sizeof(double *) * nt);
   double **tmp_evals = malloc(sizeof(double *) * 2);
 
-  for (j = 0; j < 2; j++) {
-    if((int_dist[j] = malloc(nt * sizeof(double))) == NULL ) {
+  for (j = 0; j < nt; j++) {
+    if((int_dist[j] = malloc(2 * sizeof(double))) == NULL ) {
       fprintf(stderr, "spectrum.c, function set_spec: failed to allocate memory for \"int_dist[%d]\"\n"
               ,j);
       printf("program terminating due to the previous error.\n");
       exit(1);
     }
+  }
+
+  for (j = 0; j < 2; j++) {
     if((tmp_evals[j] = malloc(root_spec -> is2fs -> n_el * sizeof(double)))
        == NULL ) {
       fprintf(stderr, "spectrum.c, function set_spec: failed to allocate memory for \"tmp_evals[%d]\"\n"
@@ -624,13 +703,13 @@ set_spec (struct inp_node *inp)
       printf("ENERGY = %le %le\n", (inp -> trs[3][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV, (inp -> trs[4][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV);
       if (bw > bw_thrsh) {
 
-        int_dist[0][l-1] = l;
-        int_dist[1][l-1] = tmp_int;
+        int_dist[l-1][0] = l;
+        int_dist[l-1][1] = tmp_int;
         printf("bw in [%d] = %le %le\n\n", l, bw, bw*inp->bw_sum);
       }
       else{
         spec -> iscr_bw += tmp_int;
-        int_dist[0][l-1] = int_dist[1][l-1] = 0;
+        int_dist[l-1][0] = int_dist[l-1][1] = 0;
         spec -> n_sst_bw++;
         printf("bw out [%d] = %le %le\n\n", l, bw, bw*inp->bw_sum);
       }
@@ -639,8 +718,9 @@ set_spec (struct inp_node *inp)
     }
   }
   printf("screening results %d %d %le", nt, spec -> n_sst_bw, spec -> iscr_bw);
-  for (l = 1; l < nt+1; l++) {
-    printf("\npresort 1 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]);
+
+    for (l = 1; l < nt + 1; l++) {
+    printf("\npresort 1 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]);
   }
   printf("\n\n" );
 
@@ -648,33 +728,34 @@ set_spec (struct inp_node *inp)
   it is larger than the machine epsilon for double precision floats,
   sort the list */
   for (l = 0; l < nt; l++) {
-    if (((int_dist[1][l] - int_dist[1][0]) > DBL_EPSILON)
-        || (int_dist[1][l] > DBL_EPSILON)){
+    if (((int_dist[l][1] - int_dist[0][1]) > DBL_EPSILON)
+        || (int_dist[l][1] > DBL_EPSILON)){
 
       /* sort ascendingly according to intensity */
-      iquicks_d(int_dist[1], int_dist[0], 0, nt - 1, nt);
+      qsort_partial(int_dist, 0, nt, nt, 2);
+      /* iquicks_d(int_dist[1], int_dist[0], 0, nt - 1, nt); */
       break;
     }
   }
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+
+  for (l = 1; l < nt + 1; l++) {
+    printf("\npostsort 1 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]);
+  }
+  printf("\n\n" );
+
   /* screen until retaining x% of the intensity of all transitions,
    set all "sceened" states to the n_trans+1 */
 
-  /* for (l = 1; l < nt +1; l++) { */
-  /*   printf("\npostsort 1 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]); */
-  /* } */
-  /* printf("\n\n" ); */
 
   /* in the transitions remaining after boltzmann weight screening,
   screen out transitions according to the intensit screening threshold */
   for (j = 0; j < nt; j++) {
-    spec -> iscr_int += int_dist[1][j];
+    spec -> iscr_int += int_dist[j][1];
 
     /* check if the intensity screened based on total transition intensity is above threshold */
     if ((spec -> iscr_int / (spec -> itot - spec -> iscr_bw) > int_thrsh)
         && (fabs((spec -> iscr_int / (spec -> itot - spec -> iscr_bw)) - int_thrsh) > (DBL_EPSILON*1000))) {
-      spec -> iscr_int -= int_dist[1][j];
+      spec -> iscr_int -= int_dist[j][1];
       /* printf("broke out at: int_dist[%d] = %le %le, spec -> iscr =  %le \n", j, int_dist[0][j], int_dist[1][j], spec -> iscr_int); */
       /* printf("yes %le %le %le %le diff = %le\n", spec -> iscr_int, spec -> itot - spec -> iscr_bw, spec -> iscr_int/(spec -> itot - spec -> iscr_bw), int_thrsh, spec -> iscr_int/(spec -> itot - spec -> iscr_bw) - int_thrsh); */
       break;
@@ -682,24 +763,27 @@ set_spec (struct inp_node *inp)
     else{
       /* printf("no %le %le %le %le\n", spec -> iscr_int, spec -> itot - spec -> iscr_bw, spec -> iscr_int/(spec -> itot - spec -> iscr_bw), int_thrsh); */
       spec -> n_sst_i++;
-      int_dist[0][j] = int_dist[1][j] = 0;
+      int_dist[j][0] = int_dist[j][1] = 0;
     }
   }
 
-
-  /* for (l = 1; l < nt + 1; l++) { */
-  /*   printf("\npresort 2 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]); */
-  /* } */
-  /* printf("\n\n" ); */
+  for (l = 1; l < nt + 1; l++) {
+    printf("\npresort 2 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]);
+  }
+  printf("\n\n" );
 
   /* sort ascendingly according to index */
-  iquicks_d(int_dist[0], int_dist[1], j, nt - 1, nt);
+  mswap_cols(int_dist, int_dist, nt, 2, 0, 1);
+  qsort_partial(int_dist, j, nt, nt, 2);
+  mswap_cols(int_dist, int_dist, nt, 2, 1, 0);
+  /* iquicks_d(int_dist[0], int_dist[1], j, nt - 1, nt); */
 
-  /* for (l = 1; l < nt + 1; l++) { */
-  /*   printf("\npostsort 2 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]); */
-  /* } */
-  /* printf("\n\n" ); */
-
+  for (l = 1; l < nt + 1; l++) {
+    printf("\npostsort 2 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]);
+  }
+  printf("\n\n" );
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   /* finally, generate the new screen by only including those states that were not screened out above */
   n_fs = n_is = 0;
   l = 1;
@@ -716,7 +800,7 @@ set_spec (struct inp_node *inp)
 
     for (k = is_pos; ((is_idx = root_spec->is_idxs->a[k]) != -1); k++) {
 
-      if (l == (int)int_dist[0][m]) {
+      if (l == (int)int_dist[m][0]) {
         /* printf("\nl == %d %d %d %d\n", l , (int)int_dist[0][m], m, nt); */
         /* is there an index in spec that already maps to
            this gs2is transition?*/
