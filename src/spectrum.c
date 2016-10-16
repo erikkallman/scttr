@@ -603,7 +603,10 @@ set_spec (struct inp_node *inp)
       exit(1);
     }
   }
-  /* printf("sum = %le\n", inp->bw_sum); */
+
+  /* populate a list of all intensities and screen out all ground states
+  that are below the screening threshold. the l-index starts at one
+  since the zero is used to mark excluded transitions. */
   spec -> itot = 0;
   for (l = 1, j = 0; j<n_sfs; j++) {
 
@@ -617,38 +620,44 @@ set_spec (struct inp_node *inp)
       bw = bw / inp -> bw_sum;
       tmom_gi = inp -> trs[4][r_gi[is_idx]];
       tmp_int = tmom_if * tmom_gi * bw;
+
+      printf("ENERGY = %le %le\n", (inp -> trs[3][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV, (inp -> trs[4][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV);
       if (bw > bw_thrsh) {
 
         int_dist[0][l-1] = l;
         int_dist[1][l-1] = tmp_int;
-        /* printf("bw in [%d] = %le %le\n", l, bw, bw*inp->bw_sum); */
+        printf("bw in [%d] = %le %le\n\n", l, bw, bw*inp->bw_sum);
       }
       else{
         spec -> iscr_bw += tmp_int;
         int_dist[0][l-1] = int_dist[1][l-1] = 0;
         spec -> n_sst_bw++;
-        /* printf("bw out [%d] = %le %le\n", l, bw, bw*inp->bw_sum); */
+        printf("bw out [%d] = %le %le\n\n", l, bw, bw*inp->bw_sum);
       }
       spec -> itot += tmp_int;
       l++;
     }
   }
+  printf("screening results %d %d %le", nt, spec -> n_sst_bw, spec -> iscr_bw);
+  for (l = 1; l < nt+1; l++) {
+    printf("\npresort 1 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]);
+  }
+  printf("\n\n" );
 
-  /* for (l = 1; l < nt+1; l++) { */
-  /*   printf("\npresort 1 included: %d %le \n", (int)int_dist[0][l-1], int_dist[1][l-1]); */
-  /* } */
-  /* printf("\n\n" ); */
-
+  /* if there is a single intensity that we can know the value of, since
+  it is larger than the machine epsilon for double precision floats,
+  sort the list */
   for (l = 0; l < nt; l++) {
     if (((int_dist[1][l] - int_dist[1][0]) > DBL_EPSILON)
-        || (int_dist[1][l] < DBL_EPSILON)){
+        || (int_dist[1][l] > DBL_EPSILON)){
 
       /* sort ascendingly according to intensity */
       iquicks_d(int_dist[1], int_dist[0], 0, nt - 1, nt);
       break;
     }
   }
-
+  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+  exit(1);
   /* screen until retaining x% of the intensity of all transitions,
    set all "sceened" states to the n_trans+1 */
 
