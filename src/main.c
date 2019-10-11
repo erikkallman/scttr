@@ -178,6 +178,9 @@ main (int argc, char *argv[])
   char *end;
 
   char *ltime = malloc(20);
+  char *start_t = malloc(20);
+  char *fin_t = malloc(20);
+
   char curr_dir[BUF_SIZE] = {0};
   char out_buf[BUF_SIZE] = {0};
 
@@ -209,8 +212,9 @@ main (int argc, char *argv[])
   state_er[0] = 0;
 
   struct stat st = {0};
+  get_loctime(start_t);
 
-  printf("\n\nscttr calculation initiated (%s).\n\n", get_loctime(ltime));
+  printf("\n\nscttr calculation initiated (%s).\n\n", start_t);
 
   /* process the input arguments */
   if (argc == 1) {
@@ -735,12 +739,14 @@ main (int argc, char *argv[])
   inp -> ems = ems;
   inp -> abs = abs;
 
-  if (ems == abs){
-    inp -> el = 1;
-  }
-  else {
-    inp -> el = 0;
-  }
+  /* if (ems == abs){ */
+  /*   inp -> el = 1; */
+  /* } */
+  /* else { */
+  /*   inp -> el = 0; */
+  /* } */
+
+  inp -> el = 1;/* adding elastic transitions should be default */
 
   if (len_fn == 0) {
    fprintf(stderr, "\n\Error: calc_spec.c, main: you didnt provide the path to an input file.");
@@ -827,8 +833,14 @@ main (int argc, char *argv[])
   free_inp(inp);
   free(input_sbuff);
 
+  get_loctime(fin_t);
   printf("\nscttr calculation successfully executed.\n");
-  printf(" program terminating (%s).\n\n", get_loctime(ltime));
+  printf(" program terminating (%s).\n\n", fin_t);
+  /* printf("n_sec = %d", get_timediff(start_t, fin_t)); */
+
+  free(start_t);
+  free(fin_t);
   free(ltime);
+
   return 0;
 }

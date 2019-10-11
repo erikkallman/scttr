@@ -23,7 +23,7 @@
  * @date November 2015
  * @version "${SCTTR_VERSION}"
  * @section intro Introduction
- * The Scttr program is a Free and Open Source Software (FOSS) alternative to calculating resonant inelastic X-ray scattering spectra from results obtainable from standard quantum chemical software. Its input is a simple interface that reads energy eigenvalues and transition moments from either a binary or text file, and uses that information to calculate the experimentally observed spectrum obtained from performing resonant inelastic x-ray scattering (RIXS) experiments. As of currently (version 1.55), the program does this without taking destructive interference between scattering channels into account, as can be see in how the Kramers-Heisenberg formula is used in the program (see M. Lundberg et. al. 2013 for an example of how it is used and defined mathematically, and the calc_spec() function for the implementation). To do this, the user is provided with a well, documented command line interface giving the user a variety of options (spectral resolution, transition screening parameters etc.) to optimize the calculation time for a given input file.
+ * The Scttr program is a Free and Open Source Software (FOSS) alternative to calculating resonant inelastic X-ray scattering spectra from results obtainable from standard quantum chemical software. Calculations are paralellized across threads via OpenMP, and further optimized in memory management in that each thread gets handed a size of worke that optimally fits in the fastest cache memory. Its input is a simple interface that reads energy eigenvalues and transition moments from either a binary or text file, and uses that information to calculate the experimentally observed spectrum obtained from performing resonant inelastic x-ray scattering (RIXS) experiments. As of currently (version 1.55), the program does this without taking destructive interference between scattering channels into account, as can be see in how the Kramers-Heisenberg formula is used in the program (see M. Lundberg et. al. 2013 for an example of how it is used and defined mathematically, and the calc_spec() function for the implementation). To do this, the user is provided with a well, documented command line interface giving the user a variety of options (spectral resolution, transition screening parameters etc.) to optimize the calculation time for a given input file.
  *
  * @section supp Platform support and dependencies
  * Currently only Linux systems are supported (tested and developed on ubuntu 12.04), where compilation and documentation generation requires:
@@ -42,11 +42,11 @@
  * <hr>
  * cmake . -DCMAKE_BUILD_TYPE=Debug
  * <hr>
- * These flags modify what flags are provided to the GCC compiler (the only compiler currently supported). The Debug option provides GCC with flags used to generate a binary suitable for debugging the program with Valgrind (see http://valgrind.org/) or the The Gnu Project Debugger (GDB, see https://www.gnu.org/software/gdb/), while the Release option compiles the program with @p o3 optimization (see the GCC manual for details https://gcc.gnu.org/).
+ * These flags modify what flags are provided to the GCC compiler (the only compiler currently tested). The Debug option provides GCC with flags used to generate a binary suitable for debugging the program with Valgrind (see http://valgrind.org/) or the The Gnu Project Debugger (GDB, see https://www.gnu.org/software/gdb/), while the Release option compiles the program with @p o3 optimization (see the GCC manual for details https://gcc.gnu.org/).
  * @section use Usage
  *
  * @subsection start Getting Started
- * The test directory contains an example input file for a simple model system: Fe[II] in an octahedral field of point charges of 2 eV, 3Å away from the atomic center. It was calculated in the Molcas program (see http://www.molcas.org/). This file provides all the information needed by Scttr to generate a full RIXS spectrum: transitions between a set of ground, intermediate and final states; the energy eigenvalues of the states, along with the moments (pure quadrupole in this case) of the transitions between them.
+ * The test directory contains an example input file for a simple model system: Fe[II] in an octahedral field of point charges of 2 eV, 3Å away from the atomic center. It was calculated using the OpenMolcas program (see https://gitlab.com/Molcas/OpenMolcas). This file provides all the information needed by Scttr to generate a full RIXS spectrum: transitions between a set of ground, intermediate and final states; the energy eigenvalues of the states, along with the moments (pure quadrupole in this case) of the transitions between them.
  *
  * To obtain the RIXS spectrum for this system, execute Scttr by providing the following input flags:
  *
@@ -60,7 +60,7 @@
  * - fe2p_1s3d.gp: the plot script for the .dat file.
  * The .gp file can be provided as input to the Gnuplot program, which, in turn will generate a file "fe2p_1s3d.png" in the same directory, which contains the RIXS spectrum.
  *
- * If called with a .log file from Molcas, instead of a binary file, the following files would also be generated, along with the ones mentioned above:
+ * If called with a .log file from OpenMolcas, instead of a binary file, the following files would also be generated, along with the ones mentioned above:
   * - fe2p_1s3d.bin: (a binary file containing the data in the @p trs variable (see the inp_node struct for details), and the number of transitions (@p n_trans, also a member of the inp_node struct)  found in the input file (stored in first byte of the binary).
  * - fe2p_1s3d.tmp: the tmp file generated from the fe2p_1s3d.log input file.
  *

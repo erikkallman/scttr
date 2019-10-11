@@ -186,3 +186,40 @@ lorz (double x_diff, double fwhm)
 {
   return (1 / PI) * ((0.5 * fwhm) / ((x_diff * x_diff) + (0.25 * fwhm * fwhm)));
 }
+
+int
+get_digit(int n, int n_num, int num_pos)
+{
+
+  int i;
+  int ssint;
+
+  char * e;
+  char *subbuf = malloc((n_num+1)*sizeof(char));
+
+  /* todo this needs not to be hard-coded */
+  char *buffer = malloc(256*sizeof(char));
+
+  int len = n==0 ? 1 : floor(log10l(abs(n)))+1;
+
+  for(i=n;len--; i=(int)(i/10)) buffer[len] = (i%10);
+
+  for (i = 0; i < n_num; i++) {
+    subbuf[i] = buffer[num_pos + i] + '0';
+  }
+
+  subbuf[n_num] = '\0';
+
+  ssint = (int)strtol(subbuf, &e, 10);
+  if (*e != '\0') {
+    printf("strtol error\n");
+    printf("%c", *e);
+    fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
+    exit(1);
+  }
+
+  free(subbuf);
+  free(buffer);
+
+  return ssint;
+}

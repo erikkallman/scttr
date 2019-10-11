@@ -163,4 +163,9 @@ isempty (char *s, int len);
 int
 isdigitin (char *s, int len);
 
+int
+get_nchars (char *from, char *to, int start, int end, int mode);
+
+int
+get_idxof(char **sofs, char *subs, int end);
 #endif /* CHAR_OPS_H */

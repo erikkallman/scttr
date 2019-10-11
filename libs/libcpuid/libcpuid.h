@@ -51,7 +51,7 @@
  *                      *BSD and Solaris support (unofficial).
  */
 
-/** @mainpage A simple libcpuid introduction
+/** A simple libcpuid introduction
  *
  * LibCPUID provides CPU identification and access to the CPUID and RDTSC
  * instructions on the x86.

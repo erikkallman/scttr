@@ -154,4 +154,7 @@ get_boltzw (double e_val);
    */
 double
 lorz (double x_diff, double fwhm);
+
+int
+get_digit(int n, int n_num, int num_pos);
 #endif /* STD_NUM_OPS_H */

@@ -261,6 +261,7 @@ add_eltrans (struct inp_node *inp)
         && (((inp -> trs[3][j] - e0) * AUTOEV >= state_er[1])
             && ((inp -> trs[3][j] - e0) * AUTOEV <= state_er[2]))
         && ((int)inp -> trs[5][j] == inp -> abs)) {
+
       next_from = (int)inp -> trs[1][j];
 
       /* found a "to" state that has not had its elastic transitions

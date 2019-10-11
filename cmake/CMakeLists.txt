@@ -17,7 +17,7 @@
 
 # If the user specifies -DCMAKE_BUILD_TYPE on the command line, take its
 # definition and dump it in the cache along with proper documentation,
-# otherwise set CMAKE_BUILD_TYPE to Debug prior to calling PROJECT()
+# otherwise set CMAKE_BUILD_TYPE to debug prior to calling PROJECT()
 #
 
 cmake_minimum_required(VERSION 2.8)
@@ -38,12 +38,11 @@ endif()
 
 IF(DEFINED CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Choose the type of
-build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug
-Release RelWithDebInfo MinSizeRel.")
+build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) debug
+production.")
 ELSE()
-  SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build,
-options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release
-RelWithDebInfo MinSizeRel.")
+  SET(CMAKE_BUILD_TYPE production CACHE STRING "Choose the type of build,
+options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) debug production.")
 ENDIF()
 
 set (PLOT_TEMPLATE_PTH "${PROJECT_SOURCE_DIR}/../src/plot_template")
@@ -125,11 +124,11 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "debug")
   message(STATUS "Building debug-type makefiles")
   set(CMAKE_C_FLAGS "-pg -fopenmp -o0 -Wall -D_GNU_SOURCE -std=gnu89")
 
-else(CMAKE_BUILD_TYPE STREQUAL "Production")
+else(CMAKE_BUILD_TYPE STREQUAL "production")
   message(STATUS "Building production-type makefiles")
   set(CMAKE_C_FLAGS "-Wall -fopenmp -o3 -D_GNU_SOURCE -std=gnu89")
 endif()

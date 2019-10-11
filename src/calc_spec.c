@@ -548,9 +548,12 @@ intf_0_old( struct inp_node *inp, struct spectrum *spec, struct metadata *md)
   spec -> npr_tot = spec -> n_elx * spec -> npr;
 
   if (spec-> npr * spec->prsz < spec -> n_ely) {
-    fprintf(stderr, "calc_spec.c, function intf_0_old: matrix incorrectly partitioned (spec-> npr * spec->prsz < spec -> n_ely)\n");
+    fprintf(stderr, "calc_spec.c, function intf_0_old: matrix incorrectly partitioned (spec-> npr * spec->prsz (%d) < spec -> n_ely (%d), OMP_NUM_THREADS = %d)\n",spec-> npr * spec->prsz, spec -> n_ely, nth);
     printf( "program terminating due to the previous error.\n");
     exit(EXIT_FAILURE);
+  }
+  else {
+    printf("\n\n MATRIX CORRECT \n\n");
   }
 
   rchunk = get_row_chunk(4, sizeof(double), cache_cfg);

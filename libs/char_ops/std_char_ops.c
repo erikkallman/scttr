@@ -277,7 +277,7 @@ sci_atof(char *s)
 
   for(pow = 1.0; isdigit(s[j]); j++)
     {
-      val = 10.0 * val + (s[j] - '0');
+      val  = 10.0 * val + (s[j] - '0');
       pow *= 10.0;
     }
 
@@ -309,7 +309,7 @@ isdashes (char *s, int len)
     c = s[j];
 
     if (ISDDASH(c, last_c))
-      return 1;/* found at least one double dash */
+      return 1;                 /* found at least one double dash */
 
     last_c = c;
   }
@@ -326,7 +326,7 @@ isempty (char *s, int len)
 
   for (j = 0; j < len; j++)
     if (strchr(key, s[j]) == NULL)
-      return 0;/* match found, it isnt empty */
+      return 0;                 /* match found, it isnt empty */
 
   /* we got through the string without finding a match to key.
      the string is "empty" */
@@ -343,4 +343,36 @@ isdigitin (char *s, int len)
       return 1;
 
   return 0;
+}
+
+/* get a sequence of integer numbers from a string. case 1 extracts
+   letters, case 2 extracts integer numbers, lower index inclusive upper
+   index exclusive */
+int
+get_nchars (char *from, char *to, int start, int end, int mode)
+{
+  int j,k = 0;
+
+  for (k = 0, j = start; j < end; j++) {
+    if ((mode == 1) && (isalpha(from[j]))) {
+      to[k++] = from[j];
+    }
+    if ((mode == 2) && (isdigit(from[j]))) {
+      to[k++] = from[j];
+    }
+  }
+  return 0;
+}
+
+int
+get_idxof(char **sofs, char *subs, int end)
+{
+  int j = 0;
+
+  for (j = 0; j < end; j++) {
+    if (strcmp(sofs[j], subs) == 0) {
+        return j;
+    }
+  }
+  return -1;
 }

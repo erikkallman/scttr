@@ -545,14 +545,36 @@ set_root_spec (struct inp_node *inp)
 /* } */
 
 
-int compare(const void *stackA, const void *stackB)
+int doublecompare_d1( const void* a, const void* b)
 {
-  const double *a=*(const double**)stackA;
-  const double *b=*(const double**)stackB;
-    if((a[0] - b[0]) <= DBL_EPSILON)
-    return a[1] - b[1];
-  else
-    return a[0] - b[0];
+  double* p1 = *(double**) a;
+  double* p2 = *(double**) b;
+
+  if( p1[1] < p2[1]) {
+    return -1;
+  }
+  else if (p1[1] > p2[1]) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+int doublecompare_d0( const void* a, const void* b)
+{
+  double* p1 = *(double**) a;
+  double* p2 = *(double**) b;
+
+  if( p1[0] < p2[0]) {
+    return -1;
+  }
+  else if (p1[0] > p2[0]) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
 }
 
 /* copy part of a 2d array from one to other b.start inclusive and end exclusive. both indices are c-type (0->inf.)*/
@@ -581,14 +603,18 @@ copy_tf_part(double **from, double **to, int start, int end)
 }
 
 void
-qsort_partial(double **array, int start, int end, int nrows, int ncols)
+qsort_partial(double **array, int start, int end, int nrows, int ncols, int dim)
 {
   /* a part of the array */
   int j;
   double **ap;
 
   if ((end - start) == nrows){
-    qsort(array, nrows, sizeof(array[0]), compare);
+    if (dim == 0) {
+      qsort(array, nrows, sizeof(array[0]), doublecompare_d0);
+    } else {
+      qsort(array, nrows, sizeof(array[0]), doublecompare_d1);
+    }
   }
   else if(end == start){
     fprintf(stderr, "\n\nbut why=======Valgrind eject point=======\n\n");
@@ -602,7 +628,11 @@ qsort_partial(double **array, int start, int end, int nrows, int ncols)
 
     copy_ft_part(array, ap, start, end);
 
-    qsort(ap, end-start, sizeof(ap[0]), compare);
+    if (dim == 0) {
+      qsort(ap, end-start, sizeof(ap[0]), doublecompare_d0);
+    } else {
+      qsort(ap, end-start, sizeof(ap[0]), doublecompare_d1);
+    }
 
     copy_tf_part(ap, array, start, end);
   }
@@ -700,29 +730,29 @@ set_spec (struct inp_node *inp)
       tmom_gi = inp -> trs[4][r_gi[is_idx]];
       tmp_int = tmom_if * tmom_gi * bw;
 
-      printf("ENERGY = %le %le\n", (inp -> trs[3][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV, (inp -> trs[4][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV);
+      /* printf("ENERGY = %le %le\n", (inp -> trs[3][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV, (inp -> trs[4][r_gi[is_idx]] - inp -> e0) * (double)AUTOEV); */
       if (bw > bw_thrsh) {
 
         int_dist[l-1][0] = l;
         int_dist[l-1][1] = tmp_int;
-        printf("bw in [%d] = %le %le\n\n", l, bw, bw*inp->bw_sum);
+        /* printf("bw in [%d] = %le %le\n\n", l, bw, bw*inp->bw_sum); */
       }
       else{
         spec -> iscr_bw += tmp_int;
         int_dist[l-1][0] = int_dist[l-1][1] = 0;
         spec -> n_sst_bw++;
-        printf("bw out [%d] = %le %le\n\n", l, bw, bw*inp->bw_sum);
+        /* printf("bw out [%d] = %le %le\n\n", l, bw, bw*inp->bw_sum); */
       }
       spec -> itot += tmp_int;
       l++;
     }
   }
-  printf("screening results %d %d %le", nt, spec -> n_sst_bw, spec -> iscr_bw);
+  /* printf("screening results %d %d %le", nt, spec -> n_sst_bw, spec -> iscr_bw); */
 
-    for (l = 1; l < nt + 1; l++) {
-    printf("\npresort 1 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]);
-  }
-  printf("\n\n" );
+  /*   for (l = 1; l < nt + 1; l++) { */
+  /*   printf("\npresort 1 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]); */
+  /* } */
+  /* printf("\n\n" ); */
 
   /* if there is a single intensity that we can know the value of, since
   it is larger than the machine epsilon for double precision floats,
@@ -732,16 +762,16 @@ set_spec (struct inp_node *inp)
         || (int_dist[l][1] > DBL_EPSILON)){
 
       /* sort ascendingly according to intensity */
-      qsort_partial(int_dist, 0, nt, nt, 2);
+      qsort_partial(int_dist, 0, nt, nt, 2, 1);
       /* iquicks_d(int_dist[1], int_dist[0], 0, nt - 1, nt); */
       break;
     }
   }
 
-  for (l = 1; l < nt + 1; l++) {
-    printf("\npostsort 1 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]);
-  }
-  printf("\n\n" );
+  /* for (l = 1; l < nt + 1; l++) { */
+  /*   printf("\npostsort 1 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]); */
+  /* } */
+  /* printf("\n\n" ); */
 
   /* screen until retaining x% of the intensity of all transitions,
    set all "sceened" states to the n_trans+1 */
@@ -767,23 +797,21 @@ set_spec (struct inp_node *inp)
     }
   }
 
-  for (l = 1; l < nt + 1; l++) {
-    printf("\npresort 2 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]);
-  }
-  printf("\n\n" );
+  /* for (l = 1; l < nt + 1; l++) { */
+  /*   printf("\npresort 2 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]); */
+  /* } */
+  /* printf("\n\n" ); */
 
   /* sort ascendingly according to index */
-  mswap_cols(int_dist, int_dist, nt, 2, 0, 1);
-  qsort_partial(int_dist, j, nt, nt, 2);
-  mswap_cols(int_dist, int_dist, nt, 2, 1, 0);
+  qsort_partial(int_dist, j, nt, nt, 2, 0);
   /* iquicks_d(int_dist[0], int_dist[1], j, nt - 1, nt); */
 
-  for (l = 1; l < nt + 1; l++) {
-    printf("\npostsort 2 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]);
-  }
-  printf("\n\n" );
-  fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n");
-  exit(1);
+  /* for (l = 1; l < nt + 1; l++) { */
+  /*   printf("\npostsort 2 included: %d %le \n", (int)int_dist[l-1][0], int_dist[l-1][1]); */
+  /* } */
+  /* printf("\n\n" ); */
+  /* fprintf(stderr, "\n\n=======Valgrind eject point=======\n\n"); */
+  /* exit(1); */
   /* finally, generate the new screen by only including those states that were not screened out above */
   n_fs = n_is = 0;
   l = 1;
